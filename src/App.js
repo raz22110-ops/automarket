@@ -390,6 +390,7 @@ const CarDealershipApp = () => {
       const text = `שלום, אני מתעניין ברכב ${car.make} ${car.model} (${car.year}) שמופיע באתר.\n\n*פרטי קשר:*\nשם: ${leadName}\nטלפון: ${leadPhone}\nמעוניין במימון: ${wantFinance ? 'כן' : 'לא'}\nיש רכב לטרייד-אין: ${haveTradeIn ? 'כן' : 'לא'}`;
       window.open(`https://wa.me/972526441855?text=${encodeURIComponent(text)}`, '_blank');
     };
+
     return (
       <div className="pt-32 pb-16 bg-neutral-950 min-h-screen text-right" dir="rtl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -827,29 +828,23 @@ const CarDealershipApp = () => {
             <div className="max-w-4xl mx-auto px-4 relative z-10 text-center">
               <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">מצאת את רכב החלומות שלך?</h2>
               <p className="text-neutral-100 text-xl mb-10 font-medium">השאר פרטים ונציג אישי יחזור אליך תוך דקות ספורות להצעת מחיר משתלמת.</p>
-              <form onSubmit={async (e) => {
-                e.preventDefault();
-                const name = e.target.elements[0].value;
-                const phone = e.target.elements[1].value;
-                
-                // --- שמירה ל-Supabase ---
-                const { error } = await supabase
-                  .from('leads')
-                  .insert([
-                    { 
-                      name: name, 
-                      phone: phone, 
-                      lead_type: 'פנייה כללית', 
-                      car_details: 'אין' 
-                    }
+              <form 
+                className="flex flex-col md:flex-row gap-4 justify-center flex-row-reverse"
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  const name = e.target.elements[0].value;
+                  const phone = e.target.elements[1].value;
+                  
+                  const { error } = await supabase.from('leads').insert([
+                    { name: name, phone: phone, lead_type: 'פנייה כללית', car_details: 'אין' }
                   ]);
-                if (error) console.error('שגיאה בשמירת הליד:', error);
-                // ------------------------
+                  
+                  if (error) console.error('שגיאה בשמירת הליד:', error);
 
-                const text = `שלום, הגעתי מהאתר (עמוד ראשי) ואשמח שיחזרו אליי.\nשם: ${name}\nטלפון: ${phone}`;
-                window.open(`https://wa.me/972526441855?text=${encodeURIComponent(text)}`, '_blank');
-              }} className="flex flex-col md:flex-row gap-4 justify-center flex-row-reverse">
-              }} className="flex flex-col md:flex-row gap-4 justify-center flex-row-reverse">
+                  const text = `שלום, הגעתי מהאתר (עמוד ראשי) ואשמח שיחזרו אליי.\nשם: ${name}\nטלפון: ${phone}`;
+                  window.open(`https://wa.me/972526441855?text=${encodeURIComponent(text)}`, '_blank');
+                }}
+              >
                 <input type="text" placeholder="שם מלא" className="px-6 py-4 rounded-xl bg-white/90 text-neutral-900 placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-neutral-950 w-full md:w-auto text-right" required />
                 <input type="tel" placeholder="מספר טלפון" className="px-6 py-4 rounded-xl bg-white/90 text-neutral-900 placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-neutral-950 w-full md:w-auto text-right" required />
                 <button type="submit" className="px-8 py-4 bg-neutral-950 text-white rounded-xl font-bold hover:bg-neutral-800 transition-colors flex items-center justify-center gap-2 flex-row-reverse">
