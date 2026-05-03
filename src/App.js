@@ -33,8 +33,24 @@ const CarDealershipApp = () => {
     name: '', phone: '', make: '', model: '', year: '', engine: '', km: '', ownership: '', owners: ''
   });
 
-  const handleTradeInSubmit = (e) => {
+  const handleTradeInSubmit = async (e) => {
     e.preventDefault();
+    
+    // --- שמירה ל-Supabase ---
+    const { error } = await supabase
+      .from('leads')
+      .insert([
+        { 
+          name: tradeData.name, 
+          phone: tradeData.phone, 
+          lead_type: 'טרייד-אין', 
+          car_details: `${tradeData.make} ${tradeData.model} (${tradeData.year})` 
+        }
+      ]);
+      
+    if (error) console.error('שגיאה בשמירת הליד:', error);
+    // ------------------------
+
     const text = `שלום, אשמח לקבל הצעת טרייד-אין.\n\n*פרטי התקשרות:*\nשם: ${tradeData.name}\nטלפון: ${tradeData.phone}\n\n*פרטי הרכב שלי:*\nיצרן: ${tradeData.make}\nדגם: ${tradeData.model}\nשנתון: ${tradeData.year}\nסוג הנעה: ${tradeData.engine}\nקילומטראז': ${tradeData.km}\nבעלות מקורית: ${tradeData.ownership}\nיד: ${tradeData.owners}`;
     window.open(`https://wa.me/972526441855?text=${encodeURIComponent(text)}`, '_blank');
     setIsTradeInOpen(false);
@@ -349,12 +365,31 @@ const CarDealershipApp = () => {
     const [haveTradeIn, setHaveTradeIn] = useState(false);
     const [activeImageIndex, setActiveImageIndex] = useState(0);
 
-    const handleLeadSubmit = (e) => {
+    const handleLeadSubmit = async (e) => {
       e.preventDefault();
+      
+      // --- שמירה ל-Supabase ---
+      let typeOfLead = 'התעניינות ברכב';
+      if (wantFinance) typeOfLead = 'מימון';
+      if (haveTradeIn) typeOfLead = 'טרייד-אין';
+
+      const { error } = await supabase
+        .from('leads')
+        .insert([
+          { 
+            name: leadName, 
+            phone: leadPhone, 
+            lead_type: typeOfLead, 
+            car_details: `${car.make} ${car.model} (${car.year})` 
+          }
+        ]);
+        
+      if (error) console.error('שגיאה בשמירת הליד:', error);
+      // ------------------------
+
       const text = `שלום, אני מתעניין ברכב ${car.make} ${car.model} (${car.year}) שמופיע באתר.\n\n*פרטי קשר:*\nשם: ${leadName}\nטלפון: ${leadPhone}\nמעוניין במימון: ${wantFinance ? 'כן' : 'לא'}\nיש רכב לטרייד-אין: ${haveTradeIn ? 'כן' : 'לא'}`;
       window.open(`https://wa.me/972526441855?text=${encodeURIComponent(text)}`, '_blank');
     };
-
     return (
       <div className="pt-32 pb-16 bg-neutral-950 min-h-screen text-right" dir="rtl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -792,12 +827,28 @@ const CarDealershipApp = () => {
             <div className="max-w-4xl mx-auto px-4 relative z-10 text-center">
               <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">מצאת את רכב החלומות שלך?</h2>
               <p className="text-neutral-100 text-xl mb-10 font-medium">השאר פרטים ונציג אישי יחזור אליך תוך דקות ספורות להצעת מחיר משתלמת.</p>
-              <form onSubmit={(e) => {
+              <form onSubmit={async (e) => {
                 e.preventDefault();
                 const name = e.target.elements[0].value;
                 const phone = e.target.elements[1].value;
+                
+                // --- שמירה ל-Supabase ---
+                const { error } = await supabase
+                  .from('leads')
+                  .insert([
+                    { 
+                      name: name, 
+                      phone: phone, 
+                      lead_type: 'פנייה כללית', 
+                      car_details: 'אין' 
+                    }
+                  ]);
+                if (error) console.error('שגיאה בשמירת הליד:', error);
+                // ------------------------
+
                 const text = `שלום, הגעתי מהאתר (עמוד ראשי) ואשמח שיחזרו אליי.\nשם: ${name}\nטלפון: ${phone}`;
                 window.open(`https://wa.me/972526441855?text=${encodeURIComponent(text)}`, '_blank');
+              }} className="flex flex-col md:flex-row gap-4 justify-center flex-row-reverse">
               }} className="flex flex-col md:flex-row gap-4 justify-center flex-row-reverse">
                 <input type="text" placeholder="שם מלא" className="px-6 py-4 rounded-xl bg-white/90 text-neutral-900 placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-neutral-950 w-full md:w-auto text-right" required />
                 <input type="tel" placeholder="מספר טלפון" className="px-6 py-4 rounded-xl bg-white/90 text-neutral-900 placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-neutral-950 w-full md:w-auto text-right" required />
