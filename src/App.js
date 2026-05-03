@@ -336,7 +336,7 @@ const CarDealershipApp = () => {
                 onError={(e) => { e.target.src = '/back.jpg' }}
               />
             </div>
-            <div className="p-6 text-right">
+            <div className="p-4 md:p-6 text-right">
               <div className="flex justify-between items-start mb-4 flex-row-reverse">
                 <div className="text-right">
                   <h3 className="text-xl font-bold text-white mb-1">{car.make} {car.model}</h3>
@@ -593,8 +593,8 @@ const CarDealershipApp = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-20 items-center">
             <button onClick={() => navigateTo('home')} className="flex items-center cursor-pointer bg-transparent border-none p-0">
-              <img src="/logo.png" alt="אוטו מרקט לוגו" className="h-12 md:h-16 w-auto object-contain" />
-            </button>
+            <img src="/logo.png" alt="אוטו מרקט לוגו" className="h-16 md:h-16 w-auto object-contain" />
+                        </button>
             
             <div className="hidden lg:flex space-x-8 space-x-reverse items-center">
               <button onClick={() => navigateTo('home')} className={`font-medium transition-colors ${currentView === 'home' && !selectedCar ? 'text-red-500' : 'text-neutral-300 hover:text-red-500'}`}>ראשי</button>
@@ -668,7 +668,7 @@ const CarDealershipApp = () => {
                 אוטו מרקט מתמחה בכל סוגי הרכבים - מחדשים ועד משומשים. אנו מציעים חווית קנייה יוצאת דופן עם פתרונות מימון וטרייד-אין מותאמים אישית.
               </p>
               
-              <div className="bg-neutral-900/90 backdrop-blur-xl rounded-2xl border border-neutral-800 shadow-2xl overflow-hidden mt-8 text-right">
+              <div className="bg-neutral-900/90 backdrop-blur-xl rounded-2xl border border-neutral-800 shadow-2xl overflow-hidden mt-8 text-right scale-105 md:scale-100">
                 <div className="flex border-b border-neutral-800 flex-row-reverse">
                   <button onClick={() => setSearchTab('finance')} className={`flex-1 py-4 font-bold transition-colors ${searchTab === 'finance' ? 'bg-red-600 text-white' : 'text-neutral-400 hover:bg-neutral-800'}`}>סימולטור מימון חכם</button>
                   <button onClick={() => setSearchTab('regular')} className={`flex-1 py-4 font-bold transition-colors ${searchTab === 'regular' ? 'bg-red-600 text-white' : 'text-neutral-400 hover:bg-neutral-800'}`}>חיפוש רכב רגיל</button>
