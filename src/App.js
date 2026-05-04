@@ -8,7 +8,7 @@ const mySupabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFz
 const supabase = createClient(mySupabaseUrl, mySupabaseKey);
 
 const ISRAELI_CAR_MAKES = [
-  "אאודי","אופל","אורא","איסוזו","אינפיניטי","איווקו","אלפא-רומיאו","אסטון מרטין",
+  "אאודי","אופל","אורא","איסוזו","אינפיניטי","איווקו","אלפא רומיאו","אסטון מרטין",
   "במוו","בי-ווי-די (BYD)","גאקו","ג'יפ","ג'נסיס","גרייטוול","דאצ'יה","דודג'",
   "הונדה","יונדאי","וולוו","טויוטה","טסלה","יגואר","לאדה","לקסוס","מאזדה",
   "מזראטי","מיני","מיצובישי","מרצדס","ניסאן","סאנגיונג","סובארו","סוזוקי",
@@ -141,11 +141,23 @@ const CarDealershipApp = () => {
     }
   };
 
-  const [newCar, setNewCar] = useState({
+  const EMPTY_CAR = {
     make: '', model: '', subModel: '', year: '', condition: 'משומש', engineType: 'בנזין',
     mileage: '', owners: '', engineCapacity: '', price: '', monthlyPayment: '',
     listPrice: '', showListPrice: false, images: [], type: 'משפחתי'
-  });
+  };
+
+  const [newCar, setNewCar] = useState(EMPTY_CAR);
+
+  // --- Upload status ---
+  const [uploadStatus, setUploadStatus] = useState('idle'); // idle | loading | success | error
+
+  // --- Edit modal ---
+  const [editCar, setEditCar] = useState(null);
+  const [editStatus, setEditStatus] = useState('idle'); // idle | loading | success | error
+
+  // --- Delete confirm ---
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
 
   const resizeImage = (file) => {
     return new Promise((resolve) => {
@@ -154,17 +166,14 @@ const CarDealershipApp = () => {
         const img = new Image();
         img.onload = () => {
           const canvas = document.createElement('canvas');
-          const MAX_WIDTH = 1280;
-          const MAX_HEIGHT = 720;
-          let width = img.width;
-          let height = img.height;
+          const MAX_WIDTH = 1280; const MAX_HEIGHT = 720;
+          let width = img.width; let height = img.height;
           if (width > height) {
             if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
           } else {
             if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; }
           }
-          canvas.width = width;
-          canvas.height = height;
+          canvas.width = width; canvas.height = height;
           const ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0, width, height);
           resolve(canvas.toDataURL('image/jpeg', 0.85));
@@ -175,37 +184,52 @@ const CarDealershipApp = () => {
     });
   };
 
-  const handleImageUpload = async (e) => {
+  const handleImageUpload = async (e, target = 'new') => {
     const files = Array.from(e.target.files);
     if (files.length === 0) return;
     if (files.length > 10) { alert('ניתן להעלות עד 10 תמונות לכל רכב.'); return; }
     try {
-      const promises = files.map(file => resizeImage(file));
-      const base64Images = await Promise.all(promises);
-      setNewCar({ ...newCar, images: base64Images });
-    } catch (err) {
-      alert('שגיאה בעיבוד התמונות.');
-    }
+      const base64Images = await Promise.all(files.map(file => resizeImage(file)));
+      if (target === 'new') {
+        setNewCar(prev => ({ ...prev, images: base64Images }));
+      } else {
+        setEditCar(prev => ({ ...prev, images: base64Images, image: base64Images[0] }));
+      }
+    } catch (err) { alert('שגיאה בעיבוד התמונות.'); }
   };
 
   const handleAddCar = async (e) => {
     e.preventDefault();
+    setUploadStatus('loading');
     const mainImage = newCar.images && newCar.images.length > 0 ? newCar.images[0] : '';
-    const carToAdd = {
-      ...newCar,
-      id: Date.now().toString(),
-      image: mainImage,
-      images: newCar.images || [],
-      createdAt: Date.now()
-    };
+    const carToAdd = { ...newCar, id: Date.now().toString(), image: mainImage, images: newCar.images || [], createdAt: Date.now() };
     try {
       const { error } = await supabase.from('inventory').insert([carToAdd]);
       if (error) throw error;
-      setInventory([carToAdd, ...inventory]);
-      setNewCar({ make: '', model: '', subModel: '', year: '', condition: 'משומש', engineType: 'בנזין', mileage: '', owners: '', engineCapacity: '', price: '', monthlyPayment: '', listPrice: '', showListPrice: false, images: [], type: 'משפחתי' });
+      setInventory(prev => [carToAdd, ...prev]);
+      setNewCar(EMPTY_CAR);
+      setUploadStatus('success');
+      setTimeout(() => setUploadStatus('idle'), 3500);
     } catch (error) {
       console.error("שגיאה בהעלאה:", error);
-      alert('שגיאה בשמירת הרכב למסד הנתונים.');
+      setUploadStatus('error');
+      setTimeout(() => setUploadStatus('idle'), 4000);
+    }
+  };
+
+  const handleEditSave = async (e) => {
+    e.preventDefault();
+    setEditStatus('loading');
+    try {
+      const { error } = await supabase.from('inventory').update(editCar).eq('id', editCar.id);
+      if (error) throw error;
+      setInventory(prev => prev.map(c => c.id === editCar.id ? editCar : c));
+      setEditStatus('success');
+      setTimeout(() => { setEditStatus('idle'); setEditCar(null); }, 1800);
+    } catch (error) {
+      console.error("שגיאה בעדכון:", error);
+      setEditStatus('error');
+      setTimeout(() => setEditStatus('idle'), 4000);
     }
   };
 
@@ -213,7 +237,8 @@ const CarDealershipApp = () => {
     try {
       const { error } = await supabase.from('inventory').delete().eq('id', id);
       if (error) throw error;
-      setInventory(inventory.filter(car => car.id !== id));
+      setInventory(prev => prev.filter(car => car.id !== id));
+      setDeleteConfirmId(null);
     } catch (error) {
       console.error("Error deleting car: ", error);
       alert("שגיאה במחיקת הרכב.");
@@ -295,7 +320,7 @@ const CarDealershipApp = () => {
   );
 
   const GenericInventoryPage = ({ cars, title, subtitle }) => (
-    <div className="pt-32 pb-24 bg-neutral-950 min-h-screen">
+    <div className="pt-36 pb-24 bg-neutral-950 min-h-screen">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-12 border-b border-neutral-800 pb-8 text-right">
           <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">{title}</h1>
@@ -325,7 +350,7 @@ const CarDealershipApp = () => {
     };
 
     return (
-      <div className="pt-32 pb-16 bg-neutral-950 min-h-screen text-right" dir="rtl">
+      <div className="pt-36 pb-16 bg-neutral-950 min-h-screen text-right" dir="rtl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <button onClick={onBack} className="flex items-center gap-2 text-neutral-400 hover:text-red-500 transition-colors mb-8 font-medium bg-neutral-900/50 px-4 py-2 rounded-full w-fit border border-neutral-800 mr-0 ml-auto">
             חזרה למלאי <ArrowRight className="w-5 h-5" />
@@ -420,12 +445,11 @@ const CarDealershipApp = () => {
       {/* ============================================================
           נאב-בר — תוקן למובייל: לוגו קטן יותר, גובה מופחת
           ============================================================ */}
-      <nav className="fixed w-full z-50 bg-neutral-950/90 backdrop-blur-md border-b border-neutral-800">
+      <nav className="fixed w-full z-50 bg-neutral-950/95 backdrop-blur-md border-b border-neutral-800 shadow-[0_2px_24px_rgba(0,0,0,0.6)]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16 md:h-20 items-center">
-            {/* שינוי: h-16 במובייל (היה h-20 קבוע), לוגו h-10 במובייל */}
+          <div className="flex justify-between h-20 md:h-28 items-center">
             <button onClick={() => navigateTo('home')} className="flex items-center cursor-pointer bg-transparent border-none p-0">
-              <img src="/logo.png" alt="אוטו מרקט לוגו" className="h-10 md:h-16 w-auto object-contain" />
+              <img src="/logo.png" alt="אוטו מרקט לוגו" className="h-16 md:h-24 w-auto object-contain drop-shadow-[0_0_10px_rgba(220,38,38,0.35)]" />
             </button>
             
             <div className="hidden lg:flex space-x-8 space-x-reverse items-center">
@@ -472,7 +496,7 @@ const CarDealershipApp = () => {
           {/* ============================================================
               HERO — תוקן: הסרת scale-105, padding מותאם למובייל
               ============================================================ */}
-          <div className="relative pt-16 md:pt-20 pb-16 md:pb-20 min-h-[90vh] flex items-center justify-center">
+          <div className="relative pt-20 md:pt-28 pb-16 md:pb-20 min-h-[90vh] flex items-center justify-center">
             <div className="absolute inset-0 z-0">
               <img src="/back.jpg" alt="Luxury Car" className="w-full h-full object-cover opacity-40" onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1603584173870-7f23fdae1b7a?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80' }} />
               <div className="absolute inset-0 bg-gradient-to-t from-neutral-950 via-neutral-950/60 to-transparent"></div>
@@ -888,85 +912,299 @@ const CarDealershipApp = () => {
 
       {isAdminOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div className="bg-neutral-900 border border-neutral-800 rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col text-right">
-            <div className="flex justify-between items-center p-6 border-b border-neutral-800 bg-neutral-950 flex-row-reverse">
-              <button onClick={() => setIsAdminOpen(false)} className="text-neutral-400 hover:text-white"><X className="w-6 h-6" /></button>
-              <h2 className="text-2xl font-bold text-white flex items-center gap-2 flex-row-reverse"><Settings className="w-6 h-6 text-red-600" /> ניהול מלאי - אוטו מרקט</h2>
+          <div className="bg-neutral-900 border border-neutral-800 rounded-2xl w-full max-w-5xl max-h-[92vh] overflow-hidden flex flex-col text-right">
+
+            {/* Header */}
+            <div className="flex justify-between items-center px-6 py-4 border-b border-neutral-800 bg-neutral-950 flex-row-reverse shrink-0">
+              <button onClick={() => setIsAdminOpen(false)} className="text-neutral-400 hover:text-white bg-neutral-800 hover:bg-red-600 p-2 rounded-full transition-colors"><X className="w-5 h-5" /></button>
+              <div className="flex items-center gap-3 flex-row-reverse">
+                <Settings className="w-6 h-6 text-red-600" />
+                <div className="text-right">
+                  <h2 className="text-xl font-bold text-white">ניהול מלאי</h2>
+                  <p className="text-xs text-neutral-500">{inventory.length} רכבים במערכת</p>
+                </div>
+              </div>
             </div>
-            <div className="flex-1 overflow-y-auto p-6">
-              <div className="bg-neutral-950 p-6 rounded-xl border border-neutral-800 mb-8">
-                <h3 className="text-xl font-bold mb-4 flex items-center gap-2 flex-row-reverse"><Plus className="w-5 h-5 text-red-600" /> הוספת רכב</h3>
-                <form onSubmit={handleAddCar} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
-                  <select required value={newCar.make} onChange={e => setNewCar({...newCar, make: e.target.value})} className="bg-neutral-900 border border-neutral-700 rounded-lg px-4 py-2 text-white text-right">
-                    <option value="">בחר יצרן</option>
-                    {ISRAELI_CAR_MAKES.map(make => <option key={make} value={make}>{make}</option>)}
-                  </select>
-                  <input required type="text" placeholder="דגם" value={newCar.model} onChange={e => setNewCar({...newCar, model: e.target.value})} className="bg-neutral-900 border border-neutral-700 rounded-lg px-4 py-2 text-white text-right" />
-                  <input required type="text" placeholder="תת דגם" value={newCar.subModel} onChange={e => setNewCar({...newCar, subModel: e.target.value})} className="bg-neutral-900 border border-neutral-700 rounded-lg px-4 py-2 text-white text-right" />
-                  <input required type="number" placeholder="שנתון" value={newCar.year} onChange={e => setNewCar({...newCar, year: e.target.value})} className="bg-neutral-900 border border-neutral-700 rounded-lg px-4 py-2 text-white text-right" />
-                  <select value={newCar.condition} onChange={e => setNewCar({...newCar, condition: e.target.value})} className="bg-neutral-900 border border-neutral-700 rounded-lg px-4 py-2 text-white text-right">
-                    <option value="משומש">משומש</option>
-                    <option value="חדש">חדש</option>
-                  </select>
-                  <select value={newCar.engineType} onChange={e => setNewCar({...newCar, engineType: e.target.value})} className="bg-neutral-900 border border-neutral-700 rounded-lg px-4 py-2 text-white text-right">
-                    {['בנזין','הייבריד','חשמלי','דיזל','פלאג אין הייבריד'].map(o => <option key={o} value={o}>{o}</option>)}
-                  </select>
-                  <input required type="text" placeholder="קילומטראז'" value={newCar.mileage} onChange={e => setNewCar({...newCar, mileage: e.target.value})} className="bg-neutral-900 border border-neutral-700 rounded-lg px-4 py-2 text-white text-right" />
-                  <input required type="number" placeholder="יד הרכב" value={newCar.owners} onChange={e => setNewCar({...newCar, owners: e.target.value})} className="bg-neutral-900 border border-neutral-700 rounded-lg px-4 py-2 text-white text-right" />
-                  <input required type="text" placeholder="נפח מנוע סמ״ק" value={newCar.engineCapacity} onChange={e => setNewCar({...newCar, engineCapacity: e.target.value})} className="bg-neutral-900 border border-neutral-700 rounded-lg px-4 py-2 text-white text-right" />
-                  <input required type="text" placeholder="מחיר בפועל (₪)" value={newCar.price} onChange={e => setNewCar({...newCar, price: e.target.value})} className="bg-neutral-900 border border-neutral-700 rounded-lg px-4 py-2 text-white text-right" />
-                  <input type="text" placeholder="החזר חודשי החל מ- (₪)" value={newCar.monthlyPayment} onChange={e => setNewCar({...newCar, monthlyPayment: e.target.value})} className="bg-neutral-900 border border-neutral-700 rounded-lg px-4 py-2 text-white text-right" />
-                  <div className="flex gap-2 flex-row-reverse">
-                    <input type="text" placeholder="מחיר מחירון (אופציונלי)" value={newCar.listPrice} onChange={e => setNewCar({...newCar, listPrice: e.target.value})} disabled={!newCar.showListPrice} className="flex-1 bg-neutral-900 border border-neutral-700 rounded-lg px-4 py-2 text-white disabled:opacity-50 text-right" />
-                    <label className="flex items-center gap-1 text-xs text-neutral-400 cursor-pointer w-16 leading-tight flex-row-reverse">
-                      <input type="checkbox" checked={newCar.showListPrice} onChange={e => setNewCar({...newCar, showListPrice: e.target.checked})} className="accent-red-600" />
-                      הצג
-                    </label>
-                  </div>
-                  <select value={newCar.type} onChange={e => setNewCar({...newCar, type: e.target.value})} className="bg-neutral-900 border border-neutral-700 rounded-lg px-4 py-2 text-white text-right">
-                    {['משפחתי','יוקרה','ספורט','SUV'].map(o => <option key={o} value={o}>{o}</option>)}
-                  </select>
-                  <div className="md:col-span-3">
-                    <label className="block text-xs text-neutral-400 mb-1">תמונות (עד 10)</label>
-                    <input type="file" accept="image/*" multiple onChange={handleImageUpload} className="w-full bg-neutral-900 border border-neutral-700 rounded-lg px-4 py-1 text-white file:mr-4 file:py-1 file:px-4 file:rounded-full file:border-0 file:text-xs file:bg-red-600 file:text-white cursor-pointer text-right" />
-                    {newCar.images && newCar.images.length > 0 && <p className="text-xs text-green-500 mt-1 font-medium">✓ נבחרו {newCar.images.length} תמונות</p>}
-                  </div>
-                  <div className="md:col-span-1 flex items-end">
-                    <button type="submit" className="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-2 rounded-lg h-[42px] flex flex-row-reverse items-center justify-center gap-1">
-                      העלה רכב <Plus className="w-4 h-4 inline" />
-                    </button>
-                  </div>
-                </form>
+
+            <div className="flex-1 overflow-y-auto p-5 space-y-6">
+
+              {/* הוספת רכב */}
+              <div className="bg-neutral-950 rounded-2xl border border-neutral-800 overflow-hidden">
+                <div className="flex items-center gap-2 flex-row-reverse px-5 py-4 border-b border-neutral-800 bg-neutral-900/60">
+                  <Plus className="w-5 h-5 text-red-600" />
+                  <h3 className="font-bold text-white text-base">הוספת רכב חדש למלאי</h3>
+                </div>
+                <div className="p-5">
+                  <form onSubmit={handleAddCar} className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 text-sm">
+                    {/* שדות */}
+                    <select required value={newCar.make} onChange={e => setNewCar({...newCar, make: e.target.value})} className="bg-neutral-900 border border-neutral-700 rounded-lg px-3 py-2.5 text-white text-right focus:border-red-600 outline-none">
+                      <option value="">יצרן *</option>
+                      {ISRAELI_CAR_MAKES.map(m => <option key={m} value={m}>{m}</option>)}
+                    </select>
+                    <input required type="text" placeholder="דגם *" value={newCar.model} onChange={e => setNewCar({...newCar, model: e.target.value})} className="bg-neutral-900 border border-neutral-700 rounded-lg px-3 py-2.5 text-white text-right focus:border-red-600 outline-none" />
+                    <input required type="text" placeholder="תת דגם *" value={newCar.subModel} onChange={e => setNewCar({...newCar, subModel: e.target.value})} className="bg-neutral-900 border border-neutral-700 rounded-lg px-3 py-2.5 text-white text-right focus:border-red-600 outline-none" />
+                    <input required type="number" placeholder="שנתון *" value={newCar.year} onChange={e => setNewCar({...newCar, year: e.target.value})} className="bg-neutral-900 border border-neutral-700 rounded-lg px-3 py-2.5 text-white text-right focus:border-red-600 outline-none" />
+                    <select value={newCar.condition} onChange={e => setNewCar({...newCar, condition: e.target.value})} className="bg-neutral-900 border border-neutral-700 rounded-lg px-3 py-2.5 text-white text-right focus:border-red-600 outline-none">
+                      <option value="משומש">משומש</option><option value="חדש">חדש</option>
+                    </select>
+                    <select value={newCar.engineType} onChange={e => setNewCar({...newCar, engineType: e.target.value})} className="bg-neutral-900 border border-neutral-700 rounded-lg px-3 py-2.5 text-white text-right focus:border-red-600 outline-none">
+                      {['בנזין','הייבריד','חשמלי','דיזל','פלאג אין הייבריד'].map(o => <option key={o} value={o}>{o}</option>)}
+                    </select>
+                    <input required type="text" placeholder="קילומטראז' *" value={newCar.mileage} onChange={e => setNewCar({...newCar, mileage: e.target.value})} className="bg-neutral-900 border border-neutral-700 rounded-lg px-3 py-2.5 text-white text-right focus:border-red-600 outline-none" />
+                    <input required type="number" placeholder="יד הרכב *" value={newCar.owners} onChange={e => setNewCar({...newCar, owners: e.target.value})} className="bg-neutral-900 border border-neutral-700 rounded-lg px-3 py-2.5 text-white text-right focus:border-red-600 outline-none" />
+                    <input required type="text" placeholder="נפח מנוע סמ״ק *" value={newCar.engineCapacity} onChange={e => setNewCar({...newCar, engineCapacity: e.target.value})} className="bg-neutral-900 border border-neutral-700 rounded-lg px-3 py-2.5 text-white text-right focus:border-red-600 outline-none" />
+                    <input required type="text" placeholder="מחיר בפועל ₪ *" value={newCar.price} onChange={e => setNewCar({...newCar, price: e.target.value})} className="bg-neutral-900 border border-neutral-700 rounded-lg px-3 py-2.5 text-white text-right focus:border-red-600 outline-none" />
+                    <input type="text" placeholder="החזר חודשי ₪" value={newCar.monthlyPayment} onChange={e => setNewCar({...newCar, monthlyPayment: e.target.value})} className="bg-neutral-900 border border-neutral-700 rounded-lg px-3 py-2.5 text-white text-right focus:border-red-600 outline-none" />
+                    <select value={newCar.type} onChange={e => setNewCar({...newCar, type: e.target.value})} className="bg-neutral-900 border border-neutral-700 rounded-lg px-3 py-2.5 text-white text-right focus:border-red-600 outline-none">
+                      {['משפחתי','יוקרה','ספורט','SUV'].map(o => <option key={o} value={o}>{o}</option>)}
+                    </select>
+                    {/* מחירון */}
+                    <div className="col-span-2 flex items-center gap-2 flex-row-reverse">
+                      <input type="text" placeholder="מחיר מחירון ₪" value={newCar.listPrice} onChange={e => setNewCar({...newCar, listPrice: e.target.value})} disabled={!newCar.showListPrice} className="flex-1 bg-neutral-900 border border-neutral-700 rounded-lg px-3 py-2.5 text-white disabled:opacity-40 text-right focus:border-red-600 outline-none" />
+                      <label className="flex items-center gap-1.5 text-xs text-neutral-400 cursor-pointer whitespace-nowrap flex-row-reverse">
+                        <input type="checkbox" checked={newCar.showListPrice} onChange={e => setNewCar({...newCar, showListPrice: e.target.checked})} className="accent-red-600 w-4 h-4" />
+                        הצג מחירון
+                      </label>
+                    </div>
+                    {/* תמונות */}
+                    <div className="col-span-2 md:col-span-3">
+                      <label className="block text-xs text-neutral-400 mb-1.5 font-medium">תמונות (עד 10)</label>
+                      <input type="file" accept="image/*" multiple onChange={e => handleImageUpload(e, 'new')} className="w-full bg-neutral-900 border border-neutral-700 rounded-lg px-3 py-1.5 text-white text-xs file:ml-3 file:py-1 file:px-3 file:rounded-full file:border-0 file:bg-red-600 file:text-white file:text-xs cursor-pointer" />
+                      {newCar.images?.length > 0 && (
+                        <div className="flex gap-2 mt-2 flex-row-reverse flex-wrap">
+                          {newCar.images.slice(0,5).map((img, i) => (
+                            <img key={i} src={img} className="w-12 h-8 object-cover rounded border border-neutral-700" />
+                          ))}
+                          {newCar.images.length > 5 && <span className="text-xs text-neutral-400 self-center">+{newCar.images.length - 5}</span>}
+                        </div>
+                      )}
+                    </div>
+                    {/* כפתור שמירה + status */}
+                    <div className="col-span-2 md:col-span-1 flex flex-col gap-2 justify-end">
+                      <button
+                        type="submit"
+                        disabled={uploadStatus === 'loading'}
+                        className={`w-full font-bold py-2.5 rounded-lg flex items-center justify-center gap-2 flex-row-reverse transition-all ${uploadStatus === 'loading' ? 'bg-neutral-700 cursor-not-allowed' : 'bg-red-600 hover:bg-red-500'} text-white`}
+                      >
+                        {uploadStatus === 'loading' ? (
+                          <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> מעלה...</>
+                        ) : (
+                          <><Plus className="w-4 h-4" /> העלה רכב</>
+                        )}
+                      </button>
+                    </div>
+                  </form>
+
+                  {/* הודעת סטטוס */}
+                  {uploadStatus === 'success' && (
+                    <div className="mt-4 flex items-center gap-3 bg-green-500/10 border border-green-500/30 text-green-400 rounded-xl px-4 py-3 flex-row-reverse animate-pulse">
+                      <Check className="w-5 h-5 shrink-0" />
+                      <span className="font-medium text-sm">הרכב הועלה בהצלחה למלאי! 🎉</span>
+                    </div>
+                  )}
+                  {uploadStatus === 'error' && (
+                    <div className="mt-4 flex items-center gap-3 bg-red-500/10 border border-red-500/30 text-red-400 rounded-xl px-4 py-3 flex-row-reverse">
+                      <X className="w-5 h-5 shrink-0" />
+                      <span className="font-medium text-sm">שגיאה בהעלאה — בדוק חיבור ל-Supabase</span>
+                    </div>
+                  )}
+                </div>
               </div>
 
-              <h3 className="text-xl font-bold mb-4">המלאי הנוכחי ({inventory.length} רכבים)</h3>
-              <div className="bg-neutral-950 rounded-xl border border-neutral-800 overflow-hidden overflow-x-auto">
-                <table className="w-full text-right text-sm">
-                  <thead className="bg-neutral-900 text-neutral-400 border-b border-neutral-800">
-                    <tr>
-                      <th className="p-4 text-center">פעולות</th>
-                      <th className="p-4">מחיר (₪)</th>
-                      <th className="p-4">מצב רכב</th>
-                      <th className="p-4">יצרן ודגם</th>
-                      <th className="p-4 text-right">תמונה</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-neutral-800">
-                    {inventory.map(car => (
-                      <tr key={car.id} className="hover:bg-neutral-900/50">
-                        <td className="p-4 text-center"><button onClick={() => handleDeleteCar(car.id)} className="text-neutral-500 hover:text-red-500"><Trash2 className="w-5 h-5 inline" /></button></td>
-                        <td className="p-4 text-red-500 font-bold text-lg">
-                          ₪ {car.price}
-                          {car.monthlyPayment && <div className="text-xs text-neutral-400 font-medium">מ- ₪ {car.monthlyPayment} לחודש</div>}
-                        </td>
-                        <td className="p-4"><span className={`px-2 py-1 rounded text-xs font-bold ${car.condition==='חדש'?'bg-red-600/20 text-red-500':'bg-neutral-700 text-neutral-300'}`}>{car.condition}</span></td>
-                        <td className="p-4 font-medium">{car.make} {car.model}<br/><span className="text-xs text-neutral-500">{car.year} | {car.engineType}</span></td>
-                        <td className="p-4 text-right"><img src={car.image || '/back.jpg'} alt={car.model} className="w-16 h-10 object-cover rounded bg-neutral-800 mr-0 ml-auto" onError={(e) => { e.target.src = '/back.jpg' }} /></td>
+              {/* טבלת מלאי */}
+              <div className="bg-neutral-950 rounded-2xl border border-neutral-800 overflow-hidden">
+                <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-800 bg-neutral-900/60 flex-row-reverse">
+                  <div className="flex items-center gap-2 flex-row-reverse">
+                    <Car className="w-5 h-5 text-red-600" />
+                    <h3 className="font-bold text-white">המלאי הנוכחי</h3>
+                  </div>
+                  <span className="text-xs text-neutral-500 bg-neutral-800 px-3 py-1 rounded-full">{inventory.length} רכבים</span>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-right text-sm">
+                    <thead className="bg-neutral-900/80 text-neutral-400 border-b border-neutral-800">
+                      <tr>
+                        <th className="px-4 py-3 text-center whitespace-nowrap">פעולות</th>
+                        <th className="px-4 py-3 whitespace-nowrap">מחיר</th>
+                        <th className="px-4 py-3 whitespace-nowrap">מצב</th>
+                        <th className="px-4 py-3 whitespace-nowrap">רכב</th>
+                        <th className="px-4 py-3 whitespace-nowrap">פרטים</th>
+                        <th className="px-4 py-3 text-right whitespace-nowrap">תמונה</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="divide-y divide-neutral-800/60">
+                      {inventory.map(car => (
+                        <tr key={car.id} className="hover:bg-neutral-900/40 transition-colors">
+                          {/* פעולות */}
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2 justify-center">
+                              <button
+                                onClick={() => setEditCar({...car})}
+                                className="p-1.5 bg-neutral-800 hover:bg-blue-600 text-neutral-400 hover:text-white rounded-lg transition-colors"
+                                title="עריכה"
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                              </button>
+                              <button
+                                onClick={() => setDeleteConfirmId(car.id)}
+                                className="p-1.5 bg-neutral-800 hover:bg-red-600 text-neutral-400 hover:text-white rounded-lg transition-colors"
+                                title="מחיקה"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="text-red-500 font-bold">₪{car.price}</span>
+                            {car.monthlyPayment && <div className="text-xs text-neutral-500">מ-₪{car.monthlyPayment}/חודש</div>}
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${car.condition==='חדש' ? 'bg-red-600/20 text-red-400 border border-red-600/30' : 'bg-neutral-700/60 text-neutral-300 border border-neutral-600/30'}`}>
+                              {car.condition}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="font-bold text-white">{car.make} {car.model}</div>
+                            <div className="text-xs text-neutral-500">{car.subModel}</div>
+                          </td>
+                          <td className="px-4 py-3 text-neutral-400 text-xs">
+                            <div>{car.year} | יד {car.owners}</div>
+                            <div>{car.engineType} | {car.mileage} ק"מ</div>
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <img src={car.image || '/back.jpg'} alt={car.model} className="w-20 h-12 object-cover rounded-lg border border-neutral-700 mr-0 ml-auto" onError={(e) => { e.target.src = '/back.jpg' }} />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {inventory.length === 0 && (
+                    <div className="py-16 text-center text-neutral-500">
+                      <Car className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                      <p>המלאי ריק — הוסף רכב ראשון 👆</p>
+                    </div>
+                  )}
+                </div>
               </div>
+
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* מודל אישור מחיקה */}
+      {deleteConfirmId && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm">
+          <div className="bg-neutral-900 border border-red-600/40 rounded-2xl p-7 max-w-sm w-full text-center shadow-[0_0_40px_rgba(220,38,38,0.15)]">
+            <div className="w-14 h-14 bg-red-600/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-600/30">
+              <Trash2 className="w-7 h-7 text-red-500" />
+            </div>
+            <h3 className="text-xl font-bold text-white mb-2">מחיקת רכב</h3>
+            <p className="text-neutral-400 text-sm mb-6">האם אתה בטוח שברצונך למחוק את הרכב? פעולה זו בלתי הפיכה.</p>
+            <div className="flex gap-3">
+              <button onClick={() => setDeleteConfirmId(null)} className="flex-1 py-3 bg-neutral-800 hover:bg-neutral-700 text-white rounded-xl font-medium transition-colors">ביטול</button>
+              <button onClick={() => handleDeleteCar(deleteConfirmId)} className="flex-1 py-3 bg-red-600 hover:bg-red-500 text-white rounded-xl font-bold transition-colors">מחק</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* מודל עריכת רכב */}
+      {editCar && (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm">
+          <div className="bg-neutral-900 border border-neutral-800 rounded-2xl w-full max-w-3xl max-h-[92vh] overflow-hidden flex flex-col text-right shadow-[0_0_50px_rgba(0,0,0,0.6)]">
+            {/* Header */}
+            <div className="flex justify-between items-center px-6 py-4 border-b border-neutral-800 bg-neutral-950 flex-row-reverse shrink-0">
+              <button onClick={() => { setEditCar(null); setEditStatus('idle'); }} className="text-neutral-400 hover:text-white bg-neutral-800 hover:bg-red-600 p-2 rounded-full transition-colors"><X className="w-5 h-5" /></button>
+              <div className="flex items-center gap-3 flex-row-reverse">
+                <div className="w-8 h-8 bg-blue-600/20 rounded-lg flex items-center justify-center border border-blue-600/30">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                </div>
+                <div className="text-right">
+                  <h2 className="text-lg font-bold text-white">עריכת רכב</h2>
+                  <p className="text-xs text-neutral-500">{editCar.make} {editCar.model} ({editCar.year})</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-5">
+              <form onSubmit={handleEditSave} className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+
+                <div className="col-span-2 md:col-span-3">
+                  {editCar.image && (
+                    <div className="mb-4 relative w-full h-40 rounded-xl overflow-hidden border border-neutral-700">
+                      <img src={editCar.image} className="w-full h-full object-cover" onError={e => e.target.src='/back.jpg'} />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-3">
+                        <span className="text-xs text-white/70">תמונה ראשית נוכחית</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <select required value={editCar.make} onChange={e => setEditCar({...editCar, make: e.target.value})} className="bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2.5 text-white text-right focus:border-blue-500 outline-none">
+                  <option value="">יצרן</option>
+                  {ISRAELI_CAR_MAKES.map(m => <option key={m} value={m}>{m}</option>)}
+                </select>
+                <input required type="text" placeholder="דגם" value={editCar.model} onChange={e => setEditCar({...editCar, model: e.target.value})} className="bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2.5 text-white text-right focus:border-blue-500 outline-none" />
+                <input type="text" placeholder="תת דגם" value={editCar.subModel || ''} onChange={e => setEditCar({...editCar, subModel: e.target.value})} className="bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2.5 text-white text-right focus:border-blue-500 outline-none" />
+                <input required type="number" placeholder="שנתון" value={editCar.year} onChange={e => setEditCar({...editCar, year: e.target.value})} className="bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2.5 text-white text-right focus:border-blue-500 outline-none" />
+                <select value={editCar.condition} onChange={e => setEditCar({...editCar, condition: e.target.value})} className="bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2.5 text-white text-right focus:border-blue-500 outline-none">
+                  <option value="משומש">משומש</option><option value="חדש">חדש</option>
+                </select>
+                <select value={editCar.engineType} onChange={e => setEditCar({...editCar, engineType: e.target.value})} className="bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2.5 text-white text-right focus:border-blue-500 outline-none">
+                  {['בנזין','הייבריד','חשמלי','דיזל','פלאג אין הייבריד'].map(o => <option key={o} value={o}>{o}</option>)}
+                </select>
+                <input type="text" placeholder="קילומטראז'" value={editCar.mileage || ''} onChange={e => setEditCar({...editCar, mileage: e.target.value})} className="bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2.5 text-white text-right focus:border-blue-500 outline-none" />
+                <input type="number" placeholder="יד הרכב" value={editCar.owners || ''} onChange={e => setEditCar({...editCar, owners: e.target.value})} className="bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2.5 text-white text-right focus:border-blue-500 outline-none" />
+                <input type="text" placeholder="נפח מנוע סמ״ק" value={editCar.engineCapacity || ''} onChange={e => setEditCar({...editCar, engineCapacity: e.target.value})} className="bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2.5 text-white text-right focus:border-blue-500 outline-none" />
+                <input required type="text" placeholder="מחיר ₪" value={editCar.price} onChange={e => setEditCar({...editCar, price: e.target.value})} className="bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2.5 text-white text-right focus:border-blue-500 outline-none" />
+                <input type="text" placeholder="החזר חודשי ₪" value={editCar.monthlyPayment || ''} onChange={e => setEditCar({...editCar, monthlyPayment: e.target.value})} className="bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2.5 text-white text-right focus:border-blue-500 outline-none" />
+                <select value={editCar.type || 'משפחתי'} onChange={e => setEditCar({...editCar, type: e.target.value})} className="bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2.5 text-white text-right focus:border-blue-500 outline-none">
+                  {['משפחתי','יוקרה','ספורט','SUV'].map(o => <option key={o} value={o}>{o}</option>)}
+                </select>
+
+                <div className="col-span-2 flex items-center gap-3 flex-row-reverse">
+                  <input type="text" placeholder="מחיר מחירון ₪" value={editCar.listPrice || ''} onChange={e => setEditCar({...editCar, listPrice: e.target.value})} disabled={!editCar.showListPrice} className="flex-1 bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2.5 text-white disabled:opacity-40 text-right focus:border-blue-500 outline-none" />
+                  <label className="flex items-center gap-1.5 text-xs text-neutral-400 cursor-pointer whitespace-nowrap flex-row-reverse">
+                    <input type="checkbox" checked={!!editCar.showListPrice} onChange={e => setEditCar({...editCar, showListPrice: e.target.checked})} className="accent-red-600 w-4 h-4" />
+                    הצג מחירון
+                  </label>
+                </div>
+
+                {/* תמונות חדשות */}
+                <div className="col-span-2 md:col-span-3">
+                  <label className="block text-xs text-neutral-400 mb-1.5 font-medium">החלפת תמונות (אופציונלי)</label>
+                  <input type="file" accept="image/*" multiple onChange={e => handleImageUpload(e, 'edit')} className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-1.5 text-white text-xs file:ml-3 file:py-1 file:px-3 file:rounded-full file:border-0 file:bg-blue-600 file:text-white file:text-xs cursor-pointer" />
+                  {editCar.images?.length > 0 && (
+                    <div className="flex gap-2 mt-2 flex-row-reverse flex-wrap">
+                      {editCar.images.slice(0,6).map((img,i) => (
+                        <img key={i} src={img} className="w-12 h-8 object-cover rounded border border-neutral-600" />
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* כפתורי שמירה */}
+                <div className="col-span-2 md:col-span-3 flex gap-3 pt-2 flex-row-reverse">
+                  <button type="submit" disabled={editStatus === 'loading'} className={`flex-1 py-3 rounded-xl font-bold flex items-center justify-center gap-2 flex-row-reverse transition-all ${editStatus === 'loading' ? 'bg-neutral-700 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-500'} text-white`}>
+                    {editStatus === 'loading' ? (
+                      <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> שומר שינויים...</>
+                    ) : editStatus === 'success' ? (
+                      <><Check className="w-5 h-5" /> נשמר בהצלחה!</>
+                    ) : (
+                      <>שמור שינויים <Check className="w-5 h-5" /></>
+                    )}
+                  </button>
+                  <button type="button" onClick={() => { setEditCar(null); setEditStatus('idle'); }} className="px-6 py-3 bg-neutral-800 hover:bg-neutral-700 text-white rounded-xl font-medium transition-colors">ביטול</button>
+                </div>
+
+                {editStatus === 'error' && (
+                  <div className="col-span-2 md:col-span-3 flex items-center gap-2 bg-red-500/10 border border-red-500/30 text-red-400 rounded-xl px-4 py-3 flex-row-reverse">
+                    <X className="w-4 h-4 shrink-0" />
+                    <span className="text-sm">שגיאה בשמירה — נסה שוב</span>
+                  </div>
+                )}
+              </form>
             </div>
           </div>
         </div>
