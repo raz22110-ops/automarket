@@ -531,45 +531,70 @@ const CarDealershipApp = () => {
                   )}
 
                   {searchTab === 'finance' && (
-                    /* שינוי עיקרי: במובייל — עמודה אחת (flex-col), בדסקטופ — גריד 3 עמודות */
-                    <div className="flex flex-col md:grid md:grid-cols-3 gap-6 md:gap-8 items-start md:items-center text-right">
-                      <div className="w-full md:col-span-2 space-y-4 md:space-y-6">
-                        <div className="flex gap-1 md:gap-2 p-1 bg-neutral-950 rounded-lg border border-neutral-800 flex-row-reverse">
-                          <button onClick={() => setFinanceCondition('new')} className={`flex-1 py-2 rounded-md font-bold text-xs md:text-sm transition-colors ${financeCondition === 'new' ? 'bg-red-600 text-white shadow-md' : 'text-neutral-400 hover:text-white'}`}>חדש (4.5%)</button>
-                          <button onClick={() => setFinanceCondition('used')} className={`flex-1 py-2 rounded-md font-bold text-xs md:text-sm transition-colors ${financeCondition === 'used' ? 'bg-red-600 text-white shadow-md' : 'text-neutral-400 hover:text-white'}`}>משומש (6.1%)</button>
+                    /* מובייל: עמודה אחת לגמרי. דסקטופ: גריד 3 עמודות */
+                    <div className="flex flex-col gap-5 lg:grid lg:grid-cols-3 lg:gap-8 lg:items-center text-right">
+
+                      {/* סליידרים — תופסים 2/3 בדסקטופ */}
+                      <div className="w-full lg:col-span-2 flex flex-col gap-4">
+                        {/* בחירת סוג רכב */}
+                        <div className="flex flex-row-reverse gap-2 p-1 bg-neutral-950 rounded-xl border border-neutral-800">
+                          <button
+                            onClick={() => setFinanceCondition('new')}
+                            className={`flex-1 py-2.5 rounded-lg font-bold text-sm transition-colors ${financeCondition === 'new' ? 'bg-red-600 text-white' : 'text-neutral-400 hover:text-white'}`}
+                          >חדש (4.5%)</button>
+                          <button
+                            onClick={() => setFinanceCondition('used')}
+                            className={`flex-1 py-2.5 rounded-lg font-bold text-sm transition-colors ${financeCondition === 'used' ? 'bg-red-600 text-white' : 'text-neutral-400 hover:text-white'}`}
+                          >משומש (6.1%)</button>
                         </div>
-                        <div>
-                          <div className="flex justify-between text-sm mb-2 items-end flex-row-reverse">
-                            <span className="text-neutral-400 font-medium">שווי הרכב</span>
-                            <span className="text-white font-bold text-lg md:text-xl">₪ {financePrice.toLocaleString()}</span>
+
+                        {/* שווי הרכב */}
+                        <div className="bg-neutral-950 rounded-xl border border-neutral-800 p-4">
+                          <div className="flex justify-between items-center mb-3 flex-row-reverse">
+                            <span className="text-neutral-400 text-sm font-medium">שווי הרכב</span>
+                            <span className="text-white font-bold text-xl">₪ {financePrice.toLocaleString()}</span>
                           </div>
-                          <input type="range" min="10000" max="800000" step="5000" value={financePrice} onChange={(e) => setFinancePrice(Number(e.target.value))} className="w-full h-2 bg-neutral-800 rounded-lg appearance-none cursor-pointer accent-red-600" />
+                          <input type="range" min="10000" max="800000" step="5000" value={financePrice}
+                            onChange={(e) => setFinancePrice(Number(e.target.value))}
+                            className="w-full h-3 bg-neutral-800 rounded-lg appearance-none cursor-pointer accent-red-600" />
                         </div>
-                        <div>
-                          <div className="flex justify-between text-sm mb-2 items-end flex-row-reverse">
-                            <span className="text-neutral-400 font-medium">מקדמה</span>
-                            <span className="text-white font-bold text-lg md:text-xl">₪ {financeDownPayment.toLocaleString()}</span>
+
+                        {/* מקדמה */}
+                        <div className="bg-neutral-950 rounded-xl border border-neutral-800 p-4">
+                          <div className="flex justify-between items-center mb-3 flex-row-reverse">
+                            <span className="text-neutral-400 text-sm font-medium">מקדמה</span>
+                            <span className="text-white font-bold text-xl">₪ {financeDownPayment.toLocaleString()}</span>
                           </div>
-                          <input type="range" min="0" max="250000" step="5000" value={financeDownPayment} onChange={(e) => setFinanceDownPayment(Number(e.target.value))} className="w-full h-2 bg-neutral-800 rounded-lg appearance-none cursor-pointer accent-red-600" />
+                          <input type="range" min="0" max="250000" step="5000" value={financeDownPayment}
+                            onChange={(e) => setFinanceDownPayment(Number(e.target.value))}
+                            className="w-full h-3 bg-neutral-800 rounded-lg appearance-none cursor-pointer accent-red-600" />
                         </div>
-                        <div>
-                          <div className="flex justify-between text-sm mb-2 items-end flex-row-reverse">
-                            <span className="text-neutral-400 font-medium">מספר תשלומים</span>
-                            <span className="text-white font-bold text-lg md:text-xl">{financePayments} חודשים</span>
+
+                        {/* מספר תשלומים */}
+                        <div className="bg-neutral-950 rounded-xl border border-neutral-800 p-4">
+                          <div className="flex justify-between items-center mb-3 flex-row-reverse">
+                            <span className="text-neutral-400 text-sm font-medium">מספר תשלומים</span>
+                            <span className="text-white font-bold text-xl">{financePayments} חודשים</span>
                           </div>
-                          <input type="range" min="12" max="100" step="1" value={financePayments} onChange={(e) => setFinancePayments(Number(e.target.value))} className="w-full h-2 bg-neutral-800 rounded-lg appearance-none cursor-pointer accent-red-600" />
+                          <input type="range" min="12" max="100" step="1" value={financePayments}
+                            onChange={(e) => setFinancePayments(Number(e.target.value))}
+                            className="w-full h-3 bg-neutral-800 rounded-lg appearance-none cursor-pointer accent-red-600" />
                         </div>
                       </div>
 
-                      {/* תוצאת המימון — במובייל מתחת לסליידרים, בדסקטופ בצד */}
-                      <div className="w-full bg-neutral-950 p-5 md:p-6 rounded-2xl border border-red-600/30 flex flex-col items-center justify-center text-center shadow-[0_0_20px_rgba(220,38,38,0.1)]">
-                        <span className="text-neutral-400 text-sm mb-2 font-medium">החזר חודשי משוער</span>
-                        <span className="text-4xl md:text-5xl font-black text-red-600 mb-2">₪ {calculateMonthly().toLocaleString()}</span>
-                        <span className="text-xs text-neutral-500 mb-5 px-2">*החישוב משוער וכפוף לאישור הגוף המממן. ט.ל.ח</span>
-                        <button onClick={handleFinanceSearch} className="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-3 md:py-4 rounded-xl transition-colors shadow-lg flex items-center justify-center gap-2 flex-row-reverse text-sm md:text-base">
+                      {/* תוצאה — מתחת בכל רוחב המסך במובייל */}
+                      <div className="w-full bg-neutral-950 p-6 rounded-2xl border border-red-600/40 flex flex-col items-center text-center shadow-[0_0_25px_rgba(220,38,38,0.12)]">
+                        <span className="text-neutral-400 text-sm font-medium mb-1">החזר חודשי משוער</span>
+                        <span className="text-5xl font-black text-red-600 my-3">₪ {calculateMonthly().toLocaleString()}</span>
+                        <span className="text-xs text-neutral-500 mb-5 leading-relaxed">*החישוב משוער וכפוף לאישור הגוף המממן. ט.ל.ח</span>
+                        <button
+                          onClick={handleFinanceSearch}
+                          className="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-4 rounded-xl transition-colors shadow-lg flex items-center justify-center gap-2 flex-row-reverse"
+                        >
                           מצא רכב בתקציב זה <ChevronRight className="w-5 h-5 rotate-180" />
                         </button>
                       </div>
+
                     </div>
                   )}
                 </div>
