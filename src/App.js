@@ -357,6 +357,48 @@ const CarDealershipApp = () => {
   /* ───────── MAIN RENDER ───────── */
   return (
     <div className="min-h-screen bg-neutral-950 text-neutral-100 font-sans" dir="rtl">
+    <style>{`
+      input[type='range'] {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 100%;
+        height: 6px;
+        background: #404040;
+        border-radius: 9999px;
+        outline: none;
+        cursor: pointer;
+        touch-action: pan-x;
+      }
+      input[type='range']::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: #dc2626;
+        border: 3px solid #fff;
+        box-shadow: 0 2px 8px rgba(220,38,38,0.5);
+        cursor: pointer;
+        transition: transform 0.1s;
+      }
+      input[type='range']::-webkit-slider-thumb:active {
+        transform: scale(1.2);
+      }
+      input[type='range']::-moz-range-thumb {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: #dc2626;
+        border: 3px solid #fff;
+        box-shadow: 0 2px 8px rgba(220,38,38,0.5);
+        cursor: pointer;
+      }
+      input[type='range']::-webkit-slider-runnable-track {
+        height: 6px;
+        border-radius: 9999px;
+        background: #404040;
+      }
+    `}</style>
 
       {/* NAV */}
       <nav className="fixed w-full z-50 bg-neutral-950/95 backdrop-blur-md border-b border-neutral-800 shadow-[0_2px_24px_rgba(0,0,0,0.6)]">
@@ -455,7 +497,7 @@ const CarDealershipApp = () => {
                           <span className="text-neutral-400 text-sm">תקציב מקסימלי</span>
                           <span className="text-white font-bold text-lg">₪{searchBudget.toLocaleString()}</span>
                         </div>
-                        <input type="range" min="10000" max="1500000" step="10000" value={searchBudget} onChange={e=>setSearchBudget(Number(e.target.value))} className="w-full h-3 bg-neutral-800 rounded-lg appearance-none cursor-pointer accent-red-600"/>
+                        <input type="range" min="10000" max="1500000" step="10000" value={searchBudget} onChange={e=>setSearchBudget(Number(e.target.value))} className="w-full cursor-pointer touch-manipulation"/>
                       </div>
                       <button onClick={handleRegularSearch} className="w-full bg-red-600 text-white rounded-xl py-4 font-bold flex items-center justify-center gap-2 hover:bg-red-500 active:bg-red-700 transition-colors text-base flex-row-reverse">
                         חפש רכבים <Search className="w-5 h-5"/>
@@ -474,12 +516,14 @@ const CarDealershipApp = () => {
                           { label:'מקדמה', val:financeDownPayment, min:0, max:250000, step:5000, set:setFinanceDownPayment, fmt:v=>`₪${v.toLocaleString()}` },
                           { label:'מספר תשלומים', val:financePayments, min:12, max:100, step:1, set:setFinancePayments, fmt:v=>`${v} חודשים` },
                         ].map((s,i) => (
-                          <div key={i} className="bg-neutral-950 rounded-xl border border-neutral-800 p-4">
-                            <div className="flex justify-between items-center mb-3 flex-row-reverse">
-                              <span className="text-neutral-400 text-sm">{s.label}</span>
-                              <span className="text-white font-bold text-lg">{s.fmt(s.val)}</span>
+                          <div key={i} className="bg-neutral-950 rounded-xl border border-neutral-800 px-4 pt-4 pb-6">
+                            <div className="flex justify-between items-center mb-4 flex-row-reverse">
+                              <span className="text-neutral-400 text-sm font-medium">{s.label}</span>
+                              <span className="text-white font-bold text-xl">{s.fmt(s.val)}</span>
                             </div>
-                            <input type="range" min={s.min} max={s.max} step={s.step} value={s.val} onChange={e=>s.set(Number(e.target.value))} className="w-full h-3 bg-neutral-800 rounded-lg appearance-none cursor-pointer accent-red-600"/>
+                            <div className="py-2">
+                              <input type="range" min={s.min} max={s.max} step={s.step} value={s.val} onChange={e=>s.set(Number(e.target.value))} className="w-full cursor-pointer touch-manipulation"/>
+                            </div>
                           </div>
                         ))}
                       </div>
