@@ -28,6 +28,13 @@ const CarDealershipApp = () => {
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [isTradeInOpen, setIsTradeInOpen] = useState(false);
   const [isPasswordPromptOpen, setIsPasswordPromptOpen] = useState(false);
+  
+  // Finance Form States
+  const [isFinanceAppOpen, setIsFinanceAppOpen] = useState(false);
+  const [financeAppStatus, setFinanceAppStatus] = useState('idle');
+  const [financeData, setFinanceData] = useState({ name: '', phone: '', occupation: '', income: '' });
+  const [financeFiles, setFinanceFiles] = useState({ idImage: null, idAttachment: null, license: null, ccFront: null, ccBack: null });
+
   const [adminPassword, setAdminPassword] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [inventoryLoading, setInventoryLoading] = useState(true);
@@ -54,8 +61,8 @@ const CarDealershipApp = () => {
   const [editCar, setEditCar] = useState(null);
   const [editStatus, setEditStatus] = useState('idle');
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
-  const [selectedFiles, setSelectedFiles] = useState([]); // שומר את הקבצים להעלאה
-  const [editSelectedFiles, setEditSelectedFiles] = useState([]); // שומר את הקבצים לעריכה
+  const [selectedFiles, setSelectedFiles] = useState([]); 
+  const [editSelectedFiles, setEditSelectedFiles] = useState([]); 
 
   useEffect(() => { fetchInventory(); }, []);
 
@@ -95,7 +102,6 @@ const CarDealershipApp = () => {
         canvas.width = w; canvas.height = h;
         canvas.getContext('2d').drawImage(img, 0, 0, w, h);
         
-        // המרה ל-Blob במקום Base64
         canvas.toBlob((blob) => {
             resolve(blob);
         }, 'image/jpeg', 0.85);
@@ -132,7 +138,6 @@ const CarDealershipApp = () => {
       return uploadedUrls;
   };
 
-
   const handleImageSelection = (e, target = 'new') => {
     const files = Array.from(e.target.files);
     if (!files.length) return;
@@ -140,7 +145,7 @@ const CarDealershipApp = () => {
     
     if (target === 'new') {
         setSelectedFiles(files);
-        setNewCar(p => ({ ...p, images: Array(files.length).fill('pending') })); // רק כדי להראות בחיווי שנבחרו קבצים
+        setNewCar(p => ({ ...p, images: Array(files.length).fill('pending') })); 
     } else {
         setEditSelectedFiles(files);
         setEditCar(p => ({ ...p, images: Array(files.length).fill('pending') }));
@@ -153,12 +158,10 @@ const CarDealershipApp = () => {
     
     try {
       let imageUrls = [];
-      // 1. העלאת תמונות ל-Storage
       if (selectedFiles.length > 0) {
           imageUrls = await uploadImagesToStorage(selectedFiles);
       }
 
-      // 2. שמירת הנתונים במסד הנתונים
       const carToAdd = { 
           ...newCar, 
           id: Date.now().toString(), 
@@ -191,9 +194,8 @@ const CarDealershipApp = () => {
     setEditStatus('loading');
     
     try {
-      let imageUrls = editCar.images || []; // מתחילים עם התמונות הקיימות (עם הגנה ממצב ריק)
+      let imageUrls = editCar.images || []; 
       
-      // אם המשתמש בחר תמונות חדשות, מעלים אותן ודורסים את הישנות
       if (editSelectedFiles.length > 0) {
           imageUrls = await uploadImagesToStorage(editSelectedFiles);
       }
@@ -245,6 +247,53 @@ const CarDealershipApp = () => {
     const text = `שלום, אשמח לקבל הצעת טרייד-אין.\n\n*פרטי התקשרות:*\nשם: ${tradeData.name}\nטלפון: ${tradeData.phone}\n\n*פרטי הרכב שלי:*\nיצרן: ${tradeData.make}\nדגם: ${tradeData.model}\nשנתון: ${tradeData.year}\nסוג הנעה: ${tradeData.engine}\nקילומטראז': ${tradeData.km}\nבעלות: ${tradeData.ownership}\nיד: ${tradeData.owners}`;
     window.open(`https://wa.me/972526441855?text=${encodeURIComponent(text)}`, '_blank');
     setIsTradeInOpen(false);
+  };
+
+  const handleFinanceAppSubmit = async (e) => {
+    e.preventDefault();
+    setFinanceAppStatus('loading');
+    try {
+      // העלאת הקבצים
+      const uploadSingleFile = async (file) => {
+        if (!file) return 'לא הועלה';
+        const urls = await uploadImagesToStorage([file]);
+        return urls[0] || 'לא הועלה';
+      };
+
+      const idUrl = await uploadSingleFile(financeFiles.idImage);
+      const attachmentUrl = await uploadSingleFile(financeFiles.idAttachment);
+      const licenseUrl = await uploadSingleFile(financeFiles.license);
+      const ccFrontUrl = await uploadSingleFile(financeFiles.ccFront);
+      const ccBackUrl = await uploadSingleFile(financeFiles.ccBack);
+
+      const details = `עיסוק: ${financeData.occupation} \nהכנסה משותפת: ₪${financeData.income} \nת.ז קדמי: ${idUrl} \nספח פתוח: ${attachmentUrl} \nרישיון נהיגה: ${licenseUrl} \nאשראי קדמי: ${ccFrontUrl} \nאשראי אחורי: ${ccBackUrl}`;
+
+      await fetch(`${mySupabaseUrl}/rest/v1/leads`, {
+        method: 'POST',
+        headers: supabaseHeaders,
+        body: JSON.stringify({ 
+          name: financeData.name, 
+          phone: financeData.phone, 
+          lead_type: 'אישור מימון דיגיטלי', 
+          car_details: details 
+        })
+      });
+
+      const text = `שלום, הגשתי בקשה לאישור מימון מהיר בדיגיטל.\nשם: ${financeData.name}\nטלפון: ${financeData.phone}\nעיסוק: ${financeData.occupation}\nהכנסה חודשית (בעל+אישה): ₪${financeData.income}\n\n*כל המסמכים (ת.ז, רישיון, ספח ואשראי) הועלו בהצלחה למערכת שלכם.*`;
+      window.open(`https://wa.me/972526441855?text=${encodeURIComponent(text)}`, '_blank');
+
+      setFinanceAppStatus('success');
+      setTimeout(() => {
+        setFinanceAppStatus('idle');
+        setIsFinanceAppOpen(false);
+        setFinanceData({ name: '', phone: '', occupation: '', income: '' });
+        setFinanceFiles({ idImage: null, idAttachment: null, license: null, ccFront: null, ccBack: null });
+      }, 2000);
+    } catch (error) {
+      console.error(error);
+      setFinanceAppStatus('error');
+      setTimeout(() => setFinanceAppStatus('idle'), 4000);
+    }
   };
 
   const handlePasswordSubmit = (e) => {
@@ -649,6 +698,9 @@ const CarDealershipApp = () => {
                         <button onClick={handleFinanceSearch} className="w-full bg-red-600 hover:bg-red-500 active:bg-red-700 text-white font-bold py-4 rounded-xl transition-colors flex items-center justify-center gap-2 flex-row-reverse">
                           מצא רכב בתקציב זה <ChevronRight className="w-5 h-5 rotate-180"/>
                         </button>
+                        <button onClick={() => setIsFinanceAppOpen(true)} className="w-full mt-3 bg-green-600 hover:bg-green-500 active:bg-green-700 text-white font-bold py-4 rounded-xl transition-colors shadow-lg flex items-center justify-center gap-2 flex-row-reverse text-sm md:text-base border border-green-500/50">
+                          לאישור מימון מהיר דיגיטלי <Shield className="w-5 h-5"/>
+                        </button>
                       </div>
                     </div>
                   )}
@@ -937,6 +989,66 @@ const CarDealershipApp = () => {
                     שלח בוואטסאפ <MessageCircle className="w-5 h-5"/>
                   </button>
                 </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* FINANCE APP MODAL */}
+      {isFinanceAppOpen && (
+        <div className="fixed inset-0 z-[130] flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm">
+          <div className="bg-neutral-950 border border-neutral-800 rounded-t-3xl sm:rounded-2xl w-full sm:max-w-2xl max-h-[92vh] flex flex-col shadow-2xl">
+            <div className="bg-neutral-900 px-5 py-5 text-center border-b border-neutral-800 shrink-0 rounded-t-3xl sm:rounded-t-2xl relative">
+              <button onClick={()=>setIsFinanceAppOpen(false)} className="absolute top-4 left-4 bg-neutral-800 hover:bg-red-600 p-2 rounded-full text-neutral-400 hover:text-white transition-colors"><X className="w-5 h-5"/></button>
+              <h2 className="text-2xl font-bold text-white">בקשה לאישור מימון <span className="text-green-500">מהיר</span></h2>
+              <p className="text-neutral-400 text-sm mt-1">מלא את הפרטים ונחזור אליך עם אישור מימון דיגיטלי.</p>
+            </div>
+            <div className="p-5 overflow-y-auto">
+              <form onSubmit={handleFinanceAppSubmit} className="space-y-5">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-right">
+                  <div className="md:col-span-2">
+                    <label className="block text-neutral-400 mb-1.5 text-xs font-medium">פרטים אישיים</label>
+                  </div>
+                  <input type="text" value={financeData.name} onChange={e=>setFinanceData({...financeData, name: e.target.value})} placeholder="שם מלא *" className={INPUT_CLASS} required />
+                  <input type="tel" value={financeData.phone} onChange={e=>setFinanceData({...financeData, phone: e.target.value})} placeholder="מספר טלפון *" className={INPUT_CLASS} required />
+                  <input type="text" value={financeData.occupation} onChange={e=>setFinanceData({...financeData, occupation: e.target.value})} placeholder="במה אתה עובד? *" className={INPUT_CLASS} required />
+                  <input type="number" value={financeData.income} onChange={e=>setFinanceData({...financeData, income: e.target.value})} placeholder="הכנסה חודשית (בעל+אישה) *" className={INPUT_CLASS} required />
+
+                  <div className="md:col-span-2 mt-2">
+                    <label className="block text-neutral-400 mb-1.5 text-xs font-medium">מסמכים נדרשים (חובה להעלות את כולם)</label>
+                  </div>
+
+                  {[
+                    { id: 'idImage', label: 'תעודת זהות (צד קדמי)' },
+                    { id: 'idAttachment', label: 'ספח תעודת זהות פתוח' },
+                    { id: 'license', label: 'רישיון נהיגה' },
+                    { id: 'ccFront', label: 'כרטיס אשראי/דיירקט (קדמי)' },
+                    { id: 'ccBack', label: 'כרטיס אשראי/דיירקט (אחורי)' },
+                  ].map(doc => (
+                    <div key={doc.id} className="relative md:col-span-2 lg:col-span-1">
+                      <input type="file" accept="image/*" required onChange={e => setFinanceFiles(prev => ({...prev, [doc.id]: e.target.files[0]}))} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
+                      <div className={`w-full border rounded-xl px-4 py-3 flex items-center justify-between transition-colors flex-row-reverse ${financeFiles[doc.id] ? 'bg-green-600/10 border-green-500' : 'bg-neutral-900 border-neutral-700'}`}>
+                         <div className="flex items-center gap-2 flex-row-reverse">
+                           <Upload className={`w-4 h-4 ${financeFiles[doc.id] ? 'text-green-500' : 'text-neutral-500'}`}/>
+                           <span className={`text-sm ${financeFiles[doc.id] ? 'text-green-400' : 'text-neutral-400'}`}>
+                             {financeFiles[doc.id] ? '✓ נבחר קובץ' : doc.label}
+                           </span>
+                         </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <button type="submit" disabled={financeAppStatus === 'loading'} className={`w-full font-bold py-4 rounded-xl mt-4 transition-colors shadow-lg flex items-center justify-center gap-2 flex-row-reverse ${financeAppStatus === 'loading' ? 'bg-neutral-700 text-neutral-400 cursor-not-allowed' : financeAppStatus === 'success' ? 'bg-green-600 text-white' : 'bg-green-600 hover:bg-green-500 text-white'}`}>
+                  {financeAppStatus === 'loading' ? (
+                    <><div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"/> שולח נתונים ופותח וואטסאפ...</>
+                  ) : financeAppStatus === 'success' ? (
+                    <><Check className="w-5 h-5"/> הבקשה נשלחה בהצלחה!</>
+                  ) : (
+                    <>שלח בקשה לאישור דיגיטלי <Shield className="w-5 h-5"/></>
+                  )}
+                </button>
               </form>
             </div>
           </div>
