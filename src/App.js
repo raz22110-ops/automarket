@@ -1,10 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { Search, MapPin, Phone, Car, Shield, DollarSign, ChevronRight, Menu, X, Star, Settings, Plus, Trash2, ArrowRight, Check, Calendar, Gauge, MessageCircle, Quote, Upload, User, Zap } from 'lucide-react';
-import { createClient } from '@supabase/supabase-js';
 
 const mySupabaseUrl = 'https://pghsiondbznscjmmvijz.supabase.co';
 const mySupabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBnaHNpb25kYnpuc2NqbW12aWp6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3OTgxOTYsImV4cCI6MjA5MzM3NDE5Nn0.1XbCpdkU1_YflpvYtSJ-cZDdDotGTKbVESu_Cf7E9hA';
-const supabase = createClient(mySupabaseUrl, mySupabaseKey);
+
+const supabaseHeaders = {
+  'apikey': mySupabaseKey,
+  'Authorization': `Bearer ${mySupabaseKey}`,
+  'Content-Type': 'application/json',
+  'Prefer': 'return=minimal'
+};
 
 const ISRAELI_CAR_MAKES = [
   "אאודי","אופל","אורא","איסוזו","אינפיניטי","איווקו","אלפא רומיאו","אסטון מרטין",
@@ -49,14 +54,23 @@ const CarDealershipApp = () => {
   const [editCar, setEditCar] = useState(null);
   const [editStatus, setEditStatus] = useState('idle');
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+  const [selectedFiles, setSelectedFiles] = useState([]); // שומר את הקבצים להעלאה
+  const [editSelectedFiles, setEditSelectedFiles] = useState([]); // שומר את הקבצים לעריכה
 
   useEffect(() => { fetchInventory(); }, []);
 
   const fetchInventory = async () => {
     setInventoryLoading(true);
     try {
-      const { data, error } = await supabase.from('inventory').select('*').order('createdAt', { ascending: false });
-      if (error) throw error;
+      const response = await fetch(`${mySupabaseUrl}/rest/v1/inventory?select=*&order=createdAt.desc`, {
+        method: 'GET',
+        headers: {
+          'apikey': mySupabaseKey,
+          'Authorization': `Bearer ${mySupabaseKey}`
+        }
+      });
+      if (!response.ok) throw new Error('שגיאה במשיכת נתונים');
+      const data = await response.json();
       setInventory(data || []);
     } catch (err) { console.error(err); }
     finally { setInventoryLoading(false); }
@@ -80,57 +94,154 @@ const CarDealershipApp = () => {
         if (h > 720) { w = w * 720 / h; h = 720; }
         canvas.width = w; canvas.height = h;
         canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-        resolve(canvas.toDataURL('image/jpeg', 0.85));
+        
+        // המרה ל-Blob במקום Base64
+        canvas.toBlob((blob) => {
+            resolve(blob);
+        }, 'image/jpeg', 0.85);
       };
       img.src = e.target.result;
     };
     reader.readAsDataURL(file);
   });
 
-  const handleImageUpload = async (e, target = 'new') => {
+  const uploadImagesToStorage = async (files) => {
+      const uploadedUrls = [];
+      for (const file of files) {
+          const blob = await resizeImage(file);
+          const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}.jpg`; 
+          
+          const response = await fetch(`${mySupabaseUrl}/storage/v1/object/car-images/${fileName}`, {
+            method: 'POST',
+            headers: {
+              'apikey': mySupabaseKey,
+              'Authorization': `Bearer ${mySupabaseKey}`,
+              'Content-Type': 'image/jpeg'
+            },
+            body: blob
+          });
+
+          if (!response.ok) {
+              console.error("Error uploading image");
+              throw new Error("Upload failed");
+          }
+
+          const publicUrl = `${mySupabaseUrl}/storage/v1/object/public/car-images/${fileName}`;
+          uploadedUrls.push(publicUrl);
+      }
+      return uploadedUrls;
+  };
+
+
+  const handleImageSelection = (e, target = 'new') => {
     const files = Array.from(e.target.files);
     if (!files.length) return;
     if (files.length > 10) { alert('עד 10 תמונות'); return; }
-    try {
-      const imgs = await Promise.all(files.map(resizeImage));
-      if (target === 'new') setNewCar(p => ({ ...p, images: imgs }));
-      else setEditCar(p => ({ ...p, images: imgs, image: imgs[0] }));
-    } catch { alert('שגיאה בתמונות'); }
+    
+    if (target === 'new') {
+        setSelectedFiles(files);
+        setNewCar(p => ({ ...p, images: Array(files.length).fill('pending') })); // רק כדי להראות בחיווי שנבחרו קבצים
+    } else {
+        setEditSelectedFiles(files);
+        setEditCar(p => ({ ...p, images: Array(files.length).fill('pending') }));
+    }
   };
 
   const handleAddCar = async (e) => {
-    e.preventDefault(); setUploadStatus('loading');
-    const carToAdd = { ...newCar, id: Date.now().toString(), image: newCar.images?.[0] || '', createdAt: Date.now() };
+    e.preventDefault(); 
+    setUploadStatus('loading');
+    
     try {
-      const { error } = await supabase.from('inventory').insert([carToAdd]);
-      if (error) throw error;
-      setInventory(p => [carToAdd, ...p]); setNewCar(EMPTY_CAR); setUploadStatus('success');
+      let imageUrls = [];
+      // 1. העלאת תמונות ל-Storage
+      if (selectedFiles.length > 0) {
+          imageUrls = await uploadImagesToStorage(selectedFiles);
+      }
+
+      // 2. שמירת הנתונים במסד הנתונים
+      const carToAdd = { 
+          ...newCar, 
+          id: Date.now().toString(), 
+          images: imageUrls, 
+          image: imageUrls.length > 0 ? imageUrls[0] : '', 
+          createdAt: Date.now() 
+      };
+      
+      const response = await fetch(`${mySupabaseUrl}/rest/v1/inventory`, {
+        method: 'POST',
+        headers: supabaseHeaders,
+        body: JSON.stringify(carToAdd)
+      });
+      if (!response.ok) throw new Error('שגיאה בשמירת הרכב');
+      
+      setInventory(p => [carToAdd, ...p]); 
+      setNewCar(EMPTY_CAR); 
+      setSelectedFiles([]);
+      setUploadStatus('success');
       setTimeout(() => setUploadStatus('idle'), 3500);
-    } catch { setUploadStatus('error'); setTimeout(() => setUploadStatus('idle'), 4000); }
+    } catch (err) { 
+        console.error(err);
+        setUploadStatus('error'); 
+        setTimeout(() => setUploadStatus('idle'), 4000); 
+    }
   };
 
   const handleEditSave = async (e) => {
-    e.preventDefault(); setEditStatus('loading');
+    e.preventDefault(); 
+    setEditStatus('loading');
+    
     try {
-      const { error } = await supabase.from('inventory').update(editCar).eq('id', editCar.id);
-      if (error) throw error;
-      setInventory(p => p.map(c => c.id === editCar.id ? editCar : c));
+      let imageUrls = editCar.images; // מתחילים עם התמונות הקיימות (אם יש)
+      
+      // אם המשתמש בחר תמונות חדשות, מעלים אותן ודורסים את הישנות
+      if (editSelectedFiles.length > 0) {
+          imageUrls = await uploadImagesToStorage(editSelectedFiles);
+      }
+
+      const updatedCar = {
+          ...editCar,
+          images: imageUrls,
+          image: imageUrls.length > 0 ? imageUrls[0] : (editCar.image || '')
+      };
+
+      const response = await fetch(`${mySupabaseUrl}/rest/v1/inventory?id=eq.${updatedCar.id}`, {
+        method: 'PATCH',
+        headers: supabaseHeaders,
+        body: JSON.stringify(updatedCar)
+      });
+      if (!response.ok) throw new Error('שגיאה בעדכון הרכב');
+      
+      setInventory(p => p.map(c => c.id === updatedCar.id ? updatedCar : c));
       setEditStatus('success');
+      setEditSelectedFiles([]);
       setTimeout(() => { setEditStatus('idle'); setEditCar(null); }, 1800);
-    } catch { setEditStatus('error'); setTimeout(() => setEditStatus('idle'), 4000); }
+    } catch (err) { 
+        console.error(err);
+        setEditStatus('error'); 
+        setTimeout(() => setEditStatus('idle'), 4000); 
+    }
   };
 
   const handleDeleteCar = async (id) => {
     try {
-      const { error } = await supabase.from('inventory').delete().eq('id', id);
-      if (error) throw error;
+      const response = await fetch(`${mySupabaseUrl}/rest/v1/inventory?id=eq.${id}`, {
+        method: 'DELETE',
+        headers: supabaseHeaders
+      });
+      if (!response.ok) throw new Error('שגיאה במחיקת הרכב');
       setInventory(p => p.filter(c => c.id !== id)); setDeleteConfirmId(null);
     } catch { alert('שגיאה במחיקה'); }
   };
 
   const handleTradeInSubmit = async (e) => {
     e.preventDefault();
-    await supabase.from('leads').insert([{ name: tradeData.name, phone: tradeData.phone, lead_type: 'טרייד-אין', car_details: `${tradeData.make} ${tradeData.model} (${tradeData.year})` }]);
+    try {
+      await fetch(`${mySupabaseUrl}/rest/v1/leads`, {
+        method: 'POST',
+        headers: supabaseHeaders,
+        body: JSON.stringify({ name: tradeData.name, phone: tradeData.phone, lead_type: 'טרייד-אין', car_details: `${tradeData.make} ${tradeData.model} (${tradeData.year})` })
+      });
+    } catch (err) { console.error(err); }
     const text = `שלום, אשמח לקבל הצעת טרייד-אין.\n\n*פרטי התקשרות:*\nשם: ${tradeData.name}\nטלפון: ${tradeData.phone}\n\n*פרטי הרכב שלי:*\nיצרן: ${tradeData.make}\nדגם: ${tradeData.model}\nשנתון: ${tradeData.year}\nסוג הנעה: ${tradeData.engine}\nקילומטראז': ${tradeData.km}\nבעלות: ${tradeData.ownership}\nיד: ${tradeData.owners}`;
     window.open(`https://wa.me/972526441855?text=${encodeURIComponent(text)}`, '_blank');
     setIsTradeInOpen(false);
@@ -245,7 +356,13 @@ const CarDealershipApp = () => {
     const handleLeadSubmit = async (e) => {
       e.preventDefault();
       let type = wantFinance ? 'מימון' : haveTradeIn ? 'טרייד-אין' : 'התעניינות ברכב';
-      await supabase.from('leads').insert([{ name:leadName, phone:leadPhone, lead_type:type, car_details:`${car.make} ${car.model} (${car.year})` }]);
+      try {
+        await fetch(`${mySupabaseUrl}/rest/v1/leads`, {
+          method: 'POST',
+          headers: supabaseHeaders,
+          body: JSON.stringify({ name:leadName, phone:leadPhone, lead_type:type, car_details:`${car.make} ${car.model} (${car.year})` })
+        });
+      } catch (err) { console.error(err); }
       const text = `שלום, אני מתעניין ברכב ${car.make} ${car.model} (${car.year}).\n\nשם: ${leadName}\nטלפון: ${leadPhone}\nמימון: ${wantFinance?'כן':'לא'}\nטרייד-אין: ${haveTradeIn?'כן':'לא'}`;
       window.open(`https://wa.me/972526441855?text=${encodeURIComponent(text)}`, '_blank');
     };
@@ -643,7 +760,13 @@ const CarDealershipApp = () => {
                 onSubmit={async(e)=>{
                   e.preventDefault();
                   const name=e.target.elements[0].value, phone=e.target.elements[1].value;
-                  await supabase.from('leads').insert([{name,phone,lead_type:'פנייה כללית',car_details:'אין'}]);
+                  try {
+                    await fetch(`${mySupabaseUrl}/rest/v1/leads`, {
+                      method: 'POST',
+                      headers: supabaseHeaders,
+                      body: JSON.stringify({name,phone,lead_type:'פנייה כללית',car_details:'אין'})
+                    });
+                  } catch(err){ console.error(err); }
                   window.open(`https://wa.me/972526441855?text=${encodeURIComponent(`שלום, הגעתי מהאתר.\nשם: ${name}\nטלפון: ${phone}`)}`, '_blank');
                 }}
               >
@@ -867,16 +990,19 @@ const CarDealershipApp = () => {
                         <input type="checkbox" checked={newCar.showListPrice} onChange={e=>setNewCar({...newCar,showListPrice:e.target.checked})} className="accent-red-600 w-4 h-4"/>הצג
                       </label>
                     </div>
+                    
                     <div className="col-span-2 md:col-span-3">
-                      <input type="file" accept="image/*" multiple onChange={e=>handleImageUpload(e,'new')} className="w-full bg-neutral-900 border border-neutral-700 rounded-lg px-3 py-2 text-white text-xs file:ml-2 file:py-1 file:px-3 file:rounded-full file:border-0 file:bg-red-600 file:text-white cursor-pointer"/>
-                      {newCar.images?.length>0 && <p className="text-xs text-green-500 mt-1">✓ {newCar.images.length} תמונות נבחרו</p>}
+                      <label className="block text-xs text-neutral-400 mb-1.5">העלאת תמונות (עד 10 תמונות)</label>
+                      <input type="file" accept="image/*" multiple onChange={e=>handleImageSelection(e,'new')} className="w-full bg-neutral-900 border border-neutral-700 rounded-lg px-3 py-2 text-white text-xs file:ml-2 file:py-1 file:px-3 file:rounded-full file:border-0 file:bg-red-600 file:text-white cursor-pointer"/>
+                      {selectedFiles.length>0 && <p className="text-xs text-green-500 mt-1">✓ {selectedFiles.length} תמונות נבחרו להעלאה</p>}
                     </div>
+
                     <button type="submit" disabled={uploadStatus==='loading'} className={`col-span-2 md:col-span-1 font-bold py-2.5 rounded-lg flex items-center justify-center gap-2 flex-row-reverse transition-all text-white ${uploadStatus==='loading'?'bg-neutral-700 cursor-not-allowed':'bg-red-600 hover:bg-red-500'}`}>
                       {uploadStatus==='loading'?<><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/>מעלה...</>:<><Plus className="w-4 h-4"/>העלה רכב</>}
                     </button>
                   </form>
                   {uploadStatus==='success' && <div className="mt-3 flex items-center gap-2 bg-green-500/10 border border-green-500/30 text-green-400 rounded-xl px-4 py-3 flex-row-reverse"><Check className="w-5 h-5"/><span className="text-sm font-medium">הרכב הועלה בהצלחה! 🎉</span></div>}
-                  {uploadStatus==='error' && <div className="mt-3 flex items-center gap-2 bg-red-500/10 border border-red-500/30 text-red-400 rounded-xl px-4 py-3 flex-row-reverse"><X className="w-5 h-5"/><span className="text-sm">שגיאה — בדוק חיבור ל-Supabase</span></div>}
+                  {uploadStatus==='error' && <div className="mt-3 flex items-center gap-2 bg-red-500/10 border border-red-500/30 text-red-400 rounded-xl px-4 py-3 flex-row-reverse"><X className="w-5 h-5"/><span className="text-sm">שגיאה — בדוק את ההגדרות ב-Supabase Storage</span></div>}
                 </div>
               </div>
               {/* Inventory table */}
@@ -938,7 +1064,7 @@ const CarDealershipApp = () => {
         <div className="fixed inset-0 z-[150] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/85 backdrop-blur-sm">
           <div className="bg-neutral-900 border border-neutral-800 rounded-t-3xl sm:rounded-2xl w-full sm:max-w-3xl max-h-[94vh] overflow-hidden flex flex-col shadow-2xl">
             <div className="flex justify-between items-center px-5 py-4 border-b border-neutral-800 bg-neutral-950 flex-row-reverse shrink-0">
-              <button onClick={()=>{setEditCar(null);setEditStatus('idle');}} className="bg-neutral-800 hover:bg-red-600 p-2 rounded-full text-neutral-400 hover:text-white transition-colors"><X className="w-5 h-5"/></button>
+              <button onClick={()=>{setEditCar(null);setEditStatus('idle');setEditSelectedFiles([]);}} className="bg-neutral-800 hover:bg-red-600 p-2 rounded-full text-neutral-400 hover:text-white transition-colors"><X className="w-5 h-5"/></button>
               <div className="text-right">
                 <h2 className="text-lg font-bold text-white">עריכת רכב</h2>
                 <p className="text-xs text-neutral-500">{editCar.make} {editCar.model} ({editCar.year})</p>
@@ -979,15 +1105,18 @@ const CarDealershipApp = () => {
                     <input type="checkbox" checked={!!editCar.showListPrice} onChange={e=>setEditCar({...editCar,showListPrice:e.target.checked})} className="accent-red-600 w-4 h-4"/>הצג
                   </label>
                 </div>
+                
                 <div className="col-span-2 md:col-span-3">
-                  <label className="block text-xs text-neutral-400 mb-1.5">החלפת תמונות (אופציונלי)</label>
-                  <input type="file" accept="image/*" multiple onChange={e=>handleImageUpload(e,'edit')} className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-white text-xs file:ml-2 file:py-1 file:px-3 file:rounded-full file:border-0 file:bg-blue-600 file:text-white cursor-pointer"/>
+                  <label className="block text-xs text-neutral-400 mb-1.5">החלפת תמונות (אופציונלי - עד 10 תמונות)</label>
+                  <input type="file" accept="image/*" multiple onChange={e=>handleImageSelection(e,'edit')} className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-white text-xs file:ml-2 file:py-1 file:px-3 file:rounded-full file:border-0 file:bg-blue-600 file:text-white cursor-pointer"/>
+                  {editSelectedFiles.length>0 && <p className="text-xs text-blue-400 mt-1">✓ {editSelectedFiles.length} תמונות נבחרו ויחליפו את הישנות</p>}
                 </div>
-                <div className="col-span-2 md:col-span-3 flex gap-3 flex-row-reverse">
+
+                <div className="col-span-2 md:col-span-3 flex gap-3 flex-row-reverse mt-2">
                   <button type="submit" disabled={editStatus==='loading'} className={`flex-1 py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 flex-row-reverse transition-all text-white ${editStatus==='loading'?'bg-neutral-700 cursor-not-allowed':editStatus==='success'?'bg-green-600':'bg-blue-600 hover:bg-blue-500'}`}>
                     {editStatus==='loading'?<><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/>שומר...</>:editStatus==='success'?<><Check className="w-5 h-5"/>נשמר בהצלחה!</>:<>שמור שינויים <Check className="w-5 h-5"/></>}
                   </button>
-                  <button type="button" onClick={()=>{setEditCar(null);setEditStatus('idle');}} className="px-5 py-3.5 bg-neutral-800 hover:bg-neutral-700 text-white rounded-xl font-medium">ביטול</button>
+                  <button type="button" onClick={()=>{setEditCar(null);setEditStatus('idle');setEditSelectedFiles([]);}} className="px-5 py-3.5 bg-neutral-800 hover:bg-neutral-700 text-white rounded-xl font-medium">ביטול</button>
                 </div>
                 {editStatus==='error'&&<div className="col-span-2 md:col-span-3 flex items-center gap-2 bg-red-500/10 border border-red-500/30 text-red-400 rounded-xl px-4 py-3 flex-row-reverse"><X className="w-4 h-4"/><span className="text-sm">שגיאה בשמירה — נסה שוב</span></div>}
               </form>
