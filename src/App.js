@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, MapPin, Phone, Car, Shield, DollarSign, ChevronRight, Menu, X, Star, Settings, Plus, Trash2, ArrowRight, Check, Calendar, Gauge, MessageCircle, Quote, Upload, User, Zap, CreditCard, Truck } from 'lucide-react';
+import { Search, MapPin, Phone, Car, Shield, DollarSign, ChevronRight, Menu, X, Star, Settings, Plus, Trash2, ArrowRight, Check, Calendar, Gauge, MessageCircle, Quote, Upload, User, Zap, CreditCard, Truck, Share2 } from 'lucide-react';
 
 const mySupabaseUrl = 'https://pghsiondbznscjmmvijz.supabase.co';
 const mySupabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBnaHNpb25kYnpuc2NqbW12aWp6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3OTgxOTYsImV4cCI6MjA5MzM3NDE5Nn0.1XbCpdkU1_YflpvYtSJ-cZDdDotGTKbVESu_Cf7E9hA';
@@ -50,10 +50,10 @@ const CarDealershipApp = () => {
   const [currentView, setCurrentView] = useState('home');
   const [selectedCar, setSelectedCar] = useState(null);
   const [searchTab, setSearchTab] = useState('finance');
-  const [financePrice, setFinancePrice] = useState(150000);
+  const [financePrice, setFinancePrice] = useState(200000);
   const [financeDownPayment, setFinanceDownPayment] = useState(30000);
-  const [financePayments, setFinancePayments] = useState(60);
-  const [financeCondition, setFinanceCondition] = useState('used');
+  const [financePayments, setFinancePayments] = useState(100);
+  const [financeCondition, setFinanceCondition] = useState('new');
   const [searchMake, setSearchMake] = useState('');
   const [searchCondition, setSearchCondition] = useState('');
   const [searchCategory, setSearchCategory] = useState('');
@@ -391,8 +391,27 @@ const CarDealershipApp = () => {
     { id:3, name:'דניאל כהן', text:'סוכנות ברמה אירופאית. רכבים מדהימים ותנאי מימון שאי אפשר למצוא במקומות אחרים. חווית קנייה חלקה ומהירה.', car:'קנה: Porsche 911' }
   ];
 
-  /* ───────── CAR CARD ───────── */
-  const CarGrid = ({ cars }) => (
+/* ───────── CAR CARD ───────── */
+const CarGrid = ({ cars }) => {
+    
+  // פונקציית השיתוף החדשה
+  const handleShare = async (car, e) => {
+    e.stopPropagation(); // מונע לחיצה בטעות על הרכב עצמו
+    const shareText = `ראו איזה רכב מצאתי באוטו מרקט!\n*${car.make} ${car.model}* (${car.year})\nמחיר: ₪${car.price}\n\nלפרטים נוספים היכנסו לאתר:`;
+    const shareUrl = window.location.href.split('#')[0]; // הקישור לאתר
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: 'אוטו מרקט - שיתוף רכב', text: shareText, url: shareUrl });
+      } catch (err) { console.log('Share canceled'); }
+    } else {
+      // למחשבים שלא תומכים בשיתוף מובנה - נעתיק ללוח
+      navigator.clipboard.writeText(`${shareText}\n${shareUrl}`);
+      alert('פרטי הרכב הועתקו ללוח!');
+    }
+  };
+
+  return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-8">
       {inventoryLoading ? (
         <div className="col-span-full py-20 text-center">
@@ -409,7 +428,20 @@ const CarDealershipApp = () => {
         <div key={car.id} className="group bg-neutral-900 rounded-2xl overflow-hidden border border-neutral-800 hover:border-red-600/50 transition-all duration-300 active:scale-[0.98]">
           <div className="relative h-52 sm:h-60 overflow-hidden bg-neutral-800">
             <div className="absolute top-3 right-3 z-10 bg-black/60 backdrop-blur-md text-white px-3 py-1 rounded-full text-xs font-medium border border-white/10">{car.type}</div>
-            <div className={`absolute top-3 left-3 z-10 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold border ${car.condition==='חדש'?'bg-red-600/90 text-white border-red-500':'bg-neutral-600/80 text-white border-neutral-500'}`}>{car.condition}</div>
+            <div className={`absolute top-3 left-3 z-10 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold border ${car.condition==='חדש'?'bg-red-600/90 text-white border-red-500':'bg-neutral-600/80 text-white border-neutral-500'}`}>
+              {car.condition === 'חדש' ? 'חדש 0 ק"מ' : car.condition}
+            </div>
+            
+            {/* --- כפתור שיתוף --- */}
+            <button 
+              onClick={(e) => handleShare(car, e)} 
+              className="absolute bottom-3 left-3 z-10 bg-black/60 hover:bg-red-600 backdrop-blur-md text-white p-2.5 rounded-full border border-white/10 transition-colors shadow-lg"
+              title="שתף רכב"
+            >
+              <Share2 className="w-4 h-4" />
+            </button>
+            {/* ------------------ */}
+
             <img src={car.image||'/back.jpg'} alt={`${car.make} ${car.model}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" onError={e=>e.target.src='/back.jpg'} />
           </div>
           <div className="p-4 text-right">
@@ -419,14 +451,14 @@ const CarDealershipApp = () => {
                 <p className="text-neutral-400 text-xs mt-0.5">{car.year} | {car.subModel}</p>
               </div>
               <div className="text-left">
-  {car.showListPrice && car.listPrice && <span className="text-neutral-500 line-through text-xs block mb-0.5">₪{car.listPrice}</span>}
-  <p className="text-base font-bold text-red-600 leading-none">₪ {car.price}</p>
-  {car.monthlyPayment && (
-    <div className="bg-green-600 text-white text-xs font-bold px-2.5 py-1 rounded-md mt-1.5 inline-block shadow-sm">
-      החל מ-₪{car.monthlyPayment} בחודש
-    </div>
-  )}
-</div>
+                {car.showListPrice && car.listPrice && <span className="text-neutral-500 line-through text-xs block mb-0.5">₪{car.listPrice}</span>}
+                <p className="text-base font-bold text-red-600 leading-none">₪ {car.price}</p>
+                {car.monthlyPayment && (
+                  <div className="bg-green-600 text-white text-xs font-bold px-2.5 py-1 rounded-md mt-1.5 inline-block shadow-sm">
+                    החל מ-₪{car.monthlyPayment} בחודש
+                  </div>
+                )}
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-y-2 gap-x-2 mb-4 pt-3 border-t border-neutral-800 text-xs text-neutral-300">
               <div className="flex items-center justify-end gap-1.5">{car.mileage} ק"מ<Gauge className="w-3.5 h-3.5 text-neutral-500"/></div>
@@ -440,6 +472,7 @@ const CarDealershipApp = () => {
       ))}
     </div>
   );
+};
 
   /* ───────── INVENTORY PAGE ───────── */
   const GenericInventoryPage = ({ cars, title, subtitle }) => (
@@ -454,44 +487,67 @@ const CarDealershipApp = () => {
     </div>
   );
 
-  /* ───────── CAR DETAILS ───────── */
-  const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
-    const [leadName, setLeadName] = useState('');
-    const [leadPhone, setLeadPhone] = useState('');
-    const [wantFinance, setWantFinance] = useState(false);
-    const [haveTradeIn, setHaveTradeIn] = useState(false);
-    const [activeImg, setActiveImg] = useState(0);
+/* ───────── CAR DETAILS ───────── */
+const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
+  const [leadName, setLeadName] = useState('');
+  const [leadPhone, setLeadPhone] = useState('');
+  const [wantFinance, setWantFinance] = useState(false);
+  const [haveTradeIn, setHaveTradeIn] = useState(false);
+  const [activeImg, setActiveImg] = useState(0);
 
-    const handleLeadSubmit = async (e) => {
-      e.preventDefault();
-      let type = wantFinance ? 'מימון' : haveTradeIn ? 'טרייד-אין' : 'התעניינות ברכב';
+  // --- פונקציית השיתוף לעמוד הפנימי ---
+  const handleShare = async () => {
+    const shareText = `ראו איזה רכב מצאתי באוטו מרקט!\n*${car.make} ${car.model}* (${car.year})\nמחיר: ₪${car.price}\n\nלפרטים נוספים היכנסו לאתר:`;
+    const shareUrl = window.location.href.split('#')[0];
+    
+    if (navigator.share) {
       try {
-        await fetch(`${mySupabaseUrl}/rest/v1/leads`, {
-          method: 'POST',
-          headers: supabaseHeaders,
-          body: JSON.stringify({ name:leadName, phone:leadPhone, lead_type:type, car_details:`${car.make} ${car.model} (${car.year})` })
-        });
-      } catch (err) { console.error(err); }
-      const text = `שלום, אני מתעניין ברכב ${car.make} ${car.model} (${car.year}).\n\nשם: ${leadName}\nטלפון: ${leadPhone}\nמימון: ${wantFinance?'כן':'לא'}\nטרייד-אין: ${haveTradeIn?'כן':'לא'}`;
-      window.open(`https://wa.me/972526441855?text=${encodeURIComponent(text)}`, '_blank');
-    };
+        await navigator.share({ title: 'אוטו מרקט - שיתוף רכב', text: shareText, url: shareUrl });
+      } catch (err) { console.log('Share canceled'); }
+    } else {
+      navigator.clipboard.writeText(`${shareText}\n${shareUrl}`);
+      alert('פרטי הרכב הועתקו ללוח!');
+    }
+  };
+  // ----------------------------------
 
-    const imgs = (car.images?.length > 0) ? car.images : [car.image || '/back.jpg'];
+  const handleLeadSubmit = async (e) => {
+    e.preventDefault();
+    let type = wantFinance ? 'מימון' : haveTradeIn ? 'טרייד-אין' : 'התעניינות ברכב';
+    try {
+      await fetch(`${mySupabaseUrl}/rest/v1/leads`, {
+        method: 'POST',
+        headers: supabaseHeaders,
+        body: JSON.stringify({ name:leadName, phone:leadPhone, lead_type:type, car_details:`${car.make} ${car.model} (${car.year})` })
+      });
+    } catch (err) { console.error(err); }
+    const text = `שלום, אני מתעניין ברכב ${car.make} ${car.model} (${car.year}).\n\nשם: ${leadName}\nטלפון: ${leadPhone}\nמימון: ${wantFinance?'כן':'לא'}\nטרייד-אין: ${haveTradeIn?'כן':'לא'}`;
+    window.open(`https://wa.me/972526441855?text=${encodeURIComponent(text)}`, '_blank');
+  };
 
+  const imgs = (car.images?.length > 0) ? car.images : [car.image || '/back.jpg'];
     return (
       <div className="pt-28 md:pt-36 pb-10 bg-neutral-950 min-h-screen" dir="rtl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Back */}
-          <button onClick={onBack} className="flex items-center gap-2 text-neutral-400 active:text-red-500 hover:text-red-500 transition-colors mb-6 font-medium bg-neutral-900/50 px-4 py-2.5 rounded-full w-fit border border-neutral-800 ml-auto">
-            חזרה <ArrowRight className="w-4 h-4"/>
-          </button>
+{/* Top Bar: Back & Share */}
+<div className="flex justify-between items-center mb-6 flex-row-reverse">
+            <button onClick={onBack} className="flex items-center gap-2 text-neutral-400 active:text-red-500 hover:text-red-500 transition-colors font-medium bg-neutral-900/50 px-4 py-2.5 rounded-full border border-neutral-800">
+              חזרה <ArrowRight className="w-4 h-4"/>
+            </button>
+
+            <button onClick={handleShare} className="flex items-center gap-2 text-white bg-neutral-800 hover:bg-red-600 active:bg-red-700 transition-colors font-bold px-5 py-2.5 rounded-full border border-neutral-700 shadow-md flex-row-reverse">
+              שתף רכב <Share2 className="w-4 h-4"/>
+            </button>
+          </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-10">
             {/* Gallery + info */}
             <div className="lg:col-span-2 space-y-5">
               {/* Main image */}
               <div className="bg-neutral-900 rounded-2xl overflow-hidden border border-neutral-800 h-56 sm:h-80 md:h-[420px] relative">
-                <div className={`absolute top-4 right-4 z-10 backdrop-blur-md px-3 py-1.5 rounded-full text-xs font-bold border ${car.condition==='חדש'?'bg-red-600/90 text-white border-red-500':'bg-neutral-600/80 text-white border-neutral-500'}`}>{car.condition}</div>
+              <div className={`absolute top-4 right-4 z-10 backdrop-blur-md px-3 py-1.5 rounded-full text-xs font-bold border ${car.condition==='חדש'?'bg-red-600/90 text-white border-red-500':'bg-neutral-600/80 text-white border-neutral-500'}`}>
+  {car.condition === 'חדש' ? 'חדש 0 ק"מ' : car.condition}
+</div>
                 <img src={imgs[activeImg]} alt={`${car.make} ${car.model}`} className="w-full h-full object-cover" onError={e=>e.target.src='/back.jpg'} />
               </div>
               {/* Thumbs */}
@@ -803,42 +859,46 @@ return (
             </div>
           </div>
 
-          {/* NEW INVENTORY */}
-          <section className="py-14 md:py-24 bg-neutral-950 border-b border-neutral-900">
+{/* NEW INVENTORY */}
+<section className="py-14 md:py-24 bg-neutral-950 border-b border-neutral-900">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="flex justify-between items-center mb-8 flex-row-reverse">
                 <div className="text-right">
                   <h2 className="text-2xl md:text-4xl font-bold">רכבים <span className="text-red-600">חדשים</span></h2>
                   <p className="text-neutral-400 text-sm md:text-base mt-1">מבחר הרכבים החדשים באולם שלנו.</p>
                 </div>
-                <button onClick={()=>navigateTo('new')} className="hidden md:flex items-center text-red-600 hover:text-red-500 font-semibold gap-1 flex-row-reverse whitespace-nowrap text-sm">
+                {/* כפתור למחשב */}
+                <button onClick={()=>navigateTo('new')} className="hidden md:flex items-center bg-white text-red-600 hover:bg-neutral-200 font-bold px-6 py-2.5 rounded-full gap-2 flex-row-reverse whitespace-nowrap text-sm transition-colors shadow-md">
                   כל המלאי ({inventory.filter(c=>c.condition==='חדש').length}) <ChevronRight className="w-4 h-4 rotate-180"/>
                 </button>
               </div>
               <CarGrid cars={inventory.filter(c=>c.condition==='חדש' && c.showOnHome).slice(0,6)} />
               <div className="mt-6 text-center md:hidden">
-                <button onClick={()=>navigateTo('new')} className="text-red-600 font-semibold flex items-center justify-center gap-1 mx-auto flex-row-reverse text-sm">
+                {/* כפתור למובייל */}
+                <button onClick={()=>navigateTo('new')} className="bg-white text-red-600 hover:bg-neutral-200 font-bold px-6 py-3.5 rounded-full flex items-center justify-center gap-2 mx-auto flex-row-reverse text-sm transition-colors shadow-md w-full sm:w-auto">
                   כל המלאי ({inventory.filter(c=>c.condition==='חדש').length}) <ChevronRight className="w-4 h-4 rotate-180"/>
                 </button>
               </div>
             </div>
           </section>
 
-          {/* USED INVENTORY */}
-          <section className="py-14 md:py-24 bg-neutral-950">
+{/* USED INVENTORY */}
+<section className="py-14 md:py-24 bg-neutral-950">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="flex justify-between items-center mb-8 flex-row-reverse">
                 <div className="text-right">
                   <h2 className="text-2xl md:text-4xl font-bold">רכבים <span className="text-red-600">משומשים</span></h2>
                   <p className="text-neutral-400 text-sm md:text-base mt-1">רכבי יד שנייה מעולים לאחר בדיקה קפדנית.</p>
                 </div>
-                <button onClick={()=>navigateTo('used')} className="hidden md:flex items-center text-red-600 hover:text-red-500 font-semibold gap-1 flex-row-reverse whitespace-nowrap text-sm">
+                {/* כפתור למחשב */}
+                <button onClick={()=>navigateTo('used')} className="hidden md:flex items-center bg-white text-red-600 hover:bg-neutral-200 font-bold px-6 py-2.5 rounded-full gap-2 flex-row-reverse whitespace-nowrap text-sm transition-colors shadow-md">
                   כל המלאי ({inventory.filter(c=>c.condition==='משומש').length}) <ChevronRight className="w-4 h-4 rotate-180"/>
                 </button>
               </div>
               <CarGrid cars={inventory.filter(c=>c.condition==='משומש' && c.showOnHome).slice(0,6)} />
               <div className="mt-6 text-center md:hidden">
-                <button onClick={()=>navigateTo('used')} className="text-red-600 font-semibold flex items-center justify-center gap-1 mx-auto flex-row-reverse text-sm">
+                {/* כפתור למובייל */}
+                <button onClick={()=>navigateTo('used')} className="bg-white text-red-600 hover:bg-neutral-200 font-bold px-6 py-3.5 rounded-full flex items-center justify-center gap-2 mx-auto flex-row-reverse text-sm transition-colors shadow-md w-full sm:w-auto">
                   כל המלאי ({inventory.filter(c=>c.condition==='משומש').length}) <ChevronRight className="w-4 h-4 rotate-180"/>
                 </button>
               </div>
@@ -854,7 +914,7 @@ return (
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 md:gap-8">
                 {[
-                  { icon:<DollarSign className="w-7 h-7"/>, title:'פתרונות מימון', text:'מימון גמיש עד 100% מול הגופים המובילים.' },
+                  { icon:<DollarSign className="w-7 h-7"/>, title:'פתרונות מימון', text:'מימון אטרקטיבי עד 100% מול הגופים המובילים בענף , נלחמים בשבילכם לריבית הנמוכה בישראל.' },
                   { icon:<Car className="w-7 h-7"/>, title:'טרייד אין הוגן', text:'שקיפות מלאה ומחירון הוגן לרכב הישן שלך.' },
                   { icon:<Shield className="w-7 h-7"/>, title:'אחריות ובדיקה', text:'כל רכב עובר בדיקה מקיפה לשקט הנפשי שלך.' },
                 ].map((s,i) => (
@@ -1326,7 +1386,9 @@ return (
                             </div>
                           </td>
                           <td className="px-3 py-3"><span className="text-red-500 font-bold text-sm">₪{car.price}</span>{car.monthlyPayment&&<div className="text-xs text-neutral-500">₪{car.monthlyPayment}/ח'</div>}</td>
-                          <td className="px-3 py-3"><span className={`px-2 py-0.5 rounded-full text-xs font-bold ${car.condition==='חדש'?'bg-red-600/20 text-red-400 border border-red-600/30':'bg-neutral-700/60 text-neutral-300 border border-neutral-600/30'}`}>{car.condition}</span></td>
+                          <td className="px-3 py-3"><span className={`px-2 py-0.5 rounded-full text-xs font-bold ${car.condition==='חדש'?'bg-red-600/20 text-red-400 border border-red-600/30':'bg-neutral-700/60 text-neutral-300 border border-neutral-600/30'}`}>
+  {car.condition === 'חדש' ? 'חדש 0 ק"מ' : car.condition}
+</span></td>
                           <td className="px-3 py-3"><div className="font-bold text-white text-sm">{car.make} {car.model}</div><div className="text-xs text-neutral-500">{car.subModel}</div></td>
                           <td className="px-3 py-3 text-xs text-neutral-400"><div>{car.year} | יד {car.owners}</div><div>{car.engineType}</div></td>
                           <td className="px-3 py-3"><img src={car.image||'/back.jpg'} alt={car.model} className="w-16 h-10 object-cover rounded-lg border border-neutral-700 ml-auto" onError={e=>e.target.src='/back.jpg'}/></td>
