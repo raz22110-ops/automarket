@@ -63,7 +63,7 @@ const CarDealershipApp = () => {
   const [searchSubtitle, setSearchSubtitle] = useState('');
   const [tradeData, setTradeData] = useState({ name:'',phone:'',make:'',model:'',year:'',engine:'',km:'',ownership:'',owners:'' });
 
-  const EMPTY_CAR = { make:'',model:'',subModel:'',year:'',condition:'משומש',engineType:'בנזין',mileage:'',owners:'',engineCapacity:'',price:'',monthlyPayment:'',listPrice:'',showListPrice:false,images:[],type:'משפחתי' };
+  const EMPTY_CAR = { make:'',model:'',subModel:'',year:'',condition:'משומש',engineType:'בנזין',mileage:'',owners:'',engineCapacity:'',price:'',monthlyPayment:'',listPrice:'',showListPrice:false,images:[],type:'משפחתי', showOnHome: false };
   const [newCar, setNewCar] = useState(EMPTY_CAR);
   const [uploadStatus, setUploadStatus] = useState('idle');
   const [editCar, setEditCar] = useState(null);
@@ -419,10 +419,14 @@ const CarDealershipApp = () => {
                 <p className="text-neutral-400 text-xs mt-0.5">{car.year} | {car.subModel}</p>
               </div>
               <div className="text-left">
-                {car.showListPrice && car.listPrice && <span className="text-neutral-500 line-through text-xs block">₪{car.listPrice}</span>}
-                <p className="text-base font-bold text-red-600">₪ {car.price}</p>
-                {car.monthlyPayment && <p className="text-xs text-neutral-400 mt-0.5">מ-₪{car.monthlyPayment}/חודש</p>}
-              </div>
+  {car.showListPrice && car.listPrice && <span className="text-neutral-500 line-through text-xs block mb-0.5">₪{car.listPrice}</span>}
+  <p className="text-base font-bold text-red-600 leading-none">₪ {car.price}</p>
+  {car.monthlyPayment && (
+    <div className="bg-green-600 text-white text-xs font-bold px-2.5 py-1 rounded-md mt-1.5 inline-block shadow-sm">
+      החל מ-₪{car.monthlyPayment} בחודש
+    </div>
+  )}
+</div>
             </div>
             <div className="grid grid-cols-2 gap-y-2 gap-x-2 mb-4 pt-3 border-t border-neutral-800 text-xs text-neutral-300">
               <div className="flex items-center justify-end gap-1.5">{car.mileage} ק"מ<Gauge className="w-3.5 h-3.5 text-neutral-500"/></div>
@@ -430,7 +434,7 @@ const CarDealershipApp = () => {
               <div className="flex items-center justify-end gap-1.5">{car.engineCapacity} סמ"ק<Settings className="w-3.5 h-3.5 text-neutral-500"/></div>
               <div className="flex items-center justify-end gap-1.5">{car.engineType}<Zap className="w-3.5 h-3.5 text-neutral-500"/></div>
             </div>
-            <button onClick={()=>{setSelectedCar(car);window.scrollTo(0,0);}} className="w-full bg-neutral-800 active:bg-red-700 hover:bg-red-600 text-white py-3 rounded-xl font-bold transition-colors text-sm">לפרטים נוספים</button>
+            <button onClick={()=>{setSelectedCar(car);window.scrollTo(0,0);}} className="w-full bg-red-600 hover:bg-red-500 active:bg-red-700 text-white py-3 rounded-xl font-bold transition-colors text-sm shadow-lg shadow-red-600/20">לפרטים נוספים</button>
           </div>
         </div>
       ))}
@@ -803,7 +807,7 @@ return (
                   כל המלאי ({inventory.filter(c=>c.condition==='חדש').length}) <ChevronRight className="w-4 h-4 rotate-180"/>
                 </button>
               </div>
-              <CarGrid cars={inventory.filter(c=>c.condition==='חדש').slice(0,6)} />
+              <CarGrid cars={inventory.filter(c=>c.condition==='חדש' && c.showOnHome).slice(0,6)} />
               <div className="mt-6 text-center md:hidden">
                 <button onClick={()=>navigateTo('new')} className="text-red-600 font-semibold flex items-center justify-center gap-1 mx-auto flex-row-reverse text-sm">
                   כל המלאי ({inventory.filter(c=>c.condition==='חדש').length}) <ChevronRight className="w-4 h-4 rotate-180"/>
@@ -824,7 +828,7 @@ return (
                   כל המלאי ({inventory.filter(c=>c.condition==='משומש').length}) <ChevronRight className="w-4 h-4 rotate-180"/>
                 </button>
               </div>
-              <CarGrid cars={inventory.filter(c=>c.condition==='משומש').slice(0,6)} />
+              <CarGrid cars={inventory.filter(c=>c.condition==='משומש' && c.showOnHome).slice(0,6)} />
               <div className="mt-6 text-center md:hidden">
                 <button onClick={()=>navigateTo('used')} className="text-red-600 font-semibold flex items-center justify-center gap-1 mx-auto flex-row-reverse text-sm">
                   כל המלאי ({inventory.filter(c=>c.condition==='משומש').length}) <ChevronRight className="w-4 h-4 rotate-180"/>
@@ -1264,12 +1268,18 @@ return (
                     <select value={newCar.type} onChange={e=>setNewCar({...newCar,type:e.target.value})} className="bg-neutral-900 border border-neutral-700 rounded-lg px-3 py-2.5 text-white text-right focus:border-red-600 outline-none">
                       {['משפחתי','יוקרה','ספורט','SUV'].map(o=><option key={o} value={o}>{o}</option>)}
                     </select>
-                    <div className="col-span-2 flex items-center gap-2 flex-row-reverse">
-                      <input type="text" placeholder="מחיר מחירון ₪" value={newCar.listPrice} onChange={e=>setNewCar({...newCar,listPrice:e.target.value})} disabled={!newCar.showListPrice} className="flex-1 bg-neutral-900 border border-neutral-700 rounded-lg px-3 py-2.5 text-white disabled:opacity-40 text-right outline-none"/>
-                      <label className="flex items-center gap-1.5 text-xs text-neutral-400 cursor-pointer whitespace-nowrap flex-row-reverse">
-                        <input type="checkbox" checked={newCar.showListPrice} onChange={e=>setNewCar({...newCar,showListPrice:e.target.checked})} className="accent-red-600 w-4 h-4"/>הצג
-                      </label>
-                    </div>
+                    <div className="col-span-2 md:col-span-3 flex items-center gap-4 flex-row-reverse bg-neutral-900/50 p-2 rounded-xl border border-neutral-800">
+  <div className="flex-1 flex items-center gap-2 flex-row-reverse">
+    <input type="text" placeholder="מחיר מחירון ₪" value={newCar.listPrice} onChange={e=>setNewCar({...newCar,listPrice:e.target.value})} disabled={!newCar.showListPrice} className="flex-1 bg-neutral-900 border border-neutral-700 rounded-lg px-3 py-2.5 text-white disabled:opacity-40 text-right outline-none"/>
+    <label className="flex items-center gap-1.5 text-xs text-neutral-400 cursor-pointer whitespace-nowrap flex-row-reverse">
+      <input type="checkbox" checked={newCar.showListPrice} onChange={e=>setNewCar({...newCar,showListPrice:e.target.checked})} className="accent-red-600 w-4 h-4"/>הצג מחירון
+    </label>
+  </div>
+  <label className="flex items-center gap-2 text-sm text-white font-bold cursor-pointer whitespace-nowrap flex-row-reverse bg-red-600/20 px-4 py-2.5 rounded-lg border border-red-600/40 hover:bg-red-600/30 transition-colors">
+    <input type="checkbox" checked={newCar.showOnHome || false} onChange={e=>setNewCar({...newCar,showOnHome:e.target.checked})} className="accent-red-600 w-4 h-4"/>
+    הצג בדף הבית
+  </label>
+</div>
                     
                     <div className="col-span-2 md:col-span-3">
                       <label className="block text-xs text-neutral-400 mb-1.5">העלאת תמונות (עד 10 תמונות)</label>
@@ -1379,12 +1389,18 @@ return (
                 <select value={editCar.type||'משפחתי'} onChange={e=>setEditCar({...editCar,type:e.target.value})} className="bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2.5 text-white text-right focus:border-blue-500 outline-none">
                   {['משפחתי','יוקרה','ספורט','SUV'].map(o=><option key={o} value={o}>{o}</option>)}
                 </select>
-                <div className="col-span-2 flex items-center gap-2 flex-row-reverse">
-                  <input type="text" placeholder="מחיר מחירון" value={editCar.listPrice||''} onChange={e=>setEditCar({...editCar,listPrice:e.target.value})} disabled={!editCar.showListPrice} className="flex-1 bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2.5 text-white disabled:opacity-40 text-right outline-none"/>
-                  <label className="flex items-center gap-1.5 text-xs text-neutral-400 cursor-pointer whitespace-nowrap flex-row-reverse">
-                    <input type="checkbox" checked={!!editCar.showListPrice} onChange={e=>setEditCar({...editCar,showListPrice:e.target.checked})} className="accent-red-600 w-4 h-4"/>הצג
-                  </label>
-                </div>
+                <div className="col-span-2 md:col-span-3 flex items-center gap-4 flex-row-reverse bg-neutral-800/50 p-2 rounded-xl border border-neutral-700">
+  <div className="flex-1 flex items-center gap-2 flex-row-reverse">
+    <input type="text" placeholder="מחיר מחירון" value={editCar.listPrice||''} onChange={e=>setEditCar({...editCar,listPrice:e.target.value})} disabled={!editCar.showListPrice} className="flex-1 bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2.5 text-white disabled:opacity-40 text-right outline-none"/>
+    <label className="flex items-center gap-1.5 text-xs text-neutral-400 cursor-pointer whitespace-nowrap flex-row-reverse">
+      <input type="checkbox" checked={!!editCar.showListPrice} onChange={e=>setEditCar({...editCar,showListPrice:e.target.checked})} className="accent-red-600 w-4 h-4"/>הצג מחירון
+    </label>
+  </div>
+  <label className="flex items-center gap-2 text-sm text-white font-bold cursor-pointer whitespace-nowrap flex-row-reverse bg-blue-600/20 px-4 py-2.5 rounded-lg border border-blue-600/40 hover:bg-blue-600/30 transition-colors">
+    <input type="checkbox" checked={!!editCar.showOnHome} onChange={e=>setEditCar({...editCar,showOnHome:e.target.checked})} className="accent-blue-600 w-4 h-4"/>
+    הצג בדף הבית
+  </label>
+</div>
                 
                 <div className="col-span-2 md:col-span-3">
                   <label className="block text-xs text-neutral-400 mb-1.5">החלפת תמונות (אופציונלי - עד 10 תמונות)</label>
