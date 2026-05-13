@@ -19,16 +19,7 @@ const ISRAELI_CAR_MAKES = [
   "סיאט","סיטרואן","סמארט","סקודה","פולקסווגן","פורד","פורשה","פיאט","פיג'ו",
   "פרארי","צ'רי","KGM","קאדילק","קופרה","קיה","רנו","שברולט"
 ].sort();
-const CAR_BRANDS = [
-  { name: "Mercedes", img: "https://upload.wikimedia.org/wikipedia/commons/9/90/Mercedes-Logo.svg" },
-  { name: "BMW", img: "https://upload.wikimedia.org/wikipedia/commons/4/44/BMW.svg" },
-  { name: "Audi", img: "https://upload.wikimedia.org/wikipedia/commons/9/92/Audi-Logo_2016.svg" },
-  { name: "Porsche", img: "https://upload.wikimedia.org/wikipedia/en/thumb/c/c2/Porsche_Logo_2024.png/120px-Porsche_Logo_2024.png" },
-  { name: "Tesla", img: "https://upload.wikimedia.org/wikipedia/commons/b/bd/Tesla_Motors.svg" },
-  { name: "Toyota", img: "https://upload.wikimedia.org/wikipedia/commons/9/9d/Toyota_carlogo.svg" },
-  { name: "Hyundai", img: "https://upload.wikimedia.org/wikipedia/commons/4/44/Hyundai_Motor_Company_logo.svg" },
-  { name: "Kia", img: "https://upload.wikimedia.org/wikipedia/commons/4/47/KIA_logo2.svg" }
-];
+
 const INPUT_CLASS = "w-full bg-neutral-950 border border-neutral-800 rounded-xl px-4 py-3.5 text-white focus:border-red-600 focus:outline-none text-right text-base";
 const SELECT_CLASS = "w-full bg-neutral-950 border border-neutral-800 rounded-xl px-4 py-3.5 text-white focus:border-red-600 focus:outline-none text-right appearance-none text-base";
 
@@ -593,7 +584,7 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
               <div className="bg-neutral-900 p-5 md:p-8 rounded-2xl border border-neutral-800">
                 <h3 className="text-lg md:text-2xl font-bold text-white mb-4">למה לקנות באוטו מרקט?</h3>
                 <ul className="space-y-3">
-                  {["אחריות מקיפה על מנוע וגיר.","100% מימון בתנאים הטובים ביותר.","אפשרות לטרייד-אין עתידי.","בדיקה קפדנית לפני מסירה."].map((t,i) => (
+                  {["אחריות מלאה בבדיקה על מנוע גיר ושלדת הרכב","100% מימון בתנאים הטובים ביותר.","אפשרות לטרייד-אין עתידי.","בדיקה קפדנית לפני מסירה.","ריביות מהנמוכות במשק"].map((t,i) => (
                     <li key={i} className="flex items-start gap-3 flex-row-reverse">
                       <div className="mt-0.5 bg-red-600/20 p-1 rounded-full shrink-0"><Check className="w-3.5 h-3.5 text-red-500"/></div>
                       <span className="text-neutral-300 text-sm">{t}</span>
@@ -662,75 +653,60 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
 /* ───────── MAIN RENDER ───────── */
 return (
   <div className="min-h-screen bg-neutral-950 text-neutral-100 font-sans" dir="rtl">
- <style>{`
+  <style>{`
       /* הגדלת האתר למחשב וטאבלט */
       html {
         font-size: 125% !important; 
       }
 
-      /* הגדלה למובייל */
+      /* הכרחת הגדלה משמעותית במובייל */
       @media (max-width: 768px) {
         html {
           font-size: 160% !important; 
-          -webkit-text-size-adjust: 160% !important;
+          -webkit-text-size-adjust: 160% !important; /* הגדרה קריטית לאייפונים */
         }
       }
 
-      /* עיצוב סימולטור מימון */
       input[type='range'] {
-        -webkit-appearance: none;
-        appearance: none;
-        width: 100%;
-        height: 6px;
-        background: #333;
-        border-radius: 9999px;
-        outline: none;
-        cursor: pointer;
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 6px;
+      background: #333;
+      border-radius: 9999px;
+       outline: none;
+       cursor: pointer;
       }
       input[type='range']::-webkit-slider-thumb {
-        -webkit-appearance: none;
-        appearance: none;
-        width: 44px;
-        height: 24px;
-        border-radius: 10px;
-        background: #ffffff;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.5);
-        cursor: grab;
-        transition: background 0.15s;
-        margin-top: calc((6px - 24px) / 2);
-      }
+      -webkit-appearance: none;
+       appearance: none;
+       width: 44px;
+       height: 24px;
+       border-radius: 10px;
+       background: #ffffff;
+       box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+       cursor: grab;
+       transition: background 0.15s;
+       margin-top: calc((6px - 24px) / 2);
+       }
       input[type='range']::-webkit-slider-thumb:active {
-        cursor: grabbing;
-        background: #f0f0f0;
-      }
-      input[type='range']::-moz-range-thumb {
-        width: 44px;
-        height: 24px;
-        border-radius: 10px;
-        background: #ffffff;
-        border: none;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.5);
-        cursor: grab;
-      }
-      input[type='range']::-webkit-slider-runnable-track {
-        height: 6px;
-        border-radius: 9999px;
-        background: #333;
-      }
-
-      /* === האנימציה של קרוסלת המותגים === */
-      @keyframes scroll-brands {
-        0% { transform: translateX(0); }
-        100% { transform: translateX(-50%); }
-      }
-      .animate-scroll-brands {
-        animation: scroll-brands 30s linear infinite;
-        display: flex;
-        width: max-content;
-      }
-      .animate-scroll-brands:hover {
-        animation-play-state: paused;
-      }
+       cursor: grabbing;
+       background: #f0f0f0;
+       }
+       input[type='range']::-moz-range-thumb {
+       width: 44px;
+       height: 24px;
+       border-radius: 10px;
+       background: #ffffff;
+       border: none;
+       box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+       cursor: grab;
+       }
+       input[type='range']::-webkit-slider-runnable-track {
+       height: 6px;
+       border-radius: 9999px;
+      background: #333;
+       }
     `}</style>
 
       {/* NAV */}
@@ -928,25 +904,6 @@ return (
               </div>
             </div>
           </section>
-{/* BRANDS CAROUSEL */}
-<section className="py-10 bg-neutral-950 overflow-hidden">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-6 text-center">
-               <p className="text-neutral-500 font-bold text-sm tracking-wider">המותגים המובילים בעולם</p>
-            </div>
-            
-            <div className="relative w-full flex overflow-hidden" dir="ltr">
-               <div className="absolute left-0 top-0 bottom-0 w-24 bg-gradient-to-r from-neutral-950 to-transparent z-10 pointer-events-none"></div>
-               <div className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-neutral-950 to-transparent z-10 pointer-events-none"></div>
-               
-               <div className="animate-scroll-brands items-center">
-                  {[...CAR_BRANDS, ...CAR_BRANDS].map((brand, i) => (
-                    <div key={i} className="flex-shrink-0 w-32 md:w-48 mx-6 flex items-center justify-center opacity-40 hover:opacity-100 transition-all duration-300 grayscale hover:grayscale-0 cursor-pointer">
-                      <img src={brand.img} alt={brand.name} className="h-10 md:h-14 object-contain" />
-                    </div>
-                  ))}
-               </div>
-            </div>
-          </section>
 
           {/* SERVICES */}
           <section className="py-14 md:py-24 bg-neutral-900 border-y border-neutral-800">
@@ -957,7 +914,7 @@ return (
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 md:gap-8">
                 {[
-                  { icon:<DollarSign className="w-7 h-7"/>, title:'פתרונות מימון', text:'מימון אטרקטיבי עד 100% מול הגופים המובילים בענף , נלחמים בשבילכם לריבית הנמוכה בישראל.' },
+                  { icon:<DollarSign className="w-7 h-7"/>, title:'פתרונות מימון', text:'מימון אטרקטיבי עד 100% מול הגופים המובילים בענף , נלחמים.' },
                   { icon:<Car className="w-7 h-7"/>, title:'טרייד אין הוגן', text:'שקיפות מלאה ומחירון הוגן לרכב הישן שלך.' },
                   { icon:<Shield className="w-7 h-7"/>, title:'אחריות ובדיקה', text:'כל רכב עובר בדיקה מקיפה לשקט הנפשי שלך.' },
                 ].map((s,i) => (
@@ -1003,8 +960,8 @@ return (
           <section className="py-14 md:py-20 relative overflow-hidden">
             <div className="absolute inset-0 bg-red-600"/>
             <div className="max-w-4xl mx-auto px-4 relative z-10 text-center">
-              <h2 className="text-2xl md:text-5xl font-bold text-white mb-4">מצאת את רכב החלומות?</h2>
-              <p className="text-white/90 text-base md:text-xl mb-8">השאר פרטים ונחזור אליך תוך דקות.</p>
+              <h2 className="text-2xl md:text-5xl font-bold text-white mb-4">מחפש רכב ולא מצאת באתר?</h2>
+              <p className="text-white/90 text-base md:text-xl mb-8">השאר פרטים ונשמח לחזור אלייך למצוא לך את הרכב החדש שלך.</p>
               <form className="flex flex-col gap-3 max-w-lg mx-auto"
                 onSubmit={async(e)=>{
                   e.preventDefault();
@@ -1028,23 +985,13 @@ return (
             </div>
           </section>
 
-          {/* TESTIMONIALS */}
-          <section className="py-14 md:py-24 bg-neutral-900 border-y border-neutral-800">
+{/* TESTIMONIALS - WIDGET */}
+<section className="pt-14 pb-0 md:pt-24 md:pb-0 bg-neutral-900 border-t border-neutral-800 overflow-hidden">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <h2 className="text-2xl md:text-4xl font-bold mb-10 text-center">לקוחות <span className="text-red-600">ממליצים</span></h2>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 md:gap-8">
-                {testimonials.map(t => (
-                  <div key={t.id} className="bg-neutral-950 p-5 md:p-8 rounded-2xl border border-neutral-800 text-right">
-                    <Quote className="w-8 h-8 text-red-600/20 mb-3"/>
-                    <div className="flex gap-1 mb-3 flex-row-reverse">{[1,2,3,4,5].map(s=><Star key={s} className="w-4 h-4 fill-red-500 text-red-500"/>)}</div>
-                    <p className="text-neutral-300 text-sm leading-relaxed mb-4">"{t.text}"</p>
-                    <div className="border-t border-neutral-800 pt-3">
-                      <p className="font-bold text-white">{t.name}</p>
-                      <p className="text-red-500 text-xs">{t.car}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              
+              {/* הטריק כאן: המינוס שואב את הרווח למטה */}
+              <div className="elfsight-app-cd4992b8-3823-4c23-a4c1-57b0f3db6698 -mb-35 md:-mb-45"></div>
             </div>
           </section>
         </>
@@ -1313,13 +1260,56 @@ return (
                   </div>
                 </div>
 
-                {/* Total & Submit */}
+                {/* Total & Submit Breakdown */}
                 <div className="flex flex-col gap-3 pt-2">
-                  <div className="flex justify-between items-center bg-neutral-900 p-4 rounded-xl border border-neutral-800 flex-row-reverse">
-                    <span className="text-neutral-300">סה"כ חיוב מקדמה:</span>
-                    <span className="text-2xl font-black text-green-500">
-                      ₪{(2000 + (digitalOrderData.delivery === 'display' ? 2000 : digitalOrderData.delivery === 'tow' ? 500 : 0)).toLocaleString()}
-                    </span>
+                  <div className="bg-neutral-900 p-5 rounded-xl border border-neutral-800 space-y-3">
+                    <h4 className="text-right text-white font-bold mb-3 border-b border-neutral-800 pb-2">סיכום עסקה מדויק</h4>
+                    
+                    {(() => {
+                      // שולף את מחיר הרכב ומנקה ממנו פסיקים או תווים כדי להפוך למספר נקי
+                      const carPrice = parseInt(digitalOrderCar.price.toString().replace(/\D/g, '')) || 0;
+                      // חישוב עלות המסירה
+                      const deliveryCost = digitalOrderData.delivery === 'display' ? 2000 : digitalOrderData.delivery === 'tow' ? 500 : 0;
+                      // המקדמה הבסיסית
+                      const baseDeposit = 2000;
+                      // סך הכל לחיוב עכשיו (מקדמה + מסירה)
+                      const totalDeposit = baseDeposit + deliveryCost;
+                      // יתרה לתשלום במעמד המסירה
+                      const remainingBalance = Math.max(0, carPrice - baseDeposit);
+
+                      return (
+                        <>
+                          <div className="flex justify-between text-sm flex-row-reverse">
+                            <span className="text-neutral-400">מחיר רכב ({digitalOrderCar.make} {digitalOrderCar.model}):</span>
+                            <span className="text-white font-medium">₪{carPrice.toLocaleString()}</span>
+                          </div>
+                          
+                          {deliveryCost > 0 && (
+                            <div className="flex justify-between text-sm flex-row-reverse">
+                              <span className="text-neutral-400">תוספת מסירה ({digitalOrderData.delivery === 'display' ? 'משאית VIP' : 'עד הבית'}):</span>
+                              <span className="text-white font-medium">₪{deliveryCost.toLocaleString()}</span>
+                            </div>
+                          )}
+                          
+                          <div className="flex justify-between text-sm flex-row-reverse">
+                            <span className="text-neutral-400">סה"כ שווי עסקה:</span>
+                            <span className="text-white font-medium">₪{(carPrice + deliveryCost).toLocaleString()}</span>
+                          </div>
+                          
+                          <div className="my-3 border-t border-neutral-800/50 border-dashed"></div>
+                          
+                          <div className="flex justify-between items-center flex-row-reverse">
+                            <span className="text-neutral-300 font-bold">חיוב מקדמה כעת:</span>
+                            <span className="text-2xl font-black text-green-500">₪{totalDeposit.toLocaleString()}</span>
+                          </div>
+                          
+                          <div className="flex justify-between items-center flex-row-reverse bg-neutral-950 p-3.5 rounded-lg border border-neutral-800 mt-2">
+                            <span className="text-neutral-400 text-sm">יתרה לתשלום (במעמד המסירה):</span>
+                            <span className="text-white font-bold text-lg">₪{remainingBalance.toLocaleString()}</span>
+                          </div>
+                        </>
+                      );
+                    })()}
                   </div>
                   
                   <button type="submit" disabled={digitalOrderStatus === 'loading'} className={`w-full font-bold py-4 rounded-xl transition-colors shadow-lg flex items-center justify-center gap-2 flex-row-reverse ${digitalOrderStatus === 'loading' ? 'bg-neutral-700 text-neutral-400 cursor-not-allowed' : digitalOrderStatus === 'success' ? 'bg-green-600 text-white' : 'bg-green-600 hover:bg-green-500 text-white'}`}>
