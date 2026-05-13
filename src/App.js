@@ -602,6 +602,15 @@ return (
     html {
       font-size: 125%;
     }
+    /* הגדלה מותאמת אישית רק למובייל (מסכים עד 768px) */
+      @media (max-width: 768px) {
+        html {
+          font-size: 160%; 
+        }
+      }
+
+      input[type='range'] {
+      -webkit-appearance: none;
 
     input[type='range'] {
     -webkit-appearance: none;
