@@ -590,19 +590,24 @@ const CarDealershipApp = () => {
     );
   };
 
-  /* ───────── MAIN RENDER ───────── */
-  return (
-    <div className="min-h-screen bg-neutral-950 text-neutral-100 font-sans" dir="rtl">
-    <style>{`
-      input[type='range'] {
-     -webkit-appearance: none;
-     appearance: none;
-     width: 100%;
-     height: 6px;
-     background: #333;
-     border-radius: 9999px;
-      outline: none;
-      cursor: pointer;
+/* ───────── MAIN RENDER ───────── */
+return (
+  <div className="min-h-screen bg-neutral-950 text-neutral-100 font-sans" dir="rtl">
+  <style>{`
+    /* הגדלת כל האתר ב-125% - עובד בצורה מושלמת עם יחידות rem של Tailwind */
+    html {
+      font-size: 125%;
+    }
+
+    input[type='range'] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 6px;
+    background: #333;
+    border-radius: 9999px;
+     outline: none;
+     cursor: pointer;
     }
     input[type='range']::-webkit-slider-thumb {
     -webkit-appearance: none;
@@ -634,7 +639,7 @@ const CarDealershipApp = () => {
      border-radius: 9999px;
     background: #333;
      }
-    `}</style>
+  `}</style>
 
       {/* NAV */}
       <nav className="fixed w-full z-50 bg-neutral-950/95 backdrop-blur-md border-b border-neutral-800 shadow-[0_2px_24px_rgba(0,0,0,0.6)]">
