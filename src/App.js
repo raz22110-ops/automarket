@@ -598,61 +598,60 @@ const CarDealershipApp = () => {
 return (
   <div className="min-h-screen bg-neutral-950 text-neutral-100 font-sans" dir="rtl">
   <style>{`
-    /* הגדלת כל האתר ב-125% - עובד בצורה מושלמת עם יחידות rem של Tailwind */
-    html {
-      font-size: 125%;
-    }
-    /* הגדלה מותאמת אישית רק למובייל (מסכים עד 768px) */
+      /* הגדלת האתר למחשב וטאבלט */
+      html {
+        font-size: 125% !important; 
+      }
+
+      /* הכרחת הגדלה משמעותית במובייל */
       @media (max-width: 768px) {
         html {
-          font-size: 160%; 
+          font-size: 160% !important; 
+          -webkit-text-size-adjust: 160% !important; /* הגדרה קריטית לאייפונים */
         }
       }
 
       input[type='range'] {
       -webkit-appearance: none;
-
-    input[type='range'] {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 100%;
-    height: 6px;
-    background: #333;
-    border-radius: 9999px;
-     outline: none;
-     cursor: pointer;
-    }
-    input[type='range']::-webkit-slider-thumb {
-    -webkit-appearance: none;
-     appearance: none;
-     width: 44px;
-     height: 24px;
-     border-radius: 10px;
-     background: #ffffff;
-     box-shadow: 0 2px 10px rgba(0,0,0,0.5);
-     cursor: grab;
-     transition: background 0.15s;
-     margin-top: calc((6px - 24px) / 2);
-     }
-    input[type='range']::-webkit-slider-thumb:active {
-     cursor: grabbing;
-     background: #f0f0f0;
-     }
-     input[type='range']::-moz-range-thumb {
-     width: 44px;
-     height: 24px;
-     border-radius: 10px;
-     background: #ffffff;
-     border: none;
-     box-shadow: 0 2px 10px rgba(0,0,0,0.5);
-     cursor: grab;
-     }
-     input[type='range']::-webkit-slider-runnable-track {
-     height: 6px;
-     border-radius: 9999px;
-    background: #333;
-     }
-  `}</style>
+      appearance: none;
+      width: 100%;
+      height: 6px;
+      background: #333;
+      border-radius: 9999px;
+       outline: none;
+       cursor: pointer;
+      }
+      input[type='range']::-webkit-slider-thumb {
+      -webkit-appearance: none;
+       appearance: none;
+       width: 44px;
+       height: 24px;
+       border-radius: 10px;
+       background: #ffffff;
+       box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+       cursor: grab;
+       transition: background 0.15s;
+       margin-top: calc((6px - 24px) / 2);
+       }
+      input[type='range']::-webkit-slider-thumb:active {
+       cursor: grabbing;
+       background: #f0f0f0;
+       }
+       input[type='range']::-moz-range-thumb {
+       width: 44px;
+       height: 24px;
+       border-radius: 10px;
+       background: #ffffff;
+       border: none;
+       box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+       cursor: grab;
+       }
+       input[type='range']::-webkit-slider-runnable-track {
+       height: 6px;
+       border-radius: 9999px;
+      background: #333;
+       }
+    `}</style>
 
       {/* NAV */}
       <nav className="fixed w-full z-50 bg-neutral-950/95 backdrop-blur-md border-b border-neutral-800 shadow-[0_2px_24px_rgba(0,0,0,0.6)]">
