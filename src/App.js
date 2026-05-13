@@ -19,7 +19,16 @@ const ISRAELI_CAR_MAKES = [
   "סיאט","סיטרואן","סמארט","סקודה","פולקסווגן","פורד","פורשה","פיאט","פיג'ו",
   "פרארי","צ'רי","KGM","קאדילק","קופרה","קיה","רנו","שברולט"
 ].sort();
-
+const CAR_BRANDS = [
+  { name: "Mercedes", img: "https://upload.wikimedia.org/wikipedia/commons/9/90/Mercedes-Logo.svg" },
+  { name: "BMW", img: "https://upload.wikimedia.org/wikipedia/commons/4/44/BMW.svg" },
+  { name: "Audi", img: "https://upload.wikimedia.org/wikipedia/commons/9/92/Audi-Logo_2016.svg" },
+  { name: "Porsche", img: "https://upload.wikimedia.org/wikipedia/en/thumb/c/c2/Porsche_Logo_2024.png/120px-Porsche_Logo_2024.png" },
+  { name: "Tesla", img: "https://upload.wikimedia.org/wikipedia/commons/b/bd/Tesla_Motors.svg" },
+  { name: "Toyota", img: "https://upload.wikimedia.org/wikipedia/commons/9/9d/Toyota_carlogo.svg" },
+  { name: "Hyundai", img: "https://upload.wikimedia.org/wikipedia/commons/4/44/Hyundai_Motor_Company_logo.svg" },
+  { name: "Kia", img: "https://upload.wikimedia.org/wikipedia/commons/4/47/KIA_logo2.svg" }
+];
 const INPUT_CLASS = "w-full bg-neutral-950 border border-neutral-800 rounded-xl px-4 py-3.5 text-white focus:border-red-600 focus:outline-none text-right text-base";
 const SELECT_CLASS = "w-full bg-neutral-950 border border-neutral-800 rounded-xl px-4 py-3.5 text-white focus:border-red-600 focus:outline-none text-right appearance-none text-base";
 
@@ -653,60 +662,75 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
 /* ───────── MAIN RENDER ───────── */
 return (
   <div className="min-h-screen bg-neutral-950 text-neutral-100 font-sans" dir="rtl">
-  <style>{`
+ <style>{`
       /* הגדלת האתר למחשב וטאבלט */
       html {
         font-size: 125% !important; 
       }
 
-      /* הכרחת הגדלה משמעותית במובייל */
+      /* הגדלה למובייל */
       @media (max-width: 768px) {
         html {
           font-size: 160% !important; 
-          -webkit-text-size-adjust: 160% !important; /* הגדרה קריטית לאייפונים */
+          -webkit-text-size-adjust: 160% !important;
         }
       }
 
+      /* עיצוב סימולטור מימון */
       input[type='range'] {
-      -webkit-appearance: none;
-      appearance: none;
-      width: 100%;
-      height: 6px;
-      background: #333;
-      border-radius: 9999px;
-       outline: none;
-       cursor: pointer;
+        -webkit-appearance: none;
+        appearance: none;
+        width: 100%;
+        height: 6px;
+        background: #333;
+        border-radius: 9999px;
+        outline: none;
+        cursor: pointer;
       }
       input[type='range']::-webkit-slider-thumb {
-      -webkit-appearance: none;
-       appearance: none;
-       width: 44px;
-       height: 24px;
-       border-radius: 10px;
-       background: #ffffff;
-       box-shadow: 0 2px 10px rgba(0,0,0,0.5);
-       cursor: grab;
-       transition: background 0.15s;
-       margin-top: calc((6px - 24px) / 2);
-       }
+        -webkit-appearance: none;
+        appearance: none;
+        width: 44px;
+        height: 24px;
+        border-radius: 10px;
+        background: #ffffff;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+        cursor: grab;
+        transition: background 0.15s;
+        margin-top: calc((6px - 24px) / 2);
+      }
       input[type='range']::-webkit-slider-thumb:active {
-       cursor: grabbing;
-       background: #f0f0f0;
-       }
-       input[type='range']::-moz-range-thumb {
-       width: 44px;
-       height: 24px;
-       border-radius: 10px;
-       background: #ffffff;
-       border: none;
-       box-shadow: 0 2px 10px rgba(0,0,0,0.5);
-       cursor: grab;
-       }
-       input[type='range']::-webkit-slider-runnable-track {
-       height: 6px;
-       border-radius: 9999px;
-      background: #333;
-       }
+        cursor: grabbing;
+        background: #f0f0f0;
+      }
+      input[type='range']::-moz-range-thumb {
+        width: 44px;
+        height: 24px;
+        border-radius: 10px;
+        background: #ffffff;
+        border: none;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+        cursor: grab;
+      }
+      input[type='range']::-webkit-slider-runnable-track {
+        height: 6px;
+        border-radius: 9999px;
+        background: #333;
+      }
+
+      /* === האנימציה של קרוסלת המותגים === */
+      @keyframes scroll-brands {
+        0% { transform: translateX(0); }
+        100% { transform: translateX(-50%); }
+      }
+      .animate-scroll-brands {
+        animation: scroll-brands 30s linear infinite;
+        display: flex;
+        width: max-content;
+      }
+      .animate-scroll-brands:hover {
+        animation-play-state: paused;
+      }
     `}</style>
 
       {/* NAV */}
@@ -902,6 +926,25 @@ return (
                   כל המלאי ({inventory.filter(c=>c.condition==='משומש').length}) <ChevronRight className="w-4 h-4 rotate-180"/>
                 </button>
               </div>
+            </div>
+          </section>
+{/* BRANDS CAROUSEL */}
+<section className="py-10 bg-neutral-950 overflow-hidden">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-6 text-center">
+               <p className="text-neutral-500 font-bold text-sm tracking-wider">המותגים המובילים בעולם</p>
+            </div>
+            
+            <div className="relative w-full flex overflow-hidden" dir="ltr">
+               <div className="absolute left-0 top-0 bottom-0 w-24 bg-gradient-to-r from-neutral-950 to-transparent z-10 pointer-events-none"></div>
+               <div className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-neutral-950 to-transparent z-10 pointer-events-none"></div>
+               
+               <div className="animate-scroll-brands items-center">
+                  {[...CAR_BRANDS, ...CAR_BRANDS].map((brand, i) => (
+                    <div key={i} className="flex-shrink-0 w-32 md:w-48 mx-6 flex items-center justify-center opacity-40 hover:opacity-100 transition-all duration-300 grayscale hover:grayscale-0 cursor-pointer">
+                      <img src={brand.img} alt={brand.name} className="h-10 md:h-14 object-contain" />
+                    </div>
+                  ))}
+               </div>
             </div>
           </section>
 
