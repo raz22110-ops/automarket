@@ -67,7 +67,7 @@ const CarDealershipApp = () => {
   const [searchSubtitle, setSearchSubtitle] = useState('');
   const [tradeData, setTradeData] = useState({ name:'',phone:'',make:'',model:'',year:'',engine:'',km:'',ownership:'',owners:'' });
 
-  const EMPTY_CAR = { make:'',model:'',subModel:'',year:'',condition:'משומש',engineType:'בנזין',mileage:'',owners:'',engineCapacity:'',price:'',monthlyPayment:'',listPrice:'',showListPrice:false,images:[],type:'משפחתי', showOnHome: false };
+  const EMPTY_CAR = { make:'',model:'',subModel:'',year:'',condition:'משומש',engineType:'בנזין',mileage:'',owners:'',engineCapacity:'',price:'',monthlyPayment:'',listPrice:'',showListPrice:false,images:[],type:'משפחתי', showOnHome: false, officialWarranty: false };
   const [newCar, setNewCar] = useState(EMPTY_CAR);
   const [uploadStatus, setUploadStatus] = useState('idle');
   const [editCar, setEditCar] = useState(null);
@@ -324,6 +324,11 @@ const CarDealershipApp = () => {
             <div className="absolute top-3 right-3 z-10 bg-black/60 backdrop-blur-md text-white px-3 py-1 rounded-full text-xs font-medium border border-white/10">{car.type}</div>
             <div className={`absolute top-3 left-3 z-10 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold border ${car.condition==='חדש'?'bg-red-600/90 text-white border-red-500':'bg-neutral-600/80 text-white border-neutral-500'}`}>
               {car.condition === 'חדש' ? 'חדש 0 ק"מ' : car.condition}
+              {car.officialWarranty && (
+  <div className="absolute top-10 left-3 z-10 bg-blue-600/90 backdrop-blur-md text-white px-3 py-1 rounded-full text-xs font-bold border border-blue-400">
+    ✓ אחריות יבואן רשמי
+  </div>
+)}
             </div>
             <button onClick={(e) => handleShare(car, e)} className="absolute bottom-3 left-3 z-10 bg-black/60 hover:bg-red-600 backdrop-blur-md text-white p-2.5 rounded-full border border-white/10 transition-colors shadow-lg" title="שתף רכב">
               <Share2 className="w-4 h-4" />
@@ -331,23 +336,25 @@ const CarDealershipApp = () => {
             <img src={car.image||'/back.jpg'} alt={`${car.make} ${car.model}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" onError={e=>e.target.src='/back.jpg'} />
           </div>
 
-          {/* Card body */}
-          <div className="p-4 text-right">
-            <div className="flex justify-between items-start mb-3 flex-row-reverse">
-              <div className="flex-1 min-w-0 pl-2">
-                <h3 className="text-base font-bold text-white leading-tight truncate">{car.make} {car.model}</h3>
-                <p className="text-neutral-400 text-xs mt-0.5 truncate">{car.year} | {car.subModel}</p>
-              </div>
-              <div className="text-left shrink-0">
-                {car.showListPrice && car.listPrice && <span className="text-neutral-500 line-through text-xs block mb-0.5">₪{car.listPrice}</span>}
-                <p className="text-base font-bold text-red-600 leading-none">₪ {car.price}</p>
-                {car.monthlyPayment && (
-                  <div className="bg-green-600 text-white text-xs font-bold px-2 py-1 rounded-md mt-1.5 inline-block shadow-sm whitespace-nowrap">
-                    מ-₪{car.monthlyPayment}/ח'
-                  </div>
-                )}
-              </div>
-            </div>
+{/* Card body */}
+<div className="p-4 text-right">
+  <div className="mb-3">
+    <h3 className="text-base font-bold text-white leading-tight truncate">{car.make} {car.model}</h3>
+    <p className="text-neutral-400 text-xs mt-0.5 truncate">{car.year} | {car.subModel}</p>
+    <div className="mt-2 flex items-end justify-between flex-row-reverse">
+      <div>
+        {car.showListPrice && car.listPrice && (
+          <span className="text-neutral-500 line-through text-xs block">מחירון ₪{car.listPrice}</span>
+        )}
+        <p className="text-lg font-bold text-red-600 leading-tight">₪{car.price}</p>
+      </div>
+      {car.monthlyPayment && (
+        <div className="bg-green-600 text-white text-xs font-bold px-2.5 py-1.5 rounded-lg inline-block shadow-sm">
+          מ-₪{car.monthlyPayment}/לחודש
+        </div>
+      )}
+    </div>
+  </div>
 
             {/* Stats row — 2x2 compact on mobile */}
             <div className="grid grid-cols-2 gap-x-2 gap-y-1.5 mb-4 pt-3 border-t border-neutral-800 text-xs text-neutral-300">
@@ -1192,7 +1199,7 @@ const CarDealershipApp = () => {
                       {['בנזין','הייבריד','חשמלי','דיזל','פלאג אין הייבריד'].map(o=><option key={o} value={o}>{o}</option>)}
                     </select>
                     <select value={newCar.type} onChange={e=>setNewCar({...newCar,type:e.target.value})} className="bg-neutral-900 border border-neutral-700 rounded-lg px-3 py-2.5 text-white text-right focus:border-red-600 outline-none">
-                      {['משפחתי','יוקרה','ספורט','SUV'].map(o=><option key={o} value={o}>{o}</option>)}
+                      {['משפחתי','יוקרה','ספורט','גיפ',"7 מקומות","מיני","מנהלים"].map(o=><option key={o} value={o}>{o}</option>)}
                     </select>
                     <div className="col-span-2 md:col-span-3 flex items-center gap-4 flex-row-reverse bg-neutral-900/50 p-2 rounded-xl border border-neutral-800">
                       <div className="flex-1 flex items-center gap-2 flex-row-reverse">
@@ -1205,6 +1212,10 @@ const CarDealershipApp = () => {
                         <input type="checkbox" checked={newCar.showOnHome||false} onChange={e=>setNewCar({...newCar,showOnHome:e.target.checked})} className="accent-red-600 w-4 h-4"/>
                         הצג בדף הבית
                       </label>
+                      <label className="flex items-center gap-2 text-sm text-white font-bold cursor-pointer whitespace-nowrap flex-row-reverse bg-blue-600/20 px-4 py-2.5 rounded-lg border border-blue-600/40 hover:bg-blue-600/30 transition-colors">
+  <input type="checkbox" checked={newCar.officialWarranty||false} onChange={e=>setNewCar({...newCar,officialWarranty:e.target.checked})} className="accent-blue-600 w-4 h-4"/>
+  אחריות יבואן
+</label>
                     </div>
                     <div className="col-span-2 md:col-span-3">
                       <label className="block text-xs text-neutral-400 mb-1.5">העלאת תמונות (עד 10)</label>
@@ -1314,18 +1325,22 @@ const CarDealershipApp = () => {
                 <select value={editCar.type||'משפחתי'} onChange={e=>setEditCar({...editCar,type:e.target.value})} className="bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2.5 text-white text-right focus:border-blue-500 outline-none">
                   {['משפחתי','יוקרה','ספורט','SUV'].map(o=><option key={o} value={o}>{o}</option>)}
                 </select>
-                <div className="col-span-2 md:col-span-3 flex items-center gap-4 flex-row-reverse bg-neutral-800/50 p-2 rounded-xl border border-neutral-700">
-                  <div className="flex-1 flex items-center gap-2 flex-row-reverse">
-                    <input type="text" placeholder="מחיר מחירון" value={editCar.listPrice||''} onChange={e=>setEditCar({...editCar,listPrice:e.target.value})} disabled={!editCar.showListPrice} className="flex-1 bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2.5 text-white disabled:opacity-40 text-right outline-none"/>
-                    <label className="flex items-center gap-1.5 text-xs text-neutral-400 cursor-pointer whitespace-nowrap flex-row-reverse min-h-0">
-                      <input type="checkbox" checked={!!editCar.showListPrice} onChange={e=>setEditCar({...editCar,showListPrice:e.target.checked})} className="accent-red-600 w-4 h-4"/>הצג מחירון
-                    </label>
-                  </div>
-                  <label className="flex items-center gap-2 text-sm text-white font-bold cursor-pointer whitespace-nowrap flex-row-reverse bg-blue-600/20 px-4 py-2.5 rounded-lg border border-blue-600/40 hover:bg-blue-600/30 transition-colors min-h-0">
-                    <input type="checkbox" checked={!!editCar.showOnHome} onChange={e=>setEditCar({...editCar,showOnHome:e.target.checked})} className="accent-blue-600 w-4 h-4"/>
-                    הצג בדף הבית
-                  </label>
-                </div>
+                <div className="col-span-2 md:col-span-3 flex flex-wrap items-center gap-3 flex-row-reverse bg-neutral-800/50 p-2 rounded-xl border border-neutral-700">
+  <div className="flex-1 flex items-center gap-2 flex-row-reverse">
+    <input type="text" placeholder="מחיר מחירון" value={editCar.listPrice||''} onChange={e=>setEditCar({...editCar,listPrice:e.target.value})} disabled={!editCar.showListPrice} className="flex-1 bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2.5 text-white disabled:opacity-40 text-right outline-none"/>
+    <label className="flex items-center gap-1.5 text-xs text-neutral-400 cursor-pointer whitespace-nowrap flex-row-reverse min-h-0">
+      <input type="checkbox" checked={!!editCar.showListPrice} onChange={e=>setEditCar({...editCar,showListPrice:e.target.checked})} className="accent-red-600 w-4 h-4"/>הצג מחירון
+    </label>
+  </div>
+  <label className="flex items-center gap-2 text-sm text-white font-bold cursor-pointer whitespace-nowrap flex-row-reverse bg-blue-600/20 px-4 py-2.5 rounded-lg border border-blue-600/40 hover:bg-blue-600/30 transition-colors min-h-0">
+    <input type="checkbox" checked={!!editCar.showOnHome} onChange={e=>setEditCar({...editCar,showOnHome:e.target.checked})} className="accent-blue-600 w-4 h-4"/>
+    הצג בדף הבית
+  </label>
+  <label className="flex items-center gap-2 text-sm text-white font-bold cursor-pointer whitespace-nowrap flex-row-reverse bg-blue-600/20 px-4 py-2.5 rounded-lg border border-blue-600/40 hover:bg-blue-600/30 transition-colors min-h-0">
+    <input type="checkbox" checked={!!editCar.officialWarranty} onChange={e=>setEditCar({...editCar,officialWarranty:e.target.checked})} className="accent-blue-600 w-4 h-4"/>
+    אחריות יבואן רשמי
+  </label>
+</div>
                 <div className="col-span-2 md:col-span-3">
                   <label className="block text-xs text-neutral-400 mb-1.5">החלפת תמונות (אופציונלי)</label>
                   <input type="file" accept="image/*" multiple onChange={e=>handleImageSelection(e,'edit')} className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-white text-xs file:ml-2 file:py-1 file:px-3 file:rounded-full file:border-0 file:bg-blue-600 file:text-white cursor-pointer"/>
