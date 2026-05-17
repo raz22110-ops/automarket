@@ -323,11 +323,11 @@ const CarDealershipApp = () => {
           <div className="relative overflow-hidden bg-neutral-800" style={{height:'min(52vw, 240px)'}}>
             <div className="absolute top-3 right-3 z-10 bg-black/60 backdrop-blur-md text-white px-3 py-1 rounded-full text-xs font-medium border border-white/10">{car.type}</div>
             <div className={`absolute top-3 left-3 z-10 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold border ${car.condition==='חדש'?'bg-red-600/90 text-white border-red-500':'bg-neutral-600/80 text-white border-neutral-500'}`}>
-              {car.condition === 'חדש' ? 'חדש 0 ק"מ' : car.condition}
+              {car.condition === 'חדש' ? 'חדש 0 ק"מ יבואן רשמי' : car.condition}
               {car.officialWarranty && (
-  <div className="absolute top-10 left-3 z-10 bg-blue-600/90 backdrop-blur-md text-white px-3 py-1 rounded-full text-xs font-bold border border-blue-400">
-    ✓ אחריות יבואן רשמי
-  </div>
+  <div className="absolute top-10 left-3 z-10 bg-blue-600/80 backdrop-blur-md text-white px-2.5 py-1 rounded-full border border-blue-400/60 whitespace-nowrap" style={{fontSize:'10px',fontWeight:'600'}}>
+  ✓ יבואן רשמי
+</div>
 )}
             </div>
             <button onClick={(e) => handleShare(car, e)} className="absolute bottom-3 left-3 z-10 bg-black/60 hover:bg-red-600 backdrop-blur-md text-white p-2.5 rounded-full border border-white/10 transition-colors shadow-lg" title="שתף רכב">
@@ -376,19 +376,68 @@ const CarDealershipApp = () => {
     </div>
   );
 
-  /* ───────── INVENTORY PAGE ───────── */
-  const GenericInventoryPage = ({ cars, title, subtitle }) => (
+ /* ───────── INVENTORY PAGE ───────── */
+const GenericInventoryPage = ({ cars, title, subtitle }) => {
+  const [filterMake, setFilterMake] = useState('');
+  const [filterType, setFilterType] = useState('');
+  const [filterEngine, setFilterEngine] = useState('');
+  const [filterMaxPrice, setFilterMaxPrice] = useState(1500000);
+
+  const filtered = cars.filter(car => {
+    if (filterMake && car.make !== filterMake) return false;
+    if (filterType && car.type !== filterType) return false;
+    if (filterEngine && car.engineType !== filterEngine) return false;
+    if (Number(car.price.toString().replace(/,/g,'')) > filterMaxPrice) return false;
+    return true;
+  });
+
+  const uniqueMakes = [...new Set(cars.map(c => c.make))].sort();
+
+  return (
     <div className="pt-24 md:pt-36 pb-16 bg-neutral-950 min-h-screen">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-6 border-b border-neutral-800 pb-5 text-right">
           <h1 className="text-2xl md:text-5xl font-bold text-white mb-2">{title}</h1>
           <p className="text-sm md:text-xl text-neutral-400">{subtitle}</p>
         </div>
-        <CarGrid cars={cars} />
+
+        {/* ── בר סינון ── */}
+        <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-4 mb-6 space-y-3">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <select value={filterMake} onChange={e=>setFilterMake(e.target.value)} className={SELECT_CLASS}>
+              <option value="">כל היצרנים</option>
+              {uniqueMakes.map(m=><option key={m} value={m}>{m}</option>)}
+            </select>
+            <select value={filterType} onChange={e=>setFilterType(e.target.value)} className={SELECT_CLASS}>
+              <option value="">כל הקטגוריות</option>
+              {['משפחתי','יוקרה','ספורט','גיפ','7 מקומות','מיני','מנהלים'].map(o=><option key={o} value={o}>{o}</option>)}
+            </select>
+            <select value={filterEngine} onChange={e=>setFilterEngine(e.target.value)} className={SELECT_CLASS}>
+              <option value="">כל סוגי הנעה</option>
+              {['בנזין','הייבריד','חשמלי','דיזל','פלאג אין הייבריד'].map(o=><option key={o} value={o}>{o}</option>)}
+            </select>
+            <button
+              onClick={()=>{setFilterMake('');setFilterType('');setFilterEngine('');setFilterMaxPrice(1500000);}}
+              className="bg-neutral-800 hover:bg-red-600 text-neutral-300 hover:text-white rounded-xl px-4 py-3.5 text-sm font-bold transition-colors touch-manipulation"
+            >
+              נקה סינון
+            </button>
+          </div>
+          <div className="bg-neutral-950 p-3 rounded-xl border border-neutral-800">
+            <div className="flex justify-between mb-2 flex-row-reverse">
+              <span className="text-neutral-400 text-sm">מחיר מקסימלי</span>
+              <span className="text-white font-bold">₪{filterMaxPrice.toLocaleString()}</span>
+            </div>
+            <input type="range" min="10000" max="1500000" step="10000" value={filterMaxPrice} onChange={e=>setFilterMaxPrice(Number(e.target.value))} />
+          </div>
+          <p className="text-neutral-500 text-xs text-right">{filtered.length} רכבים תואמים</p>
+        </div>
+
+        <CarGrid cars={filtered} />
       </div>
     </div>
   );
-
+};
   /* ───────── CAR DETAILS ───────── */
   const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
     const [leadName, setLeadName] = useState('');
@@ -430,7 +479,7 @@ const CarDealershipApp = () => {
               {/* Main image — taller on mobile */}
               <div className="bg-neutral-900 rounded-2xl overflow-hidden border border-neutral-800 relative" style={{height:'min(65vw, 420px)'}}>
                 <div className={`absolute top-3 right-3 z-10 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold border ${car.condition==='חדש'?'bg-red-600/90 text-white border-red-500':'bg-neutral-600/80 text-white border-neutral-500'}`}>
-                  {car.condition === 'חדש' ? 'חדש 0 ק"מ' : car.condition}
+                  {car.condition === 'חדש' ? 'חדש 0 ק"מ יבואן רשמי' : car.condition}
                 </div>
                 {/* Swipe navigation arrows on mobile */}
                 {imgs.length > 1 && (
@@ -701,7 +750,10 @@ const CarDealershipApp = () => {
                           <option value="משפחתי">משפחתי</option>
                           <option value="יוקרה">יוקרה</option>
                           <option value="ספורט">ספורט</option>
-                          <option value="SUV">SUV</option>
+                          <option value="גיפ">גיפ</option>
+                          <option value="7 מקומות">7 מקומות</option>
+                          <option value="מיני">מיני</option>
+                          <option value="מנהלים">מנהלים</option>
                         </select>
                       </div>
                       <div className="bg-neutral-950 p-4 rounded-xl border border-neutral-800">
@@ -1254,7 +1306,7 @@ const CarDealershipApp = () => {
                             </div>
                           </td>
                           <td className="px-3 py-3"><span className="text-red-500 font-bold text-sm">₪{car.price}</span>{car.monthlyPayment&&<div className="text-xs text-neutral-500">₪{car.monthlyPayment}/ח'</div>}</td>
-                          <td className="px-3 py-3"><span className={`px-2 py-0.5 rounded-full text-xs font-bold ${car.condition==='חדש'?'bg-red-600/20 text-red-400 border border-red-600/30':'bg-neutral-700/60 text-neutral-300 border border-neutral-600/30'}`}>{car.condition==='חדש'?'חדש 0 ק"מ':car.condition}</span></td>
+                          <td className="px-3 py-3"><span className={`px-2 py-0.5 rounded-full text-xs font-bold ${car.condition==='חדש'?'bg-red-600/20 text-red-400 border border-red-600/30':'bg-neutral-700/60 text-neutral-300 border border-neutral-600/30'}`}>{car.condition==='חדש'?'חדש 0 ק"מ יבואן רשמי':car.condition}</span></td>
                           <td className="px-3 py-3"><div className="font-bold text-white text-sm">{car.make} {car.model}</div><div className="text-xs text-neutral-500">{car.subModel}</div></td>
                           <td className="px-3 py-3 text-xs text-neutral-400"><div>{car.year} | יד {car.owners}</div><div>{car.engineType}</div></td>
                           <td className="px-3 py-3"><img src={car.image||'/back.jpg'} alt={car.model} className="w-16 h-10 object-cover rounded-lg border border-neutral-700 ml-auto" onError={e=>e.target.src='/back.jpg'}/></td>
@@ -1323,7 +1375,7 @@ const CarDealershipApp = () => {
                   {['בנזין','הייבריד','חשמלי','דיזל','פלאג אין הייבריד'].map(o=><option key={o} value={o}>{o}</option>)}
                 </select>
                 <select value={editCar.type||'משפחתי'} onChange={e=>setEditCar({...editCar,type:e.target.value})} className="bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2.5 text-white text-right focus:border-blue-500 outline-none">
-                  {['משפחתי','יוקרה','ספורט','SUV'].map(o=><option key={o} value={o}>{o}</option>)}
+                  {['משפחתי','יוקרה','ספורט','גיפ',"7 מקומות","מיני","מנהלים"].map(o=><option key={o} value={o}>{o}</option>)}
                 </select>
                 <div className="col-span-2 md:col-span-3 flex flex-wrap items-center gap-3 flex-row-reverse bg-neutral-800/50 p-2 rounded-xl border border-neutral-700">
   <div className="flex-1 flex items-center gap-2 flex-row-reverse">
