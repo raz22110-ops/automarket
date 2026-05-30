@@ -1200,7 +1200,7 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
         <MessageCircle style={{width:'clamp(1.5rem,6vw,2rem)',height:'clamp(1.5rem,6vw,2rem)'}}/>
       </a>
 {/* ──── מערכת נגישות מתקדמת (Native) ──── */}
-<div className="fixed z-50 flex flex-col items-start gap-3" style={{bottom: '120px', left: 'clamp(1rem,4vw,1.5rem)'}}>
+<div className="fixed z-50 flex flex-col items-start gap-3" style={{bottom: 'max(1.5rem,env(safe-area-inset-bottom,1.5rem))', left: 'clamp(1rem,4vw,1.5rem)'}}>
         
         {isA11yMenuOpen && (
           <div className="bg-neutral-900 border border-neutral-700 rounded-2xl p-4 shadow-[0_0_20px_rgba(0,0,0,0.5)] w-56 text-right flex flex-col gap-2 mb-1 touch-manipulation">
