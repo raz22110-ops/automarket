@@ -1246,7 +1246,13 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
           </svg>
         </button>
       </div>
-
+{/* ──── כניסה סודית לניהול מלאי בנייד (כפתור שקוף) ──── */}
+<button 
+        onClick={() => setIsPasswordPromptOpen(true)}
+        className="fixed top-0 left-0 w-16 h-16 z-50 opacity-0"
+        aria-hidden="true"
+        tabIndex="-1"
+      />
       {/* ============================================================
           MODALS
       ============================================================ */}
