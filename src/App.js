@@ -111,7 +111,8 @@ const [a11ySettings, setA11ySettings] = useState({
   highContrast: false,
   largeText: false,
   highlightLinks: false,
-  stopAnimations: false
+  stopAnimations: false,
+  iconSide: 'left' // <--- חדש כפתור
 });
 
 const toggleA11y = (key) => {
@@ -130,6 +131,22 @@ useEffect(() => {
   if (a11ySettings.highlightLinks) document.body.classList.add('a11y-highlight-links');
   else document.body.classList.remove('a11y-highlight-links');
 }, [a11ySettings]);
+// ─── קיצור מקשים סודי לפתיחת ניהול מלאי (Ctrl + M) ───
+useEffect(() => {
+  const handleSecretShortcut = (e) => {
+    // בודק אם לחצו על Ctrl (או Command) וגם על האות M
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'm') {
+      e.preventDefault(); 
+      setIsPasswordPromptOpen(true); // זה יקפיץ את מסך הסיסמה
+    }
+  };
+
+  window.addEventListener('keydown', handleSecretShortcut);
+  
+  return () => {
+    window.removeEventListener('keydown', handleSecretShortcut);
+  };
+}, []);
   // Lock body scroll when any modal is open
   useEffect(() => {
     const anyOpen = isMenuOpen || isAdminOpen || isTradeInOpen || isPasswordPromptOpen || isFinanceAppOpen || isDigitalOrderOpen || !!editCar || !!deleteConfirmId;
@@ -1183,7 +1200,7 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
         <MessageCircle style={{width:'clamp(1.5rem,6vw,2rem)',height:'clamp(1.5rem,6vw,2rem)'}}/>
       </a>
 {/* ──── מערכת נגישות מתקדמת (Native) ──── */}
-<div className="fixed z-50 flex flex-col items-start gap-3" style={{bottom:'max(1.5rem,env(safe-area-inset-bottom,1.5rem))', left:'clamp(1rem,4vw,1.5rem)'}}>
+<div className="fixed z-50 flex flex-col items-start gap-3" style={{bottom: '120px', left: 'clamp(1rem,4vw,1.5rem)'}}>
         
         {isA11yMenuOpen && (
           <div className="bg-neutral-900 border border-neutral-700 rounded-2xl p-4 shadow-[0_0_20px_rgba(0,0,0,0.5)] w-56 text-right flex flex-col gap-2 mb-1 touch-manipulation">
@@ -1229,18 +1246,13 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
           </svg>
         </button>
       </div>
-      {/* ──── Admin FAB ──── */}
-      <button onClick={()=>setIsPasswordPromptOpen(true)}
-        className="fixed z-40 bg-neutral-800 text-neutral-400 rounded-full hover:bg-neutral-700 hover:text-white active:scale-95 transition-all touch-manipulation"
-        style={{bottom:'max(1.5rem,env(safe-area-inset-bottom,1.5rem))',left:'clamp(1rem,4vw,1.5rem)',padding:'0.75rem'}}>
-        <Settings className="w-5 h-5"/>
-      </button>
 
-      {/* ════════════════════════════
+      {/* ============================================================
           MODALS
-      ════════════════════════════ */}
-{/* Terms Modal */}
-{isTermsOpen && (
+      ============================================================ */}
+      
+      {/* Terms Modal */}
+      {isTermsOpen && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
           <div className="bg-neutral-900 border border-neutral-800 rounded-2xl w-full max-w-3xl flex flex-col shadow-2xl" style={{maxHeight:'85svh'}}>
             <div className="flex justify-between items-center px-5 py-4 border-b border-neutral-800 bg-neutral-950 flex-row-reverse shrink-0">
