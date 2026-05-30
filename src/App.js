@@ -1249,7 +1249,7 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
 {/* ──── כניסה סודית לניהול מלאי בנייד (כפתור שקוף בצד ימין באמצע) ──── */}
 <button 
         onClick={() => setIsPasswordPromptOpen(true)}
-        className="fixed top-1/2 right-0 w-12 h-24 z-50 opacity-0 -translate-y-1/2"
+        className="fixed top-0 left-1/2 -translate-x-1/2 w-20 h-16 z-50 opacity-0"
         aria-hidden="true"
         tabIndex="-1"
       />
