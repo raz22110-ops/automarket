@@ -28,13 +28,40 @@ const LockIcon = ({ className }) => (
     <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
   </svg>
 );
-
+const CAR_COLORS_MAP = {
+  'לבן': '#FFFFFF',
+  'פנינה': '#FDEBD0',
+  'לבן פנינה': '#FDEBD0',
+  'שחור': '#111111',
+  'שחור מטאלי': '#1A1A1A',
+  'כסף': '#C0C0C0',
+  'כסוף': '#C0C0C0',
+  'אפור': '#808080',
+  'אפור עכבר': '#4B4B4B',
+  'אפור מטאלי': '#8A8D8F',
+  'בטון': '#7b7b7b',
+  'אפור בטון': '#7b7b7b',
+  'אדום': '#CC0000',
+  'כחול': '#003399',
+  'כחול כהה': '#000033',
+  'תכלת': '#66B2FF',
+  'ירוק': '#004d00',
+  'חום': '#5C4033',
+  'ברונזה': '#CD7F32',
+  'זהב': '#FFD700',
+  'שמפניה': '#F7E7CE',
+  'בורדו': '#800000',
+  'צהוב': '#FFCC00',
+  'כתום': '#FF6600',
+  'סגול': '#4B0082',
+};
 const CarDealershipApp = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [isTradeInOpen, setIsTradeInOpen] = useState(false);
   const [isPasswordPromptOpen, setIsPasswordPromptOpen] = useState(false);
-  
+  const [isTermsOpen, setIsTermsOpen] = useState(false);
+  const [isAccessibilityOpen, setIsAccessibilityOpen] = useState(false);
   const [isFinanceAppOpen, setIsFinanceAppOpen] = useState(false);
   const [financeAppStatus, setFinanceAppStatus] = useState('idle');
   const [financeData, setFinanceData] = useState({ name: '', phone: '', occupation: '', income: '' });
@@ -67,7 +94,7 @@ const CarDealershipApp = () => {
   const [searchSubtitle, setSearchSubtitle] = useState('');
   const [tradeData, setTradeData] = useState({ name:'',phone:'',make:'',model:'',year:'',engine:'',km:'',ownership:'',owners:'' });
 
-  const EMPTY_CAR = { make:'',model:'',subModel:'',year:'',condition:'משומש',engineType:'בנזין',mileage:'',owners:'',engineCapacity:'',price:'',monthlyPayment:'',listPrice:'',showListPrice:false,images:[],type:'משפחתי', showOnHome: false, officialWarranty: false };
+  const EMPTY_CAR = { make:'',model:'',subModel:'',year:'',condition:'משומש',engineType:'בנזין',mileage:'',owners:'',engineCapacity:'',price:'',monthlyPayment:'',listPrice:'',showListPrice:false,images:[],type:'משפחתי', showOnHome: false, officialWarranty: false, colors: '', trims: [] };
   const [newCar, setNewCar] = useState(EMPTY_CAR);
   const [uploadStatus, setUploadStatus] = useState('idle');
   const [editCar, setEditCar] = useState(null);
@@ -77,7 +104,14 @@ const CarDealershipApp = () => {
   const [editSelectedFiles, setEditSelectedFiles] = useState([]); 
 
   useEffect(() => { fetchInventory(); }, []);
-
+// הזרקת תוסף נגישות מרחף
+useEffect(() => {
+  const script = document.createElement('script');
+  script.src = "https://cdn.userway.org/widget.js";
+  script.setAttribute('data-language', 'he');
+  script.setAttribute('data-position', '5'); // ממקם את זה בצד שמאלטה
+  document.body.appendChild(script);
+}, []);
   // Lock body scroll when any modal is open
   useEffect(() => {
     const anyOpen = isMenuOpen || isAdminOpen || isTradeInOpen || isPasswordPromptOpen || isFinanceAppOpen || isDigitalOrderOpen || !!editCar || !!deleteConfirmId;
@@ -391,7 +425,7 @@ const GenericInventoryPage = ({ cars, title, subtitle }) => {
     return true;
   });
 
-  const uniqueMakes = [...new Set(cars.map(c => c.make))].sort();
+  const uniqueMakes = [...new Set(cars.map(c => c.make).filter(Boolean))].sort();
 
   return (
     <div className="pt-24 md:pt-36 pb-16 bg-neutral-950 min-h-screen">
@@ -438,173 +472,302 @@ const GenericInventoryPage = ({ cars, title, subtitle }) => {
     </div>
   );
 };
-  /* ───────── CAR DETAILS ───────── */
-  const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
-    const [leadName, setLeadName] = useState('');
-    const [leadPhone, setLeadPhone] = useState('');
-    const [wantFinance, setWantFinance] = useState(false);
-    const [haveTradeIn, setHaveTradeIn] = useState(false);
-    const [activeImg, setActiveImg] = useState(0);
+/* ───────── CAR DETAILS ───────── */
+const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
+  const [leadName, setLeadName] = useState('');
+  const [leadPhone, setLeadPhone] = useState('');
+  const [wantFinance, setWantFinance] = useState(false);
+  const [haveTradeIn, setHaveTradeIn] = useState(false);
+  const [activeImg, setActiveImg] = useState(0);
 
-    const handleLeadSubmit = async (e) => {
-      e.preventDefault();
-      let type = wantFinance ? 'מימון' : haveTradeIn ? 'טרייד-אין' : 'התעניינות ברכב';
-      try {
-        await fetch(`${mySupabaseUrl}/rest/v1/leads`, { method: 'POST', headers: supabaseHeaders, body: JSON.stringify({ name:leadName, phone:leadPhone, lead_type:type, car_details:`${car.make} ${car.model} (${car.year})` }) });
-      } catch (err) { console.error(err); }
-      const text = `שלום, אני מתעניין ברכב ${car.make} ${car.model} (${car.year}).\n\nשם: ${leadName}\nטלפון: ${leadPhone}\nמימון: ${wantFinance?'כן':'לא'}\nטרייד-אין: ${haveTradeIn?'כן':'לא'}`;
-      window.open(`https://wa.me/972526441855?text=${encodeURIComponent(text)}`, '_blank');
+  // מצבים לבחירת צבע ודגם
+  const [selectedColor, setSelectedColor] = useState(null);
+  const [selectedTrim, setSelectedTrim] = useState(null);
+
+  // עיבוד רשימת הצבעים: מזהה אם יש נקודתיים ומפריד את המחיר
+  const colorList = car.colors 
+    ? car.colors.split(',').map(c => {
+        const parts = c.trim().split(':');
+        const name = parts[0].trim();
+        const price = parts[1] ? parseInt(parts[1].replace(/\D/g, '')) || 0 : 0;
+        return { name, price };
+      }).filter(c => c.name) 
+    : [];
+
+  // חישוב מחיר בסיס
+  const getBasePrice = () => parseInt(car.price.toString().replace(/\D/g, '')) || 0;
+  
+  // חישוב מחיר דינמי: מחיר בסיס + תוספת דגם + תוספת צבע
+  const getCurrentPrice = () => {
+    let finalPrice = getBasePrice();
+    if (selectedTrim && selectedTrim.price) {
+      finalPrice = parseInt(selectedTrim.price.toString().replace(/\D/g, '')) || finalPrice;
+    }
+    if (selectedColor && selectedColor.price > 0) {
+      finalPrice += selectedColor.price;
+    }
+    return finalPrice;
+  };
+
+  const getCurrentModelName = () => {
+    return selectedTrim ? `${car.model} (${selectedTrim.name})` : car.model;
+  };
+
+  const handleLeadSubmit = async (e) => {
+    e.preventDefault();
+    let type = wantFinance ? 'מימון' : haveTradeIn ? 'טרייד-אין' : 'התעניינות ברכב';
+    
+    const trimText = selectedTrim ? ` דגם: ${selectedTrim.name}` : '';
+    const colorTextLead = selectedColor ? ` צבע: ${selectedColor.name} ${selectedColor.price > 0 ? `(+₪${selectedColor.price})` : ''}` : '';
+    const carDetailsString = `${car.make} ${car.model}${trimText}${colorTextLead} (${car.year})`;
+
+    try {
+      await fetch(`${mySupabaseUrl}/rest/v1/leads`, { 
+        method: 'POST', 
+        headers: supabaseHeaders, 
+        body: JSON.stringify({ 
+          name: leadName, 
+          phone: leadPhone, 
+          lead_type: type, 
+          car_details: carDetailsString 
+        }) 
+      });
+    } catch (err) { console.error(err); }
+
+    const text = `שלום, אני מתעניין ברכב ${car.make} ${car.model}.\n${selectedTrim ? `*רמת גימור:* ${selectedTrim.name}\n` : ''}${selectedColor ? `*צבע נבחר:* ${selectedColor.name} ${selectedColor.price > 0 ? `(+₪${selectedColor.price})` : ''}\n` : ''}*מחיר כולל:* ₪${getCurrentPrice().toLocaleString()}\n\nשם: ${leadName}\nטלפון: ${leadPhone}\nמימון: ${wantFinance?'כן':'לא'}\nטרייד-אין: ${haveTradeIn?'כן':'לא'}`;
+    window.open(`https://wa.me/972526441855?text=${encodeURIComponent(text)}`, '_blank');
+  };
+
+  const handleDigitalOrderClick = () => {
+    const updatedCarForOrder = {
+      ...car,
+      price: getCurrentPrice(),
+      model: getCurrentModelName(),
+      selectedColor: selectedColor ? selectedColor.name : 'לא נבחר'
     };
+    onOpenDigitalOrder(updatedCarForOrder);
+  };
 
-    const imgs = (car.images?.length > 0) ? car.images : [car.image || '/back.jpg'];
+  const imgs = (car.images?.length > 0) ? car.images : [car.image || '/back.jpg'];
 
-    return (
-      <div className="pt-20 md:pt-36 pb-10 bg-neutral-950 min-h-screen" dir="rtl">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+  return (
+    <div className="pt-20 md:pt-36 pb-10 bg-neutral-950 min-h-screen" dir="rtl">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-          {/* Top Bar */}
-          <div className="flex justify-between items-center mb-4 flex-row-reverse">
-            <button onClick={onBack} className="flex items-center gap-1.5 text-neutral-400 active:text-red-500 hover:text-red-500 transition-colors font-medium bg-neutral-900/50 px-3 py-2 rounded-full border border-neutral-800 text-sm">
-              חזרה <ArrowRight className="w-4 h-4"/>
-            </button>
-            <button onClick={() => handleShare(car)} className="flex items-center gap-1.5 text-white bg-neutral-800 hover:bg-red-600 active:bg-red-700 transition-colors font-bold px-4 py-2 rounded-full border border-neutral-700 shadow-md flex-row-reverse text-sm">
-              שתף <Share2 className="w-4 h-4"/>
-            </button>
-          </div>
+        {/* Top Bar */}
+        <div className="flex justify-between items-center mb-4 flex-row-reverse">
+          <button onClick={onBack} className="flex items-center gap-1.5 text-neutral-400 active:text-red-500 hover:text-red-500 transition-colors font-medium bg-neutral-900/50 px-3 py-2 rounded-full border border-neutral-800 text-sm">
+            חזרה <ArrowRight className="w-4 h-4"/>
+          </button>
+          <button onClick={() => handleShare(car)} className="flex items-center gap-1.5 text-white bg-neutral-800 hover:bg-red-600 active:bg-red-700 transition-colors font-bold px-4 py-2 rounded-full border border-neutral-700 shadow-md flex-row-reverse text-sm">
+            שתף <Share2 className="w-4 h-4"/>
+          </button>
+        </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 lg:gap-10">
-            {/* LEFT / Gallery + info */}
-            <div className="lg:col-span-2 space-y-4">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 lg:gap-10">
+          {/* LEFT / Gallery + info */}
+          <div className="lg:col-span-2 space-y-4">
 
-              {/* Main image — taller on mobile */}
-              <div className="bg-neutral-900 rounded-2xl overflow-hidden border border-neutral-800 relative" style={{height:'min(65vw, 420px)'}}>
-                <div className={`absolute top-3 right-3 z-10 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold border ${car.condition==='חדש'?'bg-red-600/90 text-white border-red-500':'bg-neutral-600/80 text-white border-neutral-500'}`}>
-                  {car.condition === 'חדש' ? 'חדש 0 ק"מ יבואן רשמי' : car.condition}
-                </div>
-                {/* Swipe navigation arrows on mobile */}
-                {imgs.length > 1 && (
-                  <>
-                    <button onClick={() => setActiveImg(i => (i - 1 + imgs.length) % imgs.length)} className="absolute left-2 top-1/2 -translate-y-1/2 z-10 bg-black/50 backdrop-blur text-white p-2 rounded-full border border-white/10 active:bg-red-600 transition-colors">
-                      <ChevronLeft className="w-4 h-4" />
-                    </button>
-                    <button onClick={() => setActiveImg(i => (i + 1) % imgs.length)} className="absolute right-2 top-1/2 -translate-y-1/2 z-10 bg-black/50 backdrop-blur text-white p-2 rounded-full border border-white/10 active:bg-red-600 transition-colors">
-                      <ChevronRight className="w-4 h-4" />
-                    </button>
-                    <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
-                      {imgs.map((_,i) => <div key={i} className={`w-1.5 h-1.5 rounded-full transition-all ${activeImg===i?'bg-red-500 w-3':'bg-white/40'}`}/>)}
-                    </div>
-                  </>
-                )}
-                <img src={imgs[activeImg]} alt={`${car.make} ${car.model}`} className="w-full h-full object-cover" onError={e=>e.target.src='/back.jpg'} />
+            {/* Main image */}
+            <div className="bg-neutral-900 rounded-2xl overflow-hidden border border-neutral-800 relative" style={{height:'min(65vw, 420px)'}}>
+              <div className={`absolute top-3 right-3 z-10 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold border ${car.condition==='חדש'?'bg-red-600/90 text-white border-red-500':'bg-neutral-600/80 text-white border-neutral-500'}`}>
+                {car.condition === 'חדש' ? 'חדש 0 ק"מ יבואן רשמי' : car.condition}
               </div>
-
-              {/* Thumbs — scrollable strip */}
               {imgs.length > 1 && (
-                <div className="flex gap-2 overflow-x-auto pb-1 flex-row-reverse scrollbar-hide snap-x snap-mandatory">
-                  {imgs.map((img,i) => (
-                    <div key={i} onClick={()=>setActiveImg(i)} className={`shrink-0 snap-start rounded-lg overflow-hidden cursor-pointer border-2 transition-all touch-manipulation ${activeImg===i?'border-red-600':'border-transparent opacity-50'}`} style={{width:'72px',height:'50px'}}>
-                      <img src={img} className="w-full h-full object-cover" alt="" />
-                    </div>
-                  ))}
-                </div>
+                <>
+                  <button onClick={() => setActiveImg(i => (i - 1 + imgs.length) % imgs.length)} className="absolute left-2 top-1/2 -translate-y-1/2 z-10 bg-black/50 backdrop-blur text-white p-2 rounded-full border border-white/10 active:bg-red-600 transition-colors">
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  <button onClick={() => setActiveImg(i => (i + 1) % imgs.length)} className="absolute right-2 top-1/2 -translate-y-1/2 z-10 bg-black/50 backdrop-blur text-white p-2 rounded-full border border-white/10 active:bg-red-600 transition-colors">
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                  <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
+                    {imgs.map((_,i) => <div key={i} className={`w-1.5 h-1.5 rounded-full transition-all ${activeImg===i?'bg-red-500 w-3':'bg-white/40'}`}/>)}
+                  </div>
+                </>
               )}
+              <img src={imgs[activeImg]} alt={`${car.make} ${car.model}`} className="w-full h-full object-cover" onError={e=>e.target.src='/back.jpg'} />
+            </div>
 
-              {/* Mobile price card — shows ABOVE specs on mobile only */}
-              <div className="lg:hidden bg-neutral-900 p-4 rounded-2xl border border-neutral-800">
-                <h1 className="text-xl font-bold text-white mb-0.5">{car.make} <span className="text-base font-normal text-neutral-300">{car.model}</span></h1>
-                <p className="text-neutral-400 text-sm mb-3">{car.subModel}</p>
-                {car.showListPrice && car.listPrice && <p className="text-neutral-500 text-sm line-through">מחירון: ₪{car.listPrice}</p>}
-                <p className="text-3xl font-bold text-red-600">₪ {car.price}</p>
-                {car.monthlyPayment && <p className="text-sm text-neutral-400 mt-1">החל מ- ₪{car.monthlyPayment} לחודש</p>}
-              </div>
-
-              {/* Stats grid — 2x2 on mobile, 4 cols on larger */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
-                {[
-                  { icon:<Calendar className="w-5 h-5 text-red-600"/>, label:'שנת ייצור', val:car.year },
-                  { icon:<Settings className="w-5 h-5 text-red-600"/>, label:'סוג הנעה', val:car.engineType },
-                  { icon:<Gauge className="w-5 h-5 text-red-600"/>, label:"קילומטראז'", val:`${car.mileage} km` },
-                  { icon:<Car className="w-5 h-5 text-red-600"/>, label:'קטגוריה', val:car.type },
-                ].map((s,i) => (
-                  <div key={i} className="bg-neutral-900 p-3 sm:p-4 rounded-xl border border-neutral-800 text-center">
-                    <div className="flex justify-center mb-1.5">{s.icon}</div>
-                    <p className="text-neutral-400 text-xs mb-0.5">{s.label}</p>
-                    <p className="text-white font-bold text-sm">{s.val}</p>
+            {/* Thumbs */}
+            {imgs.length > 1 && (
+              <div className="flex gap-2 overflow-x-auto pb-1 flex-row-reverse scrollbar-hide snap-x snap-mandatory">
+                {imgs.map((img,i) => (
+                  <div key={i} onClick={()=>setActiveImg(i)} className={`shrink-0 snap-start rounded-lg overflow-hidden cursor-pointer border-2 transition-all touch-manipulation ${activeImg===i?'border-red-600':'border-transparent opacity-50'}`} style={{width:'72px',height:'50px'}}>
+                    <img src={img} className="w-full h-full object-cover" alt="" />
                   </div>
                 ))}
               </div>
+            )}
 
-              <div className="grid grid-cols-2 gap-2 sm:gap-3">
-                <div className="bg-neutral-900 p-3 sm:p-4 rounded-xl border border-neutral-800 text-center"><p className="text-neutral-400 text-xs mb-1">יד הרכב</p><p className="text-white font-bold">{car.owners}</p></div>
-                <div className="bg-neutral-900 p-3 sm:p-4 rounded-xl border border-neutral-800 text-center"><p className="text-neutral-400 text-xs mb-1">נפח מנוע</p><p className="text-white font-bold">{car.engineCapacity} סמ"ק</p></div>
-              </div>
+            {/* Mobile price card */}
+            <div className="lg:hidden bg-neutral-900 p-4 rounded-2xl border border-neutral-800 text-right">
+              <h1 className="text-xl font-bold text-white mb-0.5">{car.make} <span className="text-base font-normal text-neutral-300">{getCurrentModelName()}</span></h1>
+              <p className="text-neutral-400 text-sm mb-3">{car.subModel}</p>
+              {car.showListPrice && car.listPrice && !selectedTrim && <p className="text-neutral-500 text-sm line-through">מחירון: ₪{car.listPrice}</p>}
+              <p className="text-3xl font-bold text-red-600">₪ {getCurrentPrice().toLocaleString()}</p>
+              {car.monthlyPayment && <p className="text-sm text-neutral-400 mt-1">החל מ- ₪{car.monthlyPayment} לחודש</p>}
+            </div>
 
-              {/* Why buy */}
-              <div className="bg-neutral-900 p-4 md:p-8 rounded-2xl border border-neutral-800">
-                <h3 className="text-base md:text-2xl font-bold text-white mb-3">למה לקנות באוטו מרקט?</h3>
-                <ul className="space-y-2.5">
-                  {["אחריות מלאה בבדיקה על מנוע גיר ושלדת הרכב","100% מימון בתנאים הטובים ביותר.","אפשרות לטרייד-אין עתידי.","בדיקה קפדנית לפני מסירה.","ריביות מהנמוכות במשק"].map((t,i) => (
-                    <li key={i} className="flex items-start gap-2.5 flex-row-reverse">
-                      <div className="mt-0.5 bg-red-600/20 p-1 rounded-full shrink-0"><Check className="w-3.5 h-3.5 text-red-500"/></div>
-                      <span className="text-neutral-300 text-sm">{t}</span>
-                    </li>
+            {/* ── בחירת דגם ורמת גימור ── */}
+            {car.trims && car.trims.length > 0 && (
+              <div className="bg-neutral-900 p-4 rounded-2xl border border-neutral-800 text-right">
+                <h3 className="text-sm font-bold text-neutral-400 mb-3">בחר רמת גימור / דגם:</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div 
+                    onClick={() => setSelectedTrim(null)}
+                    className={`border rounded-xl p-3 cursor-pointer transition-all ${!selectedTrim ? 'bg-red-600/10 border-red-500' : 'bg-neutral-950 border-neutral-800'}`}
+                  >
+                    <p className="font-bold text-white text-sm">דגם בסיס</p>
+                    <p className="text-xs text-red-500 font-bold mt-1">₪{getBasePrice().toLocaleString()}</p>
+                  </div>
+                  {car.trims.map((trim, idx) => (
+                    <div 
+                      key={idx}
+                      onClick={() => setSelectedTrim(trim)}
+                      className={`border rounded-xl p-3 cursor-pointer transition-all ${selectedTrim?.name === trim.name ? 'bg-red-600/10 border-red-500' : 'bg-neutral-950 border-neutral-800'}`}
+                    >
+                      <p className="font-bold text-white text-sm">{trim.name}</p>
+                      <p className="text-xs text-red-500 font-bold mt-1">₪{(parseInt(trim.price)||0).toLocaleString()}</p>
+                    </div>
                   ))}
-                </ul>
+                </div>
+              </div>
+            )}
+
+            {/* ── בחירת צבע ── */}
+            {colorList.length > 0 && (
+              <div className="bg-neutral-900 p-4 rounded-2xl border border-neutral-800 text-right">
+                <h3 className="text-sm font-bold text-neutral-400 mb-3">בחר צבע רכב:</h3>
+                <div className="flex flex-wrap justify-center gap-3 flex-row-reverse">
+                  {colorList.map((colorObj, idx) => {
+                    const hexCode = CAR_COLORS_MAP[colorObj.name];
+                    const isSelected = selectedColor?.name === colorObj.name;
+                    
+                    return (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => setSelectedColor(colorObj)}
+                        className={`flex items-center gap-2.5 px-3 py-2 rounded-xl transition-all border touch-manipulation flex-row-reverse ${
+                          isSelected 
+                            ? 'bg-neutral-800 border-red-500 shadow-[0_0_12px_rgba(220,38,38,0.3)] text-white scale-105' 
+                            : 'bg-neutral-950 text-neutral-400 border-neutral-800 hover:border-neutral-600 hover:text-neutral-200'
+                        }`}
+                      >
+                        <span 
+                          className={`block w-6 h-6 rounded-full shadow-inner flex-shrink-0 ${
+                            hexCode === '#FFFFFF' || hexCode === '#FDEBD0' 
+                              ? 'border border-neutral-300' 
+                              : 'border border-black/30'
+                          }`}
+                          style={{ 
+                            backgroundColor: hexCode || 'transparent',
+                            backgroundImage: !hexCode ? 'linear-gradient(45deg, #ef4444, #3b82f6, #22c55e)' : 'none'
+                          }}
+                        />
+                        <div className="text-right">
+                          <span className="block text-sm font-medium leading-none mt-1">{colorObj.name}</span>
+                          {colorObj.price > 0 && (
+                            <span className="block text-xs text-red-500 font-bold mt-1.5 leading-none">
+                              +₪{colorObj.price.toLocaleString()}
+                            </span>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Stats grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+              {[
+                { icon:<Calendar className="w-5 h-5 text-red-600"/>, label:'שנת ייצור', val:car.year },
+                { icon:<Settings className="w-5 h-5 text-red-600"/>, label:'סוג הנעה', val:car.engineType },
+                { icon:<Gauge className="w-5 h-5 text-red-600"/>, label:"קילומטראז'", val:`${car.mileage} km` },
+                { icon:<Car className="w-5 h-5 text-red-600"/>, label:'קטגוריה', val:car.type },
+              ].map((s,i) => (
+                <div key={i} className="bg-neutral-900 p-3 sm:p-4 rounded-xl border border-neutral-800 text-center">
+                  <div className="flex justify-center mb-1.5">{s.icon}</div>
+                  <p className="text-neutral-400 text-xs mb-0.5">{s.label}</p>
+                  <p className="text-white font-bold text-sm">{s.val}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 sm:gap-3">
+              <div className="bg-neutral-900 p-3 sm:p-4 rounded-xl border border-neutral-800 text-center"><p className="text-neutral-400 text-xs mb-1">יד הרכב</p><p className="text-white font-bold">{car.owners}</p></div>
+              <div className="bg-neutral-900 p-3 sm:p-4 rounded-xl border border-neutral-800 text-center"><p className="text-neutral-400 text-xs mb-1">נפח מנוע</p><p className="text-white font-bold">{car.engineCapacity} סמ"ק</p></div>
+            </div>
+
+            {/* Why buy */}
+            <div className="bg-neutral-900 p-4 md:p-8 rounded-2xl border border-neutral-800">
+              <h3 className="text-base md:text-2xl font-bold text-white mb-3 text-right">למה לקנות באוטו מרקט?</h3>
+              <ul className="space-y-2.5">
+                {["אחריות מלאה בבדיקה על מנוע גיר ושלדת הרכב","100% מימון בתנאים הטובים ביותר.","אפשרות לטרייד-אין עתידי.","בדיקה קפדנית לפני מסירה.","ריביות מהנמוכות במשק"].map((t,i) => (
+                  <li key={i} className="flex items-start gap-2.5 flex-row-reverse">
+                    <div className="mt-0.5 bg-red-600/20 p-1 rounded-full shrink-0"><Check className="w-3.5 h-3.5 text-red-500"/></div>
+                    <span className="text-neutral-300 text-sm">{t}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
+          {/* RIGHT / Sidebar — price + lead form */}
+          <div className="space-y-4">
+            {/* Price card — desktop only */}
+            <div className="hidden lg:block bg-neutral-900 p-5 md:p-8 rounded-2xl border border-neutral-800 text-right">
+              <h1 className="text-2xl md:text-3xl font-bold text-white mb-1">{car.make} <span className="text-xl font-normal text-neutral-300">{getCurrentModelName()}</span></h1>
+              <p className="text-neutral-400 mb-5">{car.subModel}</p>
+              <div className="border-t border-neutral-800 pt-4">
+                {car.showListPrice && car.listPrice && !selectedTrim && <p className="text-neutral-500 text-sm line-through mb-1">מחירון: ₪{car.listPrice}</p>}
+                <p className="text-3xl md:text-4xl font-bold text-red-600">₪ {getCurrentPrice().toLocaleString()}</p>
+                {car.monthlyPayment && <p className="text-sm text-neutral-400 mt-1">החל מ- ₪{car.monthlyPayment} לחודש</p>}
               </div>
             </div>
 
-            {/* RIGHT / Sidebar — price + lead form */}
-            <div className="space-y-4">
-              {/* Price card — desktop only */}
-              <div className="hidden lg:block bg-neutral-900 p-5 md:p-8 rounded-2xl border border-neutral-800">
-                <h1 className="text-2xl md:text-3xl font-bold text-white mb-1">{car.make} <span className="text-xl font-normal text-neutral-300">{car.model}</span></h1>
-                <p className="text-neutral-400 mb-5">{car.subModel}</p>
-                <div className="border-t border-neutral-800 pt-4">
-                  {car.showListPrice && car.listPrice && <p className="text-neutral-500 text-sm line-through mb-1">מחירון: ₪{car.listPrice}</p>}
-                  <p className="text-3xl md:text-4xl font-bold text-red-600">₪ {car.price}</p>
-                  {car.monthlyPayment && <p className="text-sm text-neutral-400 mt-1">החל מ- ₪{car.monthlyPayment} לחודש</p>}
-                </div>
-              </div>
-
-              {/* Lead form */}
-              <div className="bg-neutral-900 p-4 md:p-8 rounded-2xl border border-red-600/30 shadow-[0_0_30px_rgba(220,38,38,0.1)]">
-                {car.condition === 'חדש' && (
-                  <div className="mb-5 pb-5 border-b border-neutral-800">
-                    <h3 className="text-lg font-bold text-white mb-1.5 text-right">הבטח את הרכב שלך עכשיו</h3>
-                    <p className="text-neutral-400 text-sm mb-3 text-right">שריין את הרכב החדש שלך דיגיטלית עם תשלום מקדמה.</p>
-                    <button onClick={() => onOpenDigitalOrder(car)} className="w-full bg-green-600 active:bg-green-700 hover:bg-green-500 text-white font-bold py-3.5 rounded-xl transition-colors text-base shadow-[0_0_15px_rgba(22,163,74,0.3)] flex items-center justify-center gap-2 flex-row-reverse touch-manipulation">
-                      הזמנה דיגיטלית מהירה <CreditCard className="w-5 h-5"/>
-                    </button>
-                  </div>
-                )}
-                <h3 className="text-lg font-bold text-white mb-1">אני מעוניין ברכב</h3>
-                <p className="text-neutral-400 text-sm mb-4">השאר פרטים ונחזור אליך בהקדם.</p>
-                <form onSubmit={handleLeadSubmit} className="space-y-3">
-                  <input type="text" value={leadName} onChange={e=>setLeadName(e.target.value)} placeholder="שם מלא" className={INPUT_CLASS} required />
-                  <input type="tel" value={leadPhone} onChange={e=>setLeadPhone(e.target.value)} placeholder="מספר טלפון" className={INPUT_CLASS} required />
-                  <label className="flex items-center gap-3 py-1 cursor-pointer flex-row-reverse touch-manipulation">
-                    <input type="checkbox" checked={wantFinance} onChange={e=>setWantFinance(e.target.checked)} className="accent-red-600 w-5 h-5"/>
-                    <span className="text-sm text-neutral-300">מעוניין במימון</span>
-                  </label>
-                  <label className="flex items-center gap-3 py-1 cursor-pointer flex-row-reverse touch-manipulation">
-                    <input type="checkbox" checked={haveTradeIn} onChange={e=>setHaveTradeIn(e.target.checked)} className="accent-red-600 w-5 h-5"/>
-                    <span className="text-sm text-neutral-300">יש לי רכב לטרייד-אין</span>
-                  </label>
-                  <button type="submit" className="w-full bg-red-600 active:bg-red-700 hover:bg-red-500 text-white font-bold py-4 rounded-xl transition-colors text-base shadow-lg flex items-center justify-center gap-2 flex-row-reverse mt-2 touch-manipulation">
-                    שלח בוואטסאפ <MessageCircle className="w-5 h-5"/>
+            {/* Lead form */}
+            <div className="bg-neutral-900 p-4 md:p-8 rounded-2xl border border-red-600/30 shadow-[0_0_30px_rgba(220,38,38,0.1)] text-right">
+              {car.condition === 'חדש' && (
+                <div className="mb-5 pb-5 border-b border-neutral-800">
+                  <h3 className="text-lg font-bold text-white mb-1.5">הבטח את הרכב שלך עכשיו</h3>
+                  <p className="text-neutral-400 text-sm mb-3">שריין את הרכב החדש שלך דיגיטלית עם תשלום מקדמה.</p>
+                  <button onClick={handleDigitalOrderClick} className="w-full bg-green-600 active:bg-green-700 hover:bg-green-500 text-white font-bold py-3.5 rounded-xl transition-colors text-base shadow-[0_0_15px_rgba(22,163,74,0.3)] flex items-center justify-center gap-2 flex-row-reverse touch-manipulation">
+                    הזמנה דיגיטלית מהירה <CreditCard className="w-5 h-5"/>
                   </button>
-                  <div className="text-center pt-1">
-                    <span className="text-neutral-500 text-sm">או התקשר: </span>
-                    <a href="tel:052-644-1855" className="text-red-500 font-bold" dir="ltr">052-644-1855</a>
-                  </div>
-                </form>
-              </div>
+                </div>
+              )}
+              <h3 className="text-lg font-bold text-white mb-1">אני מעוניין ברכב</h3>
+              <p className="text-neutral-400 text-sm mb-4">השאר פרטים ונחזור אליך בהקדם.</p>
+              <form onSubmit={handleLeadSubmit} className="space-y-3">
+                <input type="text" value={leadName} onChange={e=>setLeadName(e.target.value)} placeholder="שם מלא" className={INPUT_CLASS} required />
+                <input type="tel" value={leadPhone} onChange={e=>setLeadPhone(e.target.value)} placeholder="מספר טלפון" className={INPUT_CLASS} required />
+                <label className="flex items-center gap-3 py-1 cursor-pointer flex-row-reverse touch-manipulation">
+                  <input type="checkbox" checked={wantFinance} onChange={e=>setWantFinance(e.target.checked)} className="accent-red-600 w-5 h-5"/>
+                  <span className="text-sm text-neutral-300">מעוניין במימון</span>
+                </label>
+                <label className="flex items-center gap-3 py-1 cursor-pointer flex-row-reverse touch-manipulation">
+                  <input type="checkbox" checked={haveTradeIn} onChange={e=>setHaveTradeIn(e.target.checked)} className="accent-red-600 w-5 h-5"/>
+                  <span className="text-sm text-neutral-300">יש לי רכב לטרייד-אין</span>
+                </label>
+                <button type="submit" className="w-full bg-red-600 active:bg-red-700 hover:bg-red-500 text-white font-bold py-4 rounded-xl transition-colors text-base shadow-lg flex items-center justify-center gap-2 flex-row-reverse mt-2 touch-manipulation">
+                  שלח בוואטסאפ <MessageCircle className="w-5 h-5"/>
+                </button>
+                <div className="text-center pt-1">
+                  <span className="text-neutral-500 text-sm">או התקשר: </span>
+                  <a href="tel:052-644-1855" className="text-red-500 font-bold" dir="ltr">052-644-1855</a>
+                </div>
+              </form>
             </div>
           </div>
         </div>
       </div>
-    );
-  };
+    </div>
+  );
+};
 
   /* ═══════════════════════════════
      MAIN RENDER
@@ -985,8 +1148,8 @@ const GenericInventoryPage = ({ cars, title, subtitle }) => {
           <div className="border-t border-neutral-900 pt-6 flex flex-col sm:flex-row justify-between items-center gap-3 flex-row-reverse text-sm text-neutral-500">
             <p>© {new Date().getFullYear()} Auto Market. כל הזכויות שמורות.</p>
             <div className="flex gap-5 flex-row-reverse">
-              <a href="#" className="hover:text-white">תקנון האתר</a>
-              <a href="#" className="hover:text-white">נגישות</a>
+            <button onClick={(e) => { e.preventDefault(); setIsTermsOpen(true); }} className="hover:text-white transition-colors">תקנון האתר</button>
+            <button onClick={(e) => { e.preventDefault(); setIsAccessibilityOpen(true); }} className="hover:text-white transition-colors">הצהרת נגישות</button>
             </div>
           </div>
         </div>
@@ -1009,6 +1172,94 @@ const GenericInventoryPage = ({ cars, title, subtitle }) => {
       {/* ════════════════════════════
           MODALS
       ════════════════════════════ */}
+{/* Terms Modal */}
+{isTermsOpen && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="bg-neutral-900 border border-neutral-800 rounded-2xl w-full max-w-3xl flex flex-col shadow-2xl" style={{maxHeight:'85svh'}}>
+            <div className="flex justify-between items-center px-5 py-4 border-b border-neutral-800 bg-neutral-950 flex-row-reverse shrink-0">
+              <button onClick={() => setIsTermsOpen(false)} className="bg-neutral-800 hover:bg-red-600 p-2 rounded-full text-neutral-400 hover:text-white transition-colors min-h-0 touch-manipulation"><X className="w-5 h-5"/></button>
+              <h2 className="text-xl font-bold text-white text-right">תקנון האתר</h2>
+            </div>
+            <div className="p-6 overflow-y-auto text-right text-neutral-300 text-sm space-y-4" dir="rtl">
+              <p>ברוכים הבאים לאתר "אוטו מרקט". השימוש באתר, בתכניו ובשירותים המוצעים בו, כפוף לתנאים המפורטים בתקנון זה. גלישה באתר, הזנת פרטים או ביצוע פעולה כלשהי מהווים הסכמה מוחלטת לתנאי התקנון. במידה ואינך מסכים לתנאי כלשהו, הנך מתבקש להימנע משימוש באתר.</p>
+              
+              <h3 className="text-white font-bold text-base mt-4">1. מידע, מלאי והמחשה</h3>
+              <p>האתר נועד לספק מידע אודות מלאי הרכבים בסוכנות, אפשרויות מימון וטרייד-אין. כל המידע המוצג באתר, לרבות מפרטים טכניים, תוספות, צבעים ותמונות, הינו להמחשה בלבד. הנהלת האתר אינה מתחייבת כי רכב מסוים המוצג באתר זמין במלאי הפיזי בכל רגע נתון. במקרה של סתירה או אי-התאמה בין המפורט באתר לבין חוזה הרכישה הפיזי שייחתם בסוכנות, המידע בחוזה הרכישה הרשמי הוא הקובע והבלעדי.</p>
+              
+              <h3 className="text-white font-bold text-base mt-4">2. מחירים וסימולטור מימון</h3>
+              <p>המחירים המוצגים באתר עשויים להשתנות מעת לעת וללא הודעה מוקדמת, ואינם כוללים אגרת רישוי, העברת בעלות או אגרות ממשלתיות נוספות (אלא אם צוין מפורשות אחרת). התוספות עבור צבעים, דגמים ואבזור נתונות לשינוי.<br/>סימולטור המימון מיועד לתת אומדן כללי ומשוער בלבד ואינו מהווה הצעה מחייבת. קבלת המימון, גובה הריבית, מספר התשלומים וההחזר החודשי הסופי כפופים לחלוטין לאישור הגוף המממן ולבדיקת נתוני האשראי של הלקוח. הנהלת האתר אינה צד לעסקת המימון ואינה נושאת באחריות לסירובו של גוף מממן לאשר את הבקשה.</p>
+              
+              <h3 className="text-white font-bold text-base mt-4">3. הזמנה דיגיטלית ושריון רכב (מקדמה)</h3>
+              <p>תשלום המקדמה באמצעות האתר נועד למטרת "שריון" בלבד של הרכב הנבחר למשך זמן מוגבל. שריון זה אינו מהווה עסקת מכר סופית, והעסקה תושלם אך ורק לאחר חתימה על הסכם הזמנה/רכישה מלא פיזית בסוכנות והשלמת מלוא התמורה.<br/>מדיניות ביטולים: הלקוח רשאי לבטל את ההזמנה הדיגיטלית (שריון הרכב) בהתאם להוראות חוק הגנת הצרכן, התשמ"א-1981. במקרה של ביטול העסקה טרם חתימה על הסכם רכישה בסוכנות, המקדמה תוחזר ללקוח, בניכוי דמי ביטול בשיעור של 5% מסכום המקדמה או 100 ש"ח, הנמוך מביניהם, כקבוע בחוק.</p>
+              
+              <h3 className="text-white font-bold text-base mt-4">4. כשירות המשתמש וחובת מסירת פרטים נכונים</h3>
+              <p>השימוש באתר מותר לבני 18 ומעלה, הכשירים משפטית לבצע פעולות משפטיות מחייבות, ובעלי כרטיס אשראי ישראלי תקף. המשתמש מתחייב למסור פרטים אישיים מדויקים ואמיתיים. מסירת פרטים כוזבים מהווה עבירה פלילית ותגרור נקיטת אמצעים משפטיים.</p>
+              
+              <h3 className="text-white font-bold text-base mt-4">5. פרטיות, אבטחת מידע ודיוור ישיר</h3>
+              <p>אנו מכבדים את פרטיות הלקוחות. הפרטים המוזנים באתר לא יועברו לצד שלישי שאינו קשור לעסקה (כגון חברות מימון או סליקה), ללא הסכמת הלקוח. תשלום המקדמה מבוצע באמצעות חברת סליקה חיצונית ומאובטחת תחת התקנים המחמירים ביותר (PCI-DSS).<br/>בהשארת פרטים באתר, המשתמש נותן הסכמה מפורשת לקבלת דברי פרסומת ועדכונים, בהתאם לחוק התקשורת (חוק הספאם). המשתמש רשאי להסיר את עצמו בכל עת.</p>
+              
+              <h3 className="text-white font-bold text-base mt-4">6. אחריות ובדיקת רכבים</h3>
+              <p>
+                6.1 תנאי האחריות משתנים בין רכב לרכב ובהתאם להסכם המכירה הספציפי.<br/>
+                6.2 על הלקוח מוטלת האחריות לבדוק את הרכב טרם הרכישה, לרבות באמצעות מכון בדיקה מטעמו.<br/>
+                6.3 החברה אינה אחראית לבלאי סביר, שימוש קודם, תיקונים קודמים או כל פרט שלא הוצהר במפורש בהסכם המכירה.
+              </p>
+              
+              <h3 className="text-white font-bold text-base mt-4">7. קניין רוחני</h3>
+              <p>כל זכויות הקניין הרוחני באתר – לרבות העיצוב, קוד המקור, הטקסטים והתמונות – הינן רכושה הבלעדי של הנהלת "אוטו מרקט". אין להעתיק או להשתמש במידע כלשהו מן האתר ללא קבלת אישור מפורש ובכתב.</p>
+              
+              <h3 className="text-white font-bold text-base mt-4">8. הגבלת אחריות</h3>
+              <p>הנהלת האתר אינה מתחייבת שהשירות באתר לא יופרע או יינתן ללא תקלות. האתר לא יישא באחריות לכל נזק שייגרם כתוצאה משימוש באתר.</p>
+              
+              <h3 className="text-white font-bold text-base mt-4">9. ט.ל.ח (טעות לעולם חוזרת)</h3>
+              <p>אנו עושים מאמץ להציג מידע מדויק. עם זאת, ייתכנו טעויות אנוש בהזנת נתונים או מחירים. הנהלת האתר שומרת לעצמה את הזכות המלאה לבטל הזמנות ולתקן שגיאות אלו ולא תהיה מחויבת למחיר או מפרט שגוי שפורסם.</p>
+              
+              <h3 className="text-white font-bold text-base mt-4">10. דין וסמכות שיפוט</h3>
+              <p>על תקנון זה ועל השימוש באתר יחולו דיני מדינת ישראל בלבד. סמכות השיפוט הבלעדית תהיה נתונה לבתי המשפט המוסמכים במחוז מרכז.</p>
+            </div>
+            <div className="p-4 border-t border-neutral-800 bg-neutral-950 shrink-0">
+              <button onClick={() => setIsTermsOpen(false)} className="w-full bg-neutral-800 hover:bg-neutral-700 text-white font-bold py-3 rounded-xl transition-colors">קראתי והבנתי, סגור חלון</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Accessibility Statement Modal */}
+      {isAccessibilityOpen && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="bg-neutral-900 border border-neutral-800 rounded-2xl w-full max-w-3xl flex flex-col shadow-2xl" style={{maxHeight:'85svh'}}>
+            <div className="flex justify-between items-center px-5 py-4 border-b border-neutral-800 bg-neutral-950 flex-row-reverse shrink-0">
+              <button onClick={() => setIsAccessibilityOpen(false)} className="bg-neutral-800 hover:bg-red-600 p-2 rounded-full text-neutral-400 hover:text-white transition-colors min-h-0 touch-manipulation"><X className="w-5 h-5"/></button>
+              <h2 className="text-xl font-bold text-white text-right">הצהרת נגישות</h2>
+            </div>
+            <div className="p-6 overflow-y-auto text-right text-neutral-300 text-sm space-y-4" dir="rtl">
+              <p>אנו ב"אוטו מרקט" רואים חשיבות עליונה בהנגשת האתר והשירותים שלנו לאנשים עם מוגבלויות, מתוך אמונה כי לכל אדם מגיעה הזכות לשוויון, כבוד, נוחות ועצמאות.</p>
+              
+              <h3 className="text-white font-bold text-base mt-4">רמת הנגישות באתר</h3>
+              <p>האתר הונגש בהתאם לתקנות שוויון זכויות לאנשים עם מוגבלות (התאמות נגישות לשירות), התשע"ג-2013, ומותאם לדרישות התקן הישראלי (ת"י 5568) לרמת נגישות AA ולמסמך WCAG 2.0 הבינלאומי.</p>
+              
+              <h3 className="text-white font-bold text-base mt-4">אמצעי הנגישות באתר</h3>
+              <ul className="list-disc list-inside space-y-2 text-neutral-400">
+                <li><strong>תפריט נגישות:</strong> באתר מותקן תוסף נגישות מתקדם. לחיצה על סמל הנגישות תפתח את תפריט ההנגשה.</li>
+                <li><strong>הגדלת גופן:</strong> אפשרות להגדלת והקטנת הטקסט באתר לנוחות הקריאה.</li>
+                <li><strong>ניגודיות:</strong> אפשרות לשינוי ניגודיות הצבעים (רקע כהה, רקע בהיר, מונוכרום).</li>
+                <li><strong>ניווט מקלדת:</strong> האתר מותאם לניווט בעזרת מקשי המקלדת (Tab, Enter, חיצים).</li>
+                <li><strong>התאמה לקורא מסך:</strong> האתר כתוב בצורה סמנטית ומותאם לתוכנות קוראות מסך (כגון NVDA, JAWS).</li>
+              </ul>
+              
+              <h3 className="text-white font-bold text-base mt-4">פרטי רכז הנגישות ופניות בנושא</h3>
+              <p>אנו ממשיכים במאמצים לשפר את נגישות האתר. אם נתקלתם בבעיית נגישות, נשמח לקבל פנייה ולטפל בה בהקדם.</p>
+              <ul className="space-y-1 text-neutral-400 mt-2">
+                <li><strong>שם רכז הנגישות:</strong> מנהל האתר</li>
+                <li><strong>טלפון:</strong> 052-644-1855</li>
+                <li><strong>פנייה בוואטסאפ:</strong> באמצעות כפתור הוואטסאפ באתר.</li>
+              </ul>
+            </div>
+            <div className="p-4 border-t border-neutral-800 bg-neutral-950 shrink-0">
+              <button onClick={() => setIsAccessibilityOpen(false)} className="w-full bg-neutral-800 hover:bg-neutral-700 text-white font-bold py-3 rounded-xl transition-colors">סגור חלון</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Password */}
       {isPasswordPromptOpen && (
@@ -1142,29 +1393,39 @@ const GenericInventoryPage = ({ cars, title, subtitle }) => {
             </div>
             <div className="p-4 overflow-y-auto modal-safe-bottom">
               <form onSubmit={handleDigitalOrderSubmit} className="space-y-5">
-                {/* Delivery */}
+{/* Delivery */}
                 <div>
                   <h3 className="text-right text-white font-bold mb-2 text-sm">אופן מסירה:</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                     {[
                       {id:'pickup',title:'איסוף מהסוכנות',price:0,desc:'ללא תוספת'},
                       {id:'tow',title:'גרר לבית',price:500,desc:'עד פתח הבית'},
-                      {id:'display',title:'משאית VIP',price:2000,desc:'חווית מסירה מלאה'}
+                      {id:'display',title:'משאית VIP',price:2000,desc:'חווית מסירה מלאה', disabled: true}
                     ].map(opt=>(
-                      <div key={opt.id} onClick={()=>setDigitalOrderData({...digitalOrderData,delivery:opt.id})} className={`border rounded-xl p-3 cursor-pointer text-center transition-all touch-manipulation ${digitalOrderData.delivery===opt.id?'bg-green-600/10 border-green-500':'bg-neutral-900 border-neutral-700'}`}>
+                      <div 
+                        key={opt.id} 
+                        onClick={() => !opt.disabled && setDigitalOrderData({...digitalOrderData,delivery:opt.id})} 
+                        className={`border rounded-xl p-3 text-center transition-all touch-manipulation 
+                          ${opt.disabled ? 'opacity-50 cursor-not-allowed bg-neutral-900 border-neutral-800' : 
+                            digitalOrderData.delivery===opt.id ? 'bg-green-600/10 border-green-500 cursor-pointer' : 'bg-neutral-900 border-neutral-700 cursor-pointer'}`}
+                      >
                         <div className="flex items-center justify-center gap-2 mb-1 flex-row-reverse">
-                          <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${digitalOrderData.delivery===opt.id?'border-green-500':'border-neutral-500'}`}>
-                            {digitalOrderData.delivery===opt.id&&<div className="w-2 h-2 bg-green-500 rounded-full"/>}
+                          <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 
+                            ${opt.disabled ? 'border-neutral-700' : digitalOrderData.delivery===opt.id ? 'border-green-500' : 'border-neutral-500'}`}>
+                            {digitalOrderData.delivery===opt.id && !opt.disabled && <div className="w-2 h-2 bg-green-500 rounded-full"/>}
                           </div>
-                          <span className={`font-bold text-sm ${digitalOrderData.delivery===opt.id?'text-green-500':'text-white'}`}>{opt.title}</span>
+                          <span className={`font-bold text-sm ${opt.disabled ? 'text-neutral-500' : digitalOrderData.delivery===opt.id ? 'text-green-500' : 'text-white'}`}>
+                            {opt.title}
+                          </span>
                         </div>
                         <div className="text-neutral-400 text-xs">{opt.desc}</div>
-                        <div className="font-bold text-white mt-1 text-sm">{opt.price>0?`+ ₪${opt.price}`:'חינם'}</div>
+                        <div className={`font-bold mt-1 text-sm ${opt.disabled ? 'text-red-500' : 'text-white'}`}>
+                          {opt.disabled ? 'בקרוב...' : opt.price>0 ? `+ ₪${opt.price}` : 'חינם'}
+                        </div>
                       </div>
                     ))}
                   </div>
                 </div>
-
                 {/* Payment */}
                 <div className="bg-neutral-900 p-4 rounded-2xl border border-neutral-800 space-y-3">
                   <div className="flex items-center justify-end gap-2 mb-2">
@@ -1227,7 +1488,7 @@ const GenericInventoryPage = ({ cars, title, subtitle }) => {
               </div>
             </div>
             <div className="flex-1 overflow-y-auto p-4 space-y-5">
-              {/* Add car */}
+{/* Add car */}
               <div className="bg-neutral-950 rounded-2xl border border-neutral-800 overflow-hidden">
                 <div className="flex items-center gap-2 flex-row-reverse px-4 py-3 border-b border-neutral-800 bg-neutral-900/60">
                   <Plus className="w-4 h-4 text-red-600"/><h3 className="font-bold text-white text-sm">הוספת רכב חדש</h3>
@@ -1253,8 +1514,10 @@ const GenericInventoryPage = ({ cars, title, subtitle }) => {
                     <select value={newCar.type} onChange={e=>setNewCar({...newCar,type:e.target.value})} className="bg-neutral-900 border border-neutral-700 rounded-lg px-3 py-2.5 text-white text-right focus:border-red-600 outline-none">
                       {['משפחתי','יוקרה','ספורט','גיפ',"7 מקומות","מיני","מנהלים"].map(o=><option key={o} value={o}>{o}</option>)}
                     </select>
-                    <div className="col-span-2 md:col-span-3 flex items-center gap-4 flex-row-reverse bg-neutral-900/50 p-2 rounded-xl border border-neutral-800">
-                      <div className="flex-1 flex items-center gap-2 flex-row-reverse">
+
+                    {/* שורת צ'קבוקסים */}
+                    <div className="col-span-2 md:col-span-3 lg:col-span-4 flex flex-wrap items-center gap-4 flex-row-reverse bg-neutral-900/50 p-3 rounded-xl border border-neutral-800">
+                      <div className="flex-1 flex items-center gap-2 flex-row-reverse min-w-[200px]">
                         <input type="text" placeholder="מחיר מחירון ₪" value={newCar.listPrice} onChange={e=>setNewCar({...newCar,listPrice:e.target.value})} disabled={!newCar.showListPrice} className="flex-1 bg-neutral-900 border border-neutral-700 rounded-lg px-3 py-2.5 text-white disabled:opacity-40 text-right outline-none"/>
                         <label className="flex items-center gap-1.5 text-xs text-neutral-400 cursor-pointer whitespace-nowrap flex-row-reverse min-h-0">
                           <input type="checkbox" checked={newCar.showListPrice} onChange={e=>setNewCar({...newCar,showListPrice:e.target.checked})} className="accent-red-600 w-4 h-4"/>הצג מחירון
@@ -1265,17 +1528,42 @@ const GenericInventoryPage = ({ cars, title, subtitle }) => {
                         הצג בדף הבית
                       </label>
                       <label className="flex items-center gap-2 text-sm text-white font-bold cursor-pointer whitespace-nowrap flex-row-reverse bg-blue-600/20 px-4 py-2.5 rounded-lg border border-blue-600/40 hover:bg-blue-600/30 transition-colors">
-  <input type="checkbox" checked={newCar.officialWarranty||false} onChange={e=>setNewCar({...newCar,officialWarranty:e.target.checked})} className="accent-blue-600 w-4 h-4"/>
-  אחריות יבואן
-</label>
+                        <input type="checkbox" checked={newCar.officialWarranty||false} onChange={e=>setNewCar({...newCar,officialWarranty:e.target.checked})} className="accent-blue-600 w-4 h-4"/>
+                        אחריות יבואן
+                      </label>
                     </div>
-                    <div className="col-span-2 md:col-span-3">
+
+                    {/* בחירת צבעים */}
+                    <div className="col-span-2 md:col-span-3 lg:col-span-4 text-right">
+                      <label className="block text-xs text-neutral-400 mb-1.5">צבעים זמינים (מופרדים בפסיק. למשל: לבן, שחור, כסף)</label>
+                      <input type="text" placeholder="הזן צבעים..." value={newCar.colors || ''} onChange={e=>setNewCar({...newCar, colors: e.target.value})} className="w-full bg-neutral-900 border border-neutral-700 rounded-lg px-3 py-2.5 text-white text-right focus:border-red-600 outline-none"/>
+                    </div>
+
+                    {/* רמות גימור / תת-דגמים ומחירים */}
+                    <div className="col-span-2 md:col-span-3 lg:col-span-4 bg-neutral-900/50 p-4 rounded-xl border border-neutral-800">
+                      <div className="flex justify-between items-center mb-3 flex-row-reverse">
+                        <label className="text-sm font-bold text-white">רמות גימור / דגמים נוספים לרכב זה</label>
+                        <button type="button" onClick={() => setNewCar({...newCar, trims: [...(newCar.trims || []), {name: '', price: ''}]})} className="text-xs bg-neutral-800 hover:bg-red-600 text-white px-3 py-2 rounded-lg transition-colors shadow-sm font-medium">+ הוסף דגם</button>
+                      </div>
+                      {(newCar.trims || []).map((trim, idx) => (
+                        <div key={idx} className="flex gap-3 mb-3 flex-row-reverse items-center">
+                          <input type="text" placeholder="שם הדגם (למשל: Premium)" value={trim.name} onChange={e => { const t = [...newCar.trims]; t[idx].name = e.target.value; setNewCar({...newCar, trims: t}); }} className="flex-1 bg-neutral-950 border border-neutral-700 rounded-lg px-3 py-2.5 text-white text-right outline-none text-sm focus:border-red-600"/>
+                          <input type="number" placeholder="מחיר ₪" value={trim.price} onChange={e => { const t = [...newCar.trims]; t[idx].price = e.target.value; setNewCar({...newCar, trims: t}); }} className="w-32 bg-neutral-950 border border-neutral-700 rounded-lg px-3 py-2.5 text-white text-right outline-none text-sm focus:border-red-600"/>
+                          <button type="button" onClick={() => { const t = newCar.trims.filter((_, i) => i !== idx); setNewCar({...newCar, trims: t}); }} className="bg-neutral-800 hover:bg-red-600 p-2.5 rounded-lg text-neutral-400 hover:text-white transition-colors"><X className="w-4 h-4"/></button>
+                        </div>
+                      ))}
+                      {(!newCar.trims || newCar.trims.length === 0) && <p className="text-xs text-neutral-500 text-right">לא נוספו תת-דגמים. המחיר הראשי יוצג.</p>}
+                    </div>
+
+                    {/* העלאת תמונות */}
+                    <div className="col-span-2 md:col-span-3 lg:col-span-4 text-right">
                       <label className="block text-xs text-neutral-400 mb-1.5">העלאת תמונות (עד 10)</label>
                       <input type="file" accept="image/*" multiple onChange={e=>handleImageSelection(e,'new')} className="w-full bg-neutral-900 border border-neutral-700 rounded-lg px-3 py-2 text-white text-xs file:ml-2 file:py-1 file:px-3 file:rounded-full file:border-0 file:bg-red-600 file:text-white cursor-pointer"/>
                       {selectedFiles.length>0&&<p className="text-xs text-green-500 mt-1">✓ {selectedFiles.length} תמונות נבחרו</p>}
                     </div>
-                    <button type="submit" disabled={uploadStatus==='loading'} className={`col-span-2 md:col-span-1 font-bold py-2.5 rounded-lg flex items-center justify-center gap-2 flex-row-reverse transition-all text-white touch-manipulation ${uploadStatus==='loading'?'bg-neutral-700 cursor-not-allowed':'bg-red-600 hover:bg-red-500'}`}>
-                      {uploadStatus==='loading'?<><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/>מעלה...</>:<><Plus className="w-4 h-4"/>העלה רכב</>}
+
+                    <button type="submit" disabled={uploadStatus==='loading'} className={`col-span-2 md:col-span-3 lg:col-span-4 font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 flex-row-reverse transition-all text-white touch-manipulation ${uploadStatus==='loading'?'bg-neutral-700 cursor-not-allowed':'bg-red-600 hover:bg-red-500'}`}>
+                      {uploadStatus==='loading'?<><div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"/>מעלה...</>:<><Plus className="w-5 h-5"/>העלה רכב</>}
                     </button>
                   </form>
                   {uploadStatus==='success'&&<div className="mt-3 flex items-center gap-2 bg-green-500/10 border border-green-500/30 text-green-400 rounded-xl px-4 py-3 flex-row-reverse"><Check className="w-5 h-5"/><span className="text-sm font-medium">הרכב הועלה בהצלחה! 🎉</span></div>}
@@ -1337,8 +1625,8 @@ const GenericInventoryPage = ({ cars, title, subtitle }) => {
         </div>
       )}
 
-      {/* Edit Modal */}
-      {editCar && (
+{/* Edit Modal */}
+{editCar && (
         <div className="fixed inset-0 z-[150] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/85 backdrop-blur-sm">
           <div className="bg-neutral-900 border border-neutral-800 rounded-t-3xl sm:rounded-2xl w-full sm:max-w-3xl overflow-hidden flex flex-col shadow-2xl" style={{maxHeight:'94svh'}}>
             <div className="flex justify-between items-center px-5 py-4 border-b border-neutral-800 bg-neutral-950 flex-row-reverse shrink-0">
@@ -1377,27 +1665,55 @@ const GenericInventoryPage = ({ cars, title, subtitle }) => {
                 <select value={editCar.type||'משפחתי'} onChange={e=>setEditCar({...editCar,type:e.target.value})} className="bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2.5 text-white text-right focus:border-blue-500 outline-none">
                   {['משפחתי','יוקרה','ספורט','גיפ',"7 מקומות","מיני","מנהלים"].map(o=><option key={o} value={o}>{o}</option>)}
                 </select>
+
+                {/* שורת צ'קבוקסים */}
                 <div className="col-span-2 md:col-span-3 flex flex-wrap items-center gap-3 flex-row-reverse bg-neutral-800/50 p-2 rounded-xl border border-neutral-700">
-  <div className="flex-1 flex items-center gap-2 flex-row-reverse">
-    <input type="text" placeholder="מחיר מחירון" value={editCar.listPrice||''} onChange={e=>setEditCar({...editCar,listPrice:e.target.value})} disabled={!editCar.showListPrice} className="flex-1 bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2.5 text-white disabled:opacity-40 text-right outline-none"/>
-    <label className="flex items-center gap-1.5 text-xs text-neutral-400 cursor-pointer whitespace-nowrap flex-row-reverse min-h-0">
-      <input type="checkbox" checked={!!editCar.showListPrice} onChange={e=>setEditCar({...editCar,showListPrice:e.target.checked})} className="accent-red-600 w-4 h-4"/>הצג מחירון
-    </label>
-  </div>
-  <label className="flex items-center gap-2 text-sm text-white font-bold cursor-pointer whitespace-nowrap flex-row-reverse bg-blue-600/20 px-4 py-2.5 rounded-lg border border-blue-600/40 hover:bg-blue-600/30 transition-colors min-h-0">
-    <input type="checkbox" checked={!!editCar.showOnHome} onChange={e=>setEditCar({...editCar,showOnHome:e.target.checked})} className="accent-blue-600 w-4 h-4"/>
-    הצג בדף הבית
-  </label>
-  <label className="flex items-center gap-2 text-sm text-white font-bold cursor-pointer whitespace-nowrap flex-row-reverse bg-blue-600/20 px-4 py-2.5 rounded-lg border border-blue-600/40 hover:bg-blue-600/30 transition-colors min-h-0">
-    <input type="checkbox" checked={!!editCar.officialWarranty} onChange={e=>setEditCar({...editCar,officialWarranty:e.target.checked})} className="accent-blue-600 w-4 h-4"/>
-    אחריות יבואן רשמי
-  </label>
-</div>
+                  <div className="flex-1 flex items-center gap-2 flex-row-reverse">
+                    <input type="text" placeholder="מחיר מחירון" value={editCar.listPrice||''} onChange={e=>setEditCar({...editCar,listPrice:e.target.value})} disabled={!editCar.showListPrice} className="flex-1 bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2.5 text-white disabled:opacity-40 text-right outline-none"/>
+                    <label className="flex items-center gap-1.5 text-xs text-neutral-400 cursor-pointer whitespace-nowrap flex-row-reverse min-h-0">
+                      <input type="checkbox" checked={!!editCar.showListPrice} onChange={e=>setEditCar({...editCar,showListPrice:e.target.checked})} className="accent-red-600 w-4 h-4"/>הצג מחירון
+                    </label>
+                  </div>
+                  <label className="flex items-center gap-2 text-sm text-white font-bold cursor-pointer whitespace-nowrap flex-row-reverse bg-blue-600/20 px-4 py-2.5 rounded-lg border border-blue-600/40 hover:bg-blue-600/30 transition-colors min-h-0">
+                    <input type="checkbox" checked={!!editCar.showOnHome} onChange={e=>setEditCar({...editCar,showOnHome:e.target.checked})} className="accent-blue-600 w-4 h-4"/>
+                    הצג בדף הבית
+                  </label>
+                  <label className="flex items-center gap-2 text-sm text-white font-bold cursor-pointer whitespace-nowrap flex-row-reverse bg-blue-600/20 px-4 py-2.5 rounded-lg border border-blue-600/40 hover:bg-blue-600/30 transition-colors min-h-0">
+                    <input type="checkbox" checked={!!editCar.officialWarranty} onChange={e=>setEditCar({...editCar,officialWarranty:e.target.checked})} className="accent-blue-600 w-4 h-4"/>
+                    אחריות יבואן רשמי
+                  </label>
+                </div>
+
+                {/* בחירת צבעים - עריכה */}
                 <div className="col-span-2 md:col-span-3">
+                  <label className="block text-xs text-neutral-400 mb-1.5 text-right">צבעים זמינים (מופרדים בפסיק. למשל: לבן, שחור, כסף)</label>
+                  <input type="text" placeholder="הזן צבעים..." value={editCar.colors || ''} onChange={e=>setEditCar({...editCar, colors: e.target.value})} className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2.5 text-white text-right focus:border-blue-500 outline-none"/>
+                </div>
+
+                {/* רמות גימור / תת-דגמים ומחירים - עריכה */}
+                <div className="col-span-2 md:col-span-3 bg-neutral-800/50 p-4 rounded-xl border border-neutral-700">
+                  <div className="flex justify-between items-center mb-3 flex-row-reverse">
+                    <label className="text-sm font-bold text-white">רמות גימור / דגמים נוספים</label>
+                    <button type="button" onClick={() => setEditCar({...editCar, trims: [...(editCar.trims || []), {name: '', price: ''}]})} className="text-xs bg-neutral-900 hover:bg-blue-600 text-white px-3 py-2 rounded-lg transition-colors shadow-sm font-medium">+ הוסף דגם</button>
+                  </div>
+                  {(editCar.trims || []).map((trim, idx) => (
+                    <div key={idx} className="flex gap-3 mb-3 flex-row-reverse items-center">
+                      <input type="text" placeholder="שם הדגם" value={trim.name} onChange={e => { const t = [...(editCar.trims||[])]; t[idx].name = e.target.value; setEditCar({...editCar, trims: t}); }} className="flex-1 bg-neutral-800 border border-neutral-600 rounded-lg px-3 py-2.5 text-white text-right outline-none text-sm focus:border-blue-500"/>
+                      <input type="number" placeholder="מחיר ₪" value={trim.price} onChange={e => { const t = [...(editCar.trims||[])]; t[idx].price = e.target.value; setEditCar({...editCar, trims: t}); }} className="w-32 bg-neutral-800 border border-neutral-600 rounded-lg px-3 py-2.5 text-white text-right outline-none text-sm focus:border-blue-500"/>
+                      <button type="button" onClick={() => { const t = editCar.trims.filter((_, i) => i !== idx); setEditCar({...editCar, trims: t}); }} className="bg-neutral-900 hover:bg-red-600 p-2.5 rounded-lg text-neutral-400 hover:text-white transition-colors"><X className="w-4 h-4"/></button>
+                    </div>
+                  ))}
+                  {(!editCar.trims || editCar.trims.length === 0) && <p className="text-xs text-neutral-500 text-right">לא נוספו תת-דגמים. המחיר הראשי יוצג.</p>}
+                </div>
+
+                {/* החלפת תמונות */}
+                <div className="col-span-2 md:col-span-3 text-right">
                   <label className="block text-xs text-neutral-400 mb-1.5">החלפת תמונות (אופציונלי)</label>
                   <input type="file" accept="image/*" multiple onChange={e=>handleImageSelection(e,'edit')} className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-white text-xs file:ml-2 file:py-1 file:px-3 file:rounded-full file:border-0 file:bg-blue-600 file:text-white cursor-pointer"/>
                   {editSelectedFiles.length>0&&<p className="text-xs text-blue-400 mt-1">✓ {editSelectedFiles.length} תמונות יחליפו את הישנות</p>}
                 </div>
+                
+                {/* כפתורי שמירה/ביטול */}
                 <div className="col-span-2 md:col-span-3 flex gap-3 flex-row-reverse mt-2">
                   <button type="submit" disabled={editStatus==='loading'} className={`flex-1 py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 flex-row-reverse transition-all text-white touch-manipulation ${editStatus==='loading'?'bg-neutral-700 cursor-not-allowed':editStatus==='success'?'bg-green-600':'bg-blue-600 hover:bg-blue-500'}`}>
                     {editStatus==='loading'?<><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/>שומר...</>:editStatus==='success'?<><Check className="w-5 h-5"/>נשמר!</>:<>שמור שינויים <Check className="w-5 h-5"/></>}
