@@ -62,6 +62,25 @@ const CarDealershipApp = () => {
   const [isPasswordPromptOpen, setIsPasswordPromptOpen] = useState(false);
   const [isTermsOpen, setIsTermsOpen] = useState(false);
   const [isAccessibilityOpen, setIsAccessibilityOpen] = useState(false);
+  // סטייטים לתפריט הנגישות הפנימי שבנינו
+  const [isA11yMenuOpen, setIsA11yMenuOpen] = useState(false);
+  const [a11yHighContrast, setA11yHighContrast] = useState(false);
+  const [a11yLargeText, setA11yLargeText] = useState(false);
+
+  // אפקט שמחיל את שינויי הנגישות על כל האתר ברגע שלוחצים על הכפתורים
+  useEffect(() => {
+    if (a11yHighContrast) {
+      document.documentElement.style.filter = 'contrast(125%) saturate(120%)';
+    } else {
+      document.documentElement.style.filter = '';
+    }
+    
+    if (a11yLargeText) {
+      document.documentElement.style.fontSize = '115%'; // מגדיל את כל האתר
+    } else {
+      document.documentElement.style.fontSize = '100%';
+    }
+  }, [a11yHighContrast, a11yLargeText]);
   const [isFinanceAppOpen, setIsFinanceAppOpen] = useState(false);
   const [financeAppStatus, setFinanceAppStatus] = useState('idle');
   const [financeData, setFinanceData] = useState({ name: '', phone: '', occupation: '', income: '' });
@@ -104,13 +123,43 @@ const CarDealershipApp = () => {
   const [editSelectedFiles, setEditSelectedFiles] = useState([]); 
 
   useEffect(() => { fetchInventory(); }, []);
-// הזרקת תוסף נגישות מרחף
+// תוסף נגישות קוד פתוח (חינמי לתמיד, לא דורש הרשמה, ולא נחסם לעולם)
 useEffect(() => {
-  const script = document.createElement('script');
-  script.src = "https://cdn.userway.org/widget.js";
-  script.setAttribute('data-language', 'he');
-  script.setAttribute('data-position', '5'); // ממקם את זה בצד שמאלטה
-  document.body.appendChild(script);
+  if (!document.getElementById('open-a11y-script')) {
+    const script = document.createElement('script');
+    script.id = 'open-a11y-script';
+    script.src = "https://cdn.jsdelivr.net/npm/accessibility@3.1.1/dist/accessibility.min.js";
+    script.onload = () => {
+      if (typeof Accessibility !== 'undefined') {
+        new Accessibility({
+          labels: {
+            resetTitle: 'איפוס',
+            closeTitle: 'סגירה',
+            menuTitle: 'תפריט נגישות',
+            increaseText: 'הגדלת טקסט',
+            decreaseText: 'הקטנת טקסט',
+            increaseTextSpacing: 'הגדלת ריווח טקסט',
+            decreaseTextSpacing: 'הקטנת ריווח טקסט',
+            invertColors: 'היפוך צבעים',
+            grayHues: 'גווני אפור',
+            underlineLinks: 'קו תחתון לקישורים',
+            bigCursor: 'סמן עכבר גדול',
+            readingGuide: 'מדריך קריאה',
+            textToSpeech: 'הקראת טקסט',
+            speechToText: 'הכתבה קולית'
+          },
+          icon: {
+            position: {
+              bottom: { size: 15, units: 'px' },
+              left: { size: 15, units: 'px' },
+              type: 'fixed'
+            }
+          }
+        });
+      }
+    };
+    document.body.appendChild(script);
+  }
 }, []);
   // Lock body scroll when any modal is open
   useEffect(() => {
@@ -1161,7 +1210,49 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
         style={{bottom:'max(1.5rem,env(safe-area-inset-bottom,1.5rem))',right:'clamp(1rem,4vw,1.5rem)',padding:'clamp(0.75rem,2.5vw,1rem)'}}>
         <MessageCircle style={{width:'clamp(1.5rem,6vw,2rem)',height:'clamp(1.5rem,6vw,2rem)'}}/>
       </a>
+{/* ──── Accessibility Native FAB (כפתור נגישות פנימי חסין) ──── */}
+<div className="fixed z-50 flex flex-col items-start gap-3" style={{bottom:'max(1.5rem,env(safe-area-inset-bottom,1.5rem))', left:'clamp(1rem,4vw,1.5rem)'}}>
+        
+        {/* התפריט עצמו שנפתח בלחיצה */}
+        {isA11yMenuOpen && (
+          <div className="bg-neutral-900 border border-neutral-700 rounded-2xl p-4 shadow-[0_0_20px_rgba(0,0,0,0.5)] w-48 text-right flex flex-col gap-2 mb-1">
+            <div className="flex justify-between items-center border-b border-neutral-800 pb-2 mb-1 flex-row-reverse">
+              <button onClick={() => setIsA11yMenuOpen(false)} className="text-neutral-500 hover:text-white"><X className="w-4 h-4"/></button>
+              <h4 className="text-white font-bold text-sm">תפריט נגישות</h4>
+            </div>
+            
+            <button onClick={() => setA11yLargeText(!a11yLargeText)} className={`text-sm py-2.5 px-3 rounded-lg font-medium transition-colors flex items-center justify-between flex-row-reverse ${a11yLargeText ? 'bg-blue-600 text-white' : 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700'}`}>
+              <span className="text-lg leading-none">Aa</span>
+              {a11yLargeText ? 'הקטן טקסט' : 'הגדל טקסט'}
+            </button>
+            
+            <button onClick={() => setA11yHighContrast(!a11yHighContrast)} className={`text-sm py-2.5 px-3 rounded-lg font-medium transition-colors flex items-center justify-between flex-row-reverse ${a11yHighContrast ? 'bg-blue-600 text-white' : 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700'}`}>
+              <Zap className="w-4 h-4"/>
+              {a11yHighContrast ? 'ניגודיות רגילה' : 'ניגודיות גבוהה'}
+            </button>
 
+            <button onClick={() => setIsAccessibilityOpen(true)} className="text-xs text-neutral-400 hover:text-white underline mt-2 text-center pt-1 border-t border-neutral-800">
+              הצהרת נגישות מלאה
+            </button>
+          </div>
+        )}
+
+        {/* כפתור הכסא גלגלים שמופיע תמיד */}
+        <button 
+          onClick={() => setIsA11yMenuOpen(!isA11yMenuOpen)}
+          className="bg-blue-600 text-white rounded-full shadow-[0_4px_20px_rgba(37,99,235,0.4)] hover:scale-110 active:scale-95 transition-all touch-manipulation flex items-center justify-center border-2 border-white/10"
+          style={{width:'clamp(3rem,6vw,3.5rem)', height:'clamp(3rem,6vw,3.5rem)'}}
+          title="אפשרויות נגישות"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="4" r="2.5"></circle>
+            <path d="M12 7.5v6"></path>
+            <path d="M6 10h12"></path>
+            <path d="M12 13.5l-3.5 8"></path>
+            <path d="M12 13.5l3.5 8"></path>
+          </svg>
+        </button>
+      </div>
       {/* ──── Admin FAB ──── */}
       <button onClick={()=>setIsPasswordPromptOpen(true)}
         className="fixed z-40 bg-neutral-800 text-neutral-400 rounded-full hover:bg-neutral-700 hover:text-white active:scale-95 transition-all touch-manipulation"
