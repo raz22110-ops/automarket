@@ -257,18 +257,36 @@ useEffect(() => {
       if (data.result && data.result.records.length > 0) {
         const carData = data.result.records[0];
         
+        // מנגנון זיהוי חכם ליצרן - מתאים את השם של משרד התחבורה לרשימה שלנו
+        const apiMake = carData.tozeret_nm ? carData.tozeret_nm.trim() : '';
+        let matchedMake = null;
+        
+        if (apiMake) {
+          // מחפש התאמה בתוך המערך שלנו
+          const found = ISRAELI_CAR_MAKES.find(m => apiMake.includes(m) || m.includes(apiMake));
+          if (found) {
+            matchedMake = found;
+          } else if (apiMake.includes("ג'יפ") || apiMake.includes("JEEP")) {
+            matchedMake = "ג'יפ";
+          }
+        }
+
         setNewCar(prev => ({
           ...prev,
-          make: carData.tozeret_nm ? carData.tozeret_nm.trim() : prev.make,
-          model: carData.kinuy_mishari ? carData.kinuy_mishari.trim() : prev.model,
-          year: carData.shnat_yitzur ? carData.shnat_yitzur.toString() : prev.year,
-          engineType: (carData.sug_delek_nm && carData.sug_delek_nm.includes('בנזין')) ? 'בנזין' : 
+          make: matchedMake || prev.make, // אם מצאנו יצרן - נשתמש בו, אחרת נשמור את מה שהיה
+          model: carData.kinuy_mishari ? carData.kinuy_mishari.trim() : prev.model, // דגם
+          subModel: carData.ramat_gimur ? carData.ramat_gimur.trim() : prev.subModel, // תת דגם / רמת גימור
+          year: carData.shnat_yitzur ? carData.shnat_yitzur.toString() : prev.year, // שנתון
+          engineCapacity: carData.nefach_manoa ? carData.nefach_manoa.toString() : prev.engineCapacity, // נפח מנוע
+          engineType: (carData.sug_delek_nm && carData.sug_delek_nm.includes('חשמל')) ? 'חשמלי' : 
+                      (carData.sug_delek_nm && (carData.sug_delek_nm.includes('היברידי') || carData.sug_delek_nm.includes('הייבריד'))) ? 'הייבריד' : 
                       (carData.sug_delek_nm && carData.sug_delek_nm.includes('דיזל')) ? 'דיזל' : 
-                      (carData.sug_delek_nm && carData.sug_delek_nm.includes('חשמל')) ? 'חשמלי' : prev.engineType,
+                      (carData.sug_delek_nm && carData.sug_delek_nm.includes('בנזין')) ? 'בנזין' : prev.engineType,
         }));
         
-        alert('✅ הנתונים נמשכו בהצלחה ממשרד התחבורה!');
-        setPlateNumber(''); // מנקה את השדה אחרי משיכה מוצלחת
+        // התיקון בוצע בשורה הזו בעזרת Backticks:
+        alert(`✅ הנתונים (יצרן, דגם, רמת גימור, שנתון ונפח מנוע) נמשכו בהצלחה!\nשים לב: יש להזין ידנית "יד" ו"קילומטראז'".`);
+        setPlateNumber('');
       } else {
         alert('❌ רכב לא נמצא במאגר משרד התחבורה.');
       }
@@ -1688,26 +1706,6 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
               <div className="bg-neutral-950 rounded-2xl border border-neutral-800 overflow-hidden">
                 <div className="flex items-center gap-2 flex-row-reverse px-4 py-3 border-b border-neutral-800 bg-neutral-900/60">
                   <Plus className="w-4 h-4 text-red-600"/><h3 className="font-bold text-white text-sm">הוספת רכב חדש</h3>
-                </div>
-                {/* ──── משיכת נתונים אוטומטית ──── */}
-                <div className="p-4 border-b border-neutral-800 bg-neutral-900/30">
-                  <label className="block text-xs text-neutral-400 mb-2 text-right">משיכת נתונים מהירה (משרד התחבורה)</label>
-                  <div className="flex gap-3 flex-row-reverse">
-                    <input 
-                      type="text" 
-                      placeholder="הזן מספר רישוי (ללא מקפים)" 
-                      value={plateNumber} 
-                      onChange={e => setPlateNumber(e.target.value.replace(/\D/g, ''))}
-                      className="flex-1 bg-neutral-900 border border-neutral-700 rounded-lg px-3 py-2.5 text-white text-right focus:border-red-600 outline-none"
-                    />
-                    <button 
-                      type="button" 
-                      onClick={handleFetchByPlate}
-                      className="bg-neutral-800 hover:bg-red-600 text-white px-5 py-2.5 rounded-lg transition-colors font-bold text-sm touch-manipulation"
-                    >
-                      חפש רכב
-                    </button>
-                  </div>
                 </div>
                 <div className="p-4">
                   <form onSubmit={handleAddCar} className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 text-sm">
