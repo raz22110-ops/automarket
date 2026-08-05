@@ -1707,6 +1707,26 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
                 <div className="flex items-center gap-2 flex-row-reverse px-4 py-3 border-b border-neutral-800 bg-neutral-900/60">
                   <Plus className="w-4 h-4 text-red-600"/><h3 className="font-bold text-white text-sm">הוספת רכב חדש</h3>
                 </div>
+                {/* ──── משיכת נתונים אוטומטית ──── */}
+                <div className="p-4 border-b border-neutral-800 bg-neutral-900/30">
+                  <label className="block text-xs text-neutral-400 mb-2 text-right">משיכת נתונים מהירה (משרד התחבורה)</label>
+                  <div className="flex gap-3 flex-row-reverse">
+                    <input 
+                      type="text" 
+                      placeholder="הזן מספר רישוי (ללא מקפים)" 
+                      value={plateNumber} 
+                      onChange={e => setPlateNumber(e.target.value.replace(/\D/g, ''))}
+                      className="flex-1 bg-neutral-900 border border-neutral-700 rounded-lg px-3 py-2.5 text-white text-right focus:border-red-600 outline-none"
+                    />
+                    <button 
+                      type="button" 
+                      onClick={handleFetchByPlate}
+                      className="bg-neutral-800 hover:bg-red-600 text-white px-5 py-2.5 rounded-lg transition-colors font-bold text-sm touch-manipulation"
+                    >
+                      חפש רכב
+                    </button>
+                  </div>
+                </div>
                 <div className="p-4">
                   <form onSubmit={handleAddCar} className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 text-sm">
                     <select required value={newCar.make} onChange={e=>setNewCar({...newCar,make:e.target.value})} className="bg-neutral-900 border border-neutral-700 rounded-lg px-3 py-2.5 text-white text-right focus:border-red-600 outline-none col-span-2 md:col-span-1">
