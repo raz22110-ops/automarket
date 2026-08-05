@@ -249,55 +249,61 @@ useEffect(() => {
     return uploadedUrls;
   };
 
-  // ─── פונקציה ליצירת קטלוג פייסבוק/וואטסאפ ושמירתו אוטומטית ב-Supabase ───
-  const updateFacebookCatalog = async (currentCars) => {
-    try {
-      const headers = ['id', 'title', 'description', 'availability', 'condition', 'price', 'link', 'image_link', 'brand'];
+// ─── פונקציה ליצירת קטלוג פייסבוק/וואטסאפ ושמירתו אוטומטית ב-Supabase ───
+const updateFacebookCatalog = async (currentCars) => {
+  try {
+    // הוספנו את עמודת inventory (מלאי)
+    const headers = ['id', 'title', 'description', 'availability', 'inventory', 'condition', 'price', 'link', 'image_link', 'brand'];
+    
+    const rows = currentCars.map(car => {
+      const title = `${car.make} ${car.model} ${car.year}`;
+      const description = car.shortReview || `${car.subModel || ''} ${car.engineCapacity ? car.engineCapacity + ' סמ"ק' : ''}` || title;
+      const condition = car.condition === 'חדש' ? 'new' : 'used';
       
-      const rows = currentCars.map(car => {
-        const title = `${car.make} ${car.model} ${car.year}`;
-        const description = car.shortReview || `${car.subModel || ''} ${car.engineCapacity ? car.engineCapacity + ' סמ"ק' : ''}` || title;
-        const condition = car.condition === 'חדש' ? 'new' : 'used';
-        const price = `${car.price} ILS`;
-        const link = `https://smilemotors.co.il/car/${car.id}`; 
-        const imageLink = (car.images && car.images.length > 0) ? car.images[0] : ''; 
-        
-        return [
-          car.id,
-          `"${title}"`,
-          `"${description.replace(/"/g, '""')}"`,
-          'in stock',
-          condition,
-          price,
-          link,
-          imageLink,
-          `"${car.make}"`
-        ].join(',');
-      });
-
-      const csvContent = "\uFEFF" + [headers.join(','), ...rows].join('\n'); 
+      // מנקים פסיקים מהמחיר כדי לא לשבור את הפורמט, ומוסיפים מטבע
+      const cleanPrice = car.price ? car.price.toString().replace(/,/g, '') : '0';
+      const price = `${cleanPrice} ILS`;
       
-      // התיקון: שימוש ב-fetch כדי להעלות את הקובץ בדיוק כמו בשאר האתר שלך
-      const response = await fetch(`${mySupabaseUrl}/storage/v1/object/catalog/facebook_catalog.csv`, {
-        method: 'POST',
-        headers: {
-          ...supabaseHeaders,
-          'Content-Type': 'text/csv;charset=utf-8',
-          'x-upsert': 'true' // דורס את הקובץ הישן כדי שיישאר מעודכן
-        },
-        body: csvContent
-      });
-
-      if (!response.ok) {
-        throw new Error('שגיאה בהעלאת הקובץ לשרת');
-      }
-
-      console.log('✅ קטלוג פייסבוק/וואטסאפ נוצר ועודכן בהצלחה!');
+      const link = `https://smilemotors.co.il/car/${car.id}`; 
+      const imageLink = (car.images && car.images.length > 0) ? car.images[0] : ''; 
       
-    } catch (error) {
-      console.error('❌ שגיאה בעדכון קטלוג פייסבוק:', error);
+      // עוטפים כל שדה בגרשיים כדי שפסיקים בטקסט לא יפצלו עמודות
+      return [
+        `"${car.id}"`,
+        `"${title.replace(/"/g, '""')}"`,
+        `"${description.replace(/"/g, '""')}"`,
+        `"in stock"`,
+        `"1"`, // כמות במלאי
+        `"${condition}"`,
+        `"${price}"`,
+        `"${link}"`,
+        `"${imageLink}"`,
+        `"${car.make}"`
+      ].join(',');
+    });
+
+    const csvContent = "\uFEFF" + [headers.join(','), ...rows].join('\n'); 
+    
+    const response = await fetch(`${mySupabaseUrl}/storage/v1/object/catalog/facebook_catalog.csv`, {
+      method: 'POST',
+      headers: {
+        ...supabaseHeaders,
+        'Content-Type': 'text/csv;charset=utf-8',
+        'x-upsert': 'true' 
+      },
+      body: csvContent
+    });
+
+    if (!response.ok) {
+      throw new Error('שגיאה בהעלאת הקובץ לשרת');
     }
-  };
+
+    console.log('✅ קטלוג פייסבוק/וואטסאפ נוצר ועודכן בהצלחה!');
+    
+  } catch (error) {
+    console.error('❌ שגיאה בעדכון קטלוג פייסבוק:', error);
+  }
+};
   const handleFetchByPlate = async () => {
     if (!plateNumber) return alert('נא להזין מספר רישוי');
     try {
