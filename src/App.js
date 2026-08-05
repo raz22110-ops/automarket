@@ -105,6 +105,20 @@ const CarDealershipApp = () => {
   const [editSelectedFiles, setEditSelectedFiles] = useState([]); 
 
   useEffect(() => { fetchInventory(); }, []);
+  useEffect(() => {
+    const handlePopState = () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const carId = urlParams.get('car');
+      if (carId && inventory.length > 0) {
+        const foundCar = inventory.find(c => c.id === carId);
+        if (foundCar) setSelectedCar(foundCar);
+      } else {
+        setSelectedCar(null);
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [inventory]);
 // ─── מערכת נגישות פנימית מורחבת (תקנית 100% וחסינה לחסימות) ───
 const [isA11yMenuOpen, setIsA11yMenuOpen] = useState(false);
 const [a11ySettings, setA11ySettings] = useState({
@@ -176,6 +190,19 @@ useEffect(() => {
       if (!response.ok) throw new Error('שגיאה במשיכת נתונים');
       const data = await response.json();
       setInventory(data || []);
+
+      // ====== קריאת הקישור בעת טעינת האתר ======
+      const urlParams = new URLSearchParams(window.location.search);
+      const carIdFromUrl = urlParams.get('car');
+      
+      if (carIdFromUrl && data) {
+        const sharedCar = data.find(c => c.id === carIdFromUrl);
+        if (sharedCar) {
+          setSelectedCar(sharedCar);
+        }
+      }
+      // ==========================================
+
     } catch (err) { console.error(err); }
     finally { setInventoryLoading(false); }
   };
@@ -347,11 +374,16 @@ useEffect(() => {
   };
 
   const navigateTo = (view, hash = null) => {
-    setCurrentView(view); setSelectedCar(null); setIsMenuOpen(false);
+    setCurrentView(view); 
+    setSelectedCar(null); 
+    setIsMenuOpen(false);
+    
+    // ניקוי ה-URL כשעוברים לעמוד אחר
+    window.history.pushState({}, '', window.location.pathname);
+
     if (hash) setTimeout(() => document.getElementById(hash)?.scrollIntoView({ behavior: 'smooth' }), 100);
     else window.scrollTo(0, 0);
   };
-
   const testimonials = [
     { id:1, name:'יוסי אהרוני', text:'שירות מעל ומעבר! קניתי מרצדס והרגשתי לאורך כל הדרך שדואגים לי באמת. שקיפות מלאה וטיפול אישי. ממליץ בחום.', car:'קנה: Mercedes S-Class' },
     { id:2, name:'מיכל לוי', text:'חיפשתי רכב פנאי למשפחה ועזרו לי למצוא בדיוק את מה שהייתי צריכה. עשו לי טרייד אין הוגן על הרכב הישן שלי. אלופים.', car:'קנתה: Range Rover Sport' },
@@ -362,7 +394,10 @@ useEffect(() => {
   const handleShare = async (car, e) => {
     if (e) e.stopPropagation();
     const shareText = `ראו איזה רכב מצאתי באוטו מרקט!\n*${car.make} ${car.model}* (${car.year})\nמחיר: ₪${car.price}\n\nלפרטים נוספים היכנסו לאתר:`;
-    const shareUrl = window.location.href.split('#')[0];
+    
+    // ניצור את הקישור הייחודי לרכב לפי ה-ID שלו
+    const shareUrl = `${window.location.origin}${window.location.pathname}?car=${car.id}`;
+    
     if (navigator.share) {
       try { await navigator.share({ title: 'אוטו מרקט - שיתוף רכב', text: shareText, url: shareUrl }); }
       catch (err) { console.log('Share canceled'); }
@@ -434,11 +469,16 @@ useEffect(() => {
             </div>
 
             <button
-              onClick={()=>{ setSelectedCar(car); window.scrollTo(0,0); }}
-              className="w-full bg-red-600 hover:bg-red-500 active:bg-red-700 text-white py-3 rounded-xl font-bold transition-colors text-sm shadow-lg shadow-red-600/20 touch-manipulation"
-            >
-              לפרטים נוספים
-            </button>
+  onClick={()=>{ 
+    setSelectedCar(car); 
+    // מעדכן את ה-URL למעלה למספר הרכב בלי לרענן את הדף
+    window.history.pushState({}, '', `?car=${car.id}`);
+    window.scrollTo(0,0); 
+  }}
+  className="w-full bg-red-600 hover:bg-red-500 active:bg-red-700 text-white py-3 rounded-xl font-bold transition-colors text-sm shadow-lg shadow-red-600/20 touch-manipulation"
+>
+  לפרטים נוספים
+</button>
           </div>
         </div>
       ))}
@@ -901,7 +941,15 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
 
       {/* ──────── VIEWS ──────── */}
       {selectedCar ? (
-        <CarDetailsPage car={selectedCar} onBack={()=>setSelectedCar(null)} onOpenDigitalOrder={(car)=>{setDigitalOrderCar(car);setIsDigitalOrderOpen(true);}} />
+        <CarDetailsPage 
+          car={selectedCar} 
+          onBack={() => {
+            setSelectedCar(null);
+            // ניקוי ה-URL כשלוחצים על חזרה מדף הרכב
+            window.history.pushState({}, '', window.location.pathname);
+          }} 
+          onOpenDigitalOrder={(car)=>{setDigitalOrderCar(car);setIsDigitalOrderOpen(true);}} 
+        />
       ) : currentView==='new' ? (
         <GenericInventoryPage cars={inventory.filter(c=>c.condition==='חדש')} title={<>מלאי <span className="text-red-600">רכבים חדשים</span></>} subtitle={`${inventory.filter(c=>c.condition==='חדש').length} רכבים — כל רכב עבר בדיקה קפדנית.`} />
       ) : currentView==='used' ? (
@@ -1120,7 +1168,7 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
                 </div>
                 <div className="w-full md:w-1/2 relative">
                   <div className="absolute inset-0 bg-red-600/20 rounded-3xl blur-2xl"/>
-                  <img src="https://images.unsplash.com/photo-1560958089-b8a1929cea89?auto=format&fit=crop&q=80&w=1000" alt="אולם תצוגה" className="relative z-10 rounded-3xl shadow-2xl border border-neutral-800 w-full"/>
+                  <img src="https://i.postimg.cc/KjMP5Mc5/E7704582-D1FB-45CC-B594-D8641EFCB546.jpg" alt="אולם תצוגה" className="relative z-10 rounded-3xl shadow-2xl border border-neutral-800 w-full"/>
                 </div>
               </div>
             </div>
