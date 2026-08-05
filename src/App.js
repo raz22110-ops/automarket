@@ -248,6 +248,49 @@ useEffect(() => {
     }
     return uploadedUrls;
   };
+
+  // ─── פונקציה ליצירת קטלוג פייסבוק/וואטסאפ ושמירתו אוטומטית ב-Supabase ───
+  const updateFacebookCatalog = async (currentCars) => {
+    try {
+      const headers = ['id', 'title', 'description', 'availability', 'condition', 'price', 'link', 'image_link', 'brand'];
+      
+      const rows = currentCars.map(car => {
+        const title = `${car.make} ${car.model} ${car.year}`;
+        const description = car.shortReview || `${car.subModel || ''} ${car.engineCapacity ? car.engineCapacity + ' סמ"ק' : ''}` || title;
+        const condition = car.condition === 'חדש' ? 'new' : 'used';
+        const price = `${car.price} ILS`;
+        const link = `https://smilemotors.co.il/car/${car.id}`; 
+        const imageLink = (car.images && car.images.length > 0) ? car.images[0] : ''; 
+        
+        return [
+          car.id,
+          `"${title}"`,
+          `"${description.replace(/"/g, '""')}"`,
+          'in stock',
+          condition,
+          price,
+          link,
+          imageLink,
+          `"${car.make}"`
+        ].join(',');
+      });
+
+      const csvContent = "\uFEFF" + [headers.join(','), ...rows].join('\n'); 
+      
+      const { data, error } = await supabase.storage
+        .from('catalog')
+        .upload('facebook_catalog.csv', csvContent, {
+          upsert: true,
+          contentType: 'text/csv;charset=utf-8'
+        });
+
+      if (error) throw error;
+      console.log('✅ קטלוג פייסבוק/וואטסאפ נוצר ועודכן בהצלחה!');
+      
+    } catch (error) {
+      console.error('❌ שגיאה בעדכון קטלוג פייסבוק:', error);
+    }
+  };
   const handleFetchByPlate = async () => {
     if (!plateNumber) return alert('נא להזין מספר רישוי');
     try {
@@ -312,7 +355,14 @@ useEffect(() => {
       const carToAdd = { ...newCar, id: Date.now().toString(), images: imageUrls, image: imageUrls[0] || '', createdAt: Date.now() };
       const response = await fetch(`${mySupabaseUrl}/rest/v1/inventory`, { method: 'POST', headers: supabaseHeaders, body: JSON.stringify(carToAdd) });
       if (!response.ok) throw new Error('שגיאה בשמירת הרכב');
-      setInventory(p => [carToAdd, ...p]);
+      
+      // מעדכן את המלאי באתר וגם מפעיל את יצירת הקטלוג
+      setInventory(p => {
+        const newList = [carToAdd, ...p];
+        updateFacebookCatalog(newList); 
+        return newList;
+      });
+      
       setNewCar(EMPTY_CAR);
       setSelectedFiles([]);
       setUploadStatus('success');
@@ -329,7 +379,14 @@ useEffect(() => {
       const updatedCar = { ...editCar, images: imageUrls, image: imageUrls[0] || editCar.image || '' };
       const response = await fetch(`${mySupabaseUrl}/rest/v1/inventory?id=eq.${updatedCar.id}`, { method: 'PATCH', headers: supabaseHeaders, body: JSON.stringify(updatedCar) });
       if (!response.ok) throw new Error('שגיאה בעדכון הרכב');
-      setInventory(p => p.map(c => c.id === updatedCar.id ? updatedCar : c));
+      
+      // מעדכן את הרכב באתר וגם מפעיל את יצירת הקטלוג
+      setInventory(p => {
+        const newList = p.map(c => c.id === updatedCar.id ? updatedCar : c);
+        updateFacebookCatalog(newList);
+        return newList;
+      });
+      
       setEditStatus('success');
       setEditSelectedFiles([]);
       setTimeout(() => { setEditStatus('idle'); setEditCar(null); }, 1800);
@@ -340,11 +397,17 @@ useEffect(() => {
     try {
       const response = await fetch(`${mySupabaseUrl}/rest/v1/inventory?id=eq.${id}`, { method: 'DELETE', headers: supabaseHeaders });
       if (!response.ok) throw new Error('שגיאה במחיקת הרכב');
-      setInventory(p => p.filter(c => c.id !== id));
+      
+      // מוחק את הרכב מהאתר וגם מסיר אותו מהקטלוג
+      setInventory(p => {
+        const newList = p.filter(c => c.id !== id);
+        updateFacebookCatalog(newList);
+        return newList;
+      });
+      
       setDeleteConfirmId(null);
     } catch { alert('שגיאה במחיקה'); }
   };
-
   const handleTradeInSubmit = async (e) => {
     e.preventDefault();
     try {
