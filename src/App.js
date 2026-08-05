@@ -1174,13 +1174,22 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
             </div>
           </section>
 
-          {/* ──── CTA ──── */}
-          <section className="py-12 md:py-20 relative overflow-hidden">
-            <div className="absolute inset-0 bg-red-600"/>
+{/* ──── CTA ──── */}
+<section className="py-16 md:py-24 relative overflow-hidden bg-neutral-950 border-y border-red-900/30">
+            {/* 1. צבע בסיס - גרדיאנט עמוק ויוקרתי */}
+            <div className="absolute inset-0 bg-gradient-to-br from-red-950 via-neutral-950 to-black" />
+            
+            {/* 2. טקסטורה עדינה של רשת נקודות */}
+            <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(rgba(255,255,255,0.2) 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
+            
+            {/* 3. תאורת Glow אדומה שנותנת עומק מהמרכז */}
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(220,38,38,0.25)_0,transparent_60%)]" />
+
             <div className="max-w-4xl mx-auto px-4 relative z-10 text-center">
-              <h2 className="font-bold text-white mb-4" style={{fontSize:'clamp(1.25rem,5vw,3rem)'}}>מחפש רכב ולא מצאת באתר?</h2>
-              <p className="text-white/90 text-base md:text-xl mb-8">השאר פרטים ונשמח לחזור אלייך למצוא לך את הרכב החדש שלך.</p>
-              <form className="flex flex-col gap-3 max-w-lg mx-auto"
+              <h2 className="font-bold text-white mb-4 drop-shadow-md" style={{fontSize:'clamp(1.25rem,5vw,3rem)'}}>מחפש רכב ולא מצאת באתר?</h2>
+              <p className="text-neutral-300 text-base md:text-xl mb-8 font-medium">השאר פרטים ונשמח לחזור אלייך למצוא לך את הרכב החדש שלך.</p>
+              
+              <form className="flex flex-col gap-4 max-w-lg mx-auto"
                 onSubmit={async(e)=>{
                   e.preventDefault();
                   const name=e.target.elements[0].value, phone=e.target.elements[1].value;
@@ -1188,9 +1197,11 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
                   window.open(`https://wa.me/972526441855?text=${encodeURIComponent(`שלום, הגעתי מהאתר.\nשם: ${name}\nטלפון: ${phone}`)}`, '_blank');
                 }}
               >
-                <input type="text" placeholder="שם מלא" className="px-5 py-4 rounded-xl bg-white/95 text-neutral-900 placeholder-neutral-500 focus:outline-none text-right text-base w-full" required />
-                <input type="tel" placeholder="מספר טלפון" className="px-5 py-4 rounded-xl bg-white/95 text-neutral-900 placeholder-neutral-500 focus:outline-none text-right text-base w-full" required />
-                <button type="submit" className="px-6 py-4 bg-neutral-950 text-white rounded-xl font-bold hover:bg-neutral-800 active:bg-black transition-colors flex items-center justify-center gap-2 flex-row-reverse w-full text-base touch-manipulation">
+                {/* שדות קלט בעיצוב יוקרתי (זכוכית כהה) */}
+                <input type="text" placeholder="שם מלא" className="px-5 py-4 rounded-xl bg-black/40 border border-neutral-700/50 text-white placeholder-neutral-400 focus:outline-none focus:border-red-500 focus:bg-black/60 transition-all text-right text-base w-full backdrop-blur-md shadow-inner" required />
+                <input type="tel" placeholder="מספר טלפון" className="px-5 py-4 rounded-xl bg-black/40 border border-neutral-700/50 text-white placeholder-neutral-400 focus:outline-none focus:border-red-500 focus:bg-black/60 transition-all text-right text-base w-full backdrop-blur-md shadow-inner" required />
+                
+                <button type="submit" className="px-6 py-4 mt-2 bg-gradient-to-l from-red-700 to-red-600 text-white rounded-xl font-bold hover:from-red-600 hover:to-red-500 active:scale-[0.98] transition-all flex items-center justify-center gap-2 flex-row-reverse w-full text-base shadow-[0_0_20px_rgba(220,38,38,0.3)] touch-manipulation">
                   שלח בוואטסאפ <MessageCircle className="w-5 h-5"/>
                 </button>
               </form>
