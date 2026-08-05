@@ -277,14 +277,21 @@ useEffect(() => {
 
       const csvContent = "\uFEFF" + [headers.join(','), ...rows].join('\n'); 
       
-      const { data, error } = await supabase.storage
-        .from('catalog')
-        .upload('facebook_catalog.csv', csvContent, {
-          upsert: true,
-          contentType: 'text/csv;charset=utf-8'
-        });
+      // התיקון: שימוש ב-fetch כדי להעלות את הקובץ בדיוק כמו בשאר האתר שלך
+      const response = await fetch(`${mySupabaseUrl}/storage/v1/object/catalog/facebook_catalog.csv`, {
+        method: 'POST',
+        headers: {
+          ...supabaseHeaders,
+          'Content-Type': 'text/csv;charset=utf-8',
+          'x-upsert': 'true' // דורס את הקובץ הישן כדי שיישאר מעודכן
+        },
+        body: csvContent
+      });
 
-      if (error) throw error;
+      if (!response.ok) {
+        throw new Error('שגיאה בהעלאת הקובץ לשרת');
+      }
+
       console.log('✅ קטלוג פייסבוק/וואטסאפ נוצר ועודכן בהצלחה!');
       
     } catch (error) {
