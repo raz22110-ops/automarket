@@ -56,6 +56,7 @@ const CAR_COLORS_MAP = {
   'סגול': '#4B0082',
 };
 const CarDealershipApp = () => {
+  const [plateNumber, setPlateNumber] = useState('');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [isTradeInOpen, setIsTradeInOpen] = useState(false);
@@ -247,7 +248,35 @@ useEffect(() => {
     }
     return uploadedUrls;
   };
-
+  const handleFetchByPlate = async () => {
+    if (!plateNumber) return alert('נא להזין מספר רישוי');
+    try {
+      const response = await fetch(`https://data.gov.il/api/3/action/datastore_search?resource_id=053cea08-09bc-40ec-8f7a-156f0677aff3&q=${plateNumber}`);
+      const data = await response.json();
+      
+      if (data.result && data.result.records.length > 0) {
+        const carData = data.result.records[0];
+        
+        setNewCar(prev => ({
+          ...prev,
+          make: carData.tozeret_nm ? carData.tozeret_nm.trim() : prev.make,
+          model: carData.kinuy_mishari ? carData.kinuy_mishari.trim() : prev.model,
+          year: carData.shnat_yitzur ? carData.shnat_yitzur.toString() : prev.year,
+          engineType: (carData.sug_delek_nm && carData.sug_delek_nm.includes('בנזין')) ? 'בנזין' : 
+                      (carData.sug_delek_nm && carData.sug_delek_nm.includes('דיזל')) ? 'דיזל' : 
+                      (carData.sug_delek_nm && carData.sug_delek_nm.includes('חשמל')) ? 'חשמלי' : prev.engineType,
+        }));
+        
+        alert('✅ הנתונים נמשכו בהצלחה ממשרד התחבורה!');
+        setPlateNumber(''); // מנקה את השדה אחרי משיכה מוצלחת
+      } else {
+        alert('❌ רכב לא נמצא במאגר משרד התחבורה.');
+      }
+    } catch (error) {
+      console.error(error);
+      alert('אירעה שגיאה בחיבור למאגר.');
+    }
+  };
   const handleImageSelection = (e, target = 'new') => {
     const files = Array.from(e.target.files);
     if (!files.length) return;
@@ -1659,6 +1688,26 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
               <div className="bg-neutral-950 rounded-2xl border border-neutral-800 overflow-hidden">
                 <div className="flex items-center gap-2 flex-row-reverse px-4 py-3 border-b border-neutral-800 bg-neutral-900/60">
                   <Plus className="w-4 h-4 text-red-600"/><h3 className="font-bold text-white text-sm">הוספת רכב חדש</h3>
+                </div>
+                {/* ──── משיכת נתונים אוטומטית ──── */}
+                <div className="p-4 border-b border-neutral-800 bg-neutral-900/30">
+                  <label className="block text-xs text-neutral-400 mb-2 text-right">משיכת נתונים מהירה (משרד התחבורה)</label>
+                  <div className="flex gap-3 flex-row-reverse">
+                    <input 
+                      type="text" 
+                      placeholder="הזן מספר רישוי (ללא מקפים)" 
+                      value={plateNumber} 
+                      onChange={e => setPlateNumber(e.target.value.replace(/\D/g, ''))}
+                      className="flex-1 bg-neutral-900 border border-neutral-700 rounded-lg px-3 py-2.5 text-white text-right focus:border-red-600 outline-none"
+                    />
+                    <button 
+                      type="button" 
+                      onClick={handleFetchByPlate}
+                      className="bg-neutral-800 hover:bg-red-600 text-white px-5 py-2.5 rounded-lg transition-colors font-bold text-sm touch-manipulation"
+                    >
+                      חפש רכב
+                    </button>
+                  </div>
                 </div>
                 <div className="p-4">
                   <form onSubmit={handleAddCar} className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 text-sm">
