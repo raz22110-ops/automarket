@@ -979,19 +979,42 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
                           <button onClick={()=>setFinanceCondition('new')} className={`flex-1 py-3 rounded-lg font-bold text-sm transition-colors touch-manipulation ${financeCondition==='new'?'bg-red-600 text-white':'text-neutral-400'}`}>חדש (4.5%)</button>
                           <button onClick={()=>setFinanceCondition('used')} className={`flex-1 py-3 rounded-lg font-bold text-sm transition-colors touch-manipulation ${financeCondition==='used'?'bg-red-600 text-white':'text-neutral-400'}`}>משומש (6.1%)</button>
                         </div>
-                        {[
-                          { label:'שווי הרכב', val:financePrice, min:10000, max:800000, step:5000, set:setFinancePrice, fmt:v=>`₪${v.toLocaleString()}` },
-                          { label:'מקדמה', val:financeDownPayment, min:0, max:250000, step:5000, set:setFinanceDownPayment, fmt:v=>`₪${v.toLocaleString()}` },
-                          { label:'מספר תשלומים', val:financePayments, min:12, max:100, step:1, set:setFinancePayments, fmt:v=>`${v} חודשים` },
-                        ].map((s,i) => (
-                          <div key={i} className="bg-neutral-950 rounded-xl border border-neutral-800 p-4">
-                            <div className="flex justify-between items-center mb-3 flex-row-reverse">
-                              <span className="text-neutral-400 text-sm">{s.label}</span>
-                              <span className="text-white font-bold text-lg">{s.fmt(s.val)}</span>
-                            </div>
-                            <input type="range" min={s.min} max={s.max} step={s.step} value={s.val} onChange={e=>s.set(Number(e.target.value))} />
-                          </div>
-                        ))}
+                        
+{[
+  { label:'שווי הרכב', val:financePrice, min:10000, max:800000, step:1000, set:setFinancePrice, prefix:'₪', suffix:'' },
+  { label:'מקדמה', val:financeDownPayment, min:0, max:250000, step:1000, set:setFinanceDownPayment, prefix:'₪', suffix:'' },
+  { label:'מספר תשלומים', val:financePayments, min:12, max:100, step:1, set:setFinancePayments, prefix:'', suffix:' חודשים' },
+].map((s,i) => (
+  <div key={i} className="bg-neutral-950 rounded-xl border border-neutral-800 p-4">
+    <div className="flex justify-between items-center mb-3 flex-row-reverse">
+      <span className="text-neutral-400 text-sm">{s.label}</span>
+      
+      {/* שדה הקלדה חכם המשלב את הסליידר */}
+      <div className="flex items-center gap-1 flex-row-reverse bg-neutral-900 px-3 py-1.5 rounded-lg border border-neutral-800 focus-within:border-red-600 transition-colors">
+        {s.prefix && <span className="text-white font-bold text-sm md:text-base">{s.prefix}</span>}
+        <input 
+          type="text" 
+          value={s.val ? s.val.toLocaleString() : ''} 
+          onChange={e => {
+            // מסיר כל תו שאינו מספר (כדי לשמור על הפסיקים)
+            const rawVal = e.target.value.replace(/\D/g, '');
+            s.set(Number(rawVal));
+          }}
+          onBlur={() => {
+            // כשיוצאים מהשדה - מוודאים שהערך לא חורג מהגבולות
+            if (s.val < s.min) s.set(s.min);
+            if (s.val > s.max) s.set(s.max);
+          }}
+          className="bg-transparent text-white font-bold text-center w-20 focus:outline-none text-base"
+          dir="ltr"
+        />
+        {s.suffix && <span className="text-white font-bold text-sm md:text-base">{s.suffix}</span>}
+      </div>
+
+    </div>
+    <input type="range" min={s.min} max={s.max} step={s.step} value={s.val} onChange={e=>s.set(Number(e.target.value))} />
+  </div>
+))}
                       </div>
 
                       {/* Monthly result card */}
