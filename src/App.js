@@ -1081,10 +1081,17 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
         <GenericInventoryPage cars={searchResults} title={<span className="text-red-600">{searchTitle}</span>} subtitle={searchSubtitle} />
       ) : (
         <>
-          {/* ──── HERO ──── */}
-          <div className="relative flex items-center justify-center overflow-hidden" style={{paddingTop:'clamp(64px,14vw,112px)',minHeight:'100svh'}}>
+{/* ──── HERO ──── */}
+<div className="relative flex items-center justify-center overflow-hidden" style={{paddingTop:'clamp(64px,14vw,112px)',minHeight:'100svh'}}>
             <div className="absolute inset-0">
-              <img src="/back.jpg" alt="Hero" className="w-full h-full object-cover opacity-40" onError={e=>e.target.src='https://images.unsplash.com/photo-1603584173870-7f23fdae1b7a?auto=format&fit=crop&w=1920&q=80'} />
+              <video 
+                autoPlay 
+                loop 
+                muted 
+                playsInline 
+                src="/hero-loop.mp4"
+                className="w-full h-full object-cover opacity-40"
+              />
               <div className="absolute inset-0 bg-gradient-to-t from-neutral-950 via-neutral-950/50 to-transparent"/>
             </div>
             <div className="relative z-10 w-full max-w-5xl mx-auto px-4 py-8 md:py-10">
@@ -1094,7 +1101,6 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
               <p className="text-neutral-300 mb-6 max-w-2xl mx-auto text-center" style={{fontSize:'clamp(0.875rem, 2.5vw, 1.25rem)'}}>
                 אוטו מרקט מתמחה בכל סוגי הרכבים. פתרונות מימון וטרייד-אין מותאמים אישית.
               </p>
-
               {/* ── SEARCH BOX ── */}
               <div className="bg-neutral-900/95 backdrop-blur-xl rounded-2xl border border-neutral-800 shadow-2xl overflow-hidden">
                 {/* Tabs */}
