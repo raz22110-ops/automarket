@@ -1090,7 +1090,7 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
                 muted 
                 playsInline 
                 src="/hero-loop.mp4"
-                className="w-full h-full object-cover opacity-40"
+                className="w-full h-full object-cover opacity-100"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-neutral-950 via-neutral-950/50 to-transparent"/>
             </div>
