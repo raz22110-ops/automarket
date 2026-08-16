@@ -1016,8 +1016,8 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
               <img src="/logo.png" alt="אוטו מרקט" style={{height:'clamp(48px, 10vw, 96px)'}} className="w-auto object-contain drop-shadow-[0_0_10px_rgba(220,38,38,0.35)]" />
             </button>
 
-            {/* Desktop nav */}
-            <div className="hidden lg:flex items-center gap-6 flex-row-reverse">
+{/* Desktop nav */}
+<div className="hidden lg:flex items-center gap-6">
               {[
                 {l:'ראשי',a:()=>navigateTo('home'),active:currentView==='home'&&!selectedCar},
                 {l:'רכבים חדשים',a:()=>navigateTo('new'),active:currentView==='new'&&!selectedCar},
@@ -1104,7 +1104,7 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
               {/* ── SEARCH BOX ── */}
               <div className="bg-neutral-900/95 backdrop-blur-xl rounded-2xl border border-neutral-800 shadow-2xl overflow-hidden">
                 {/* Tabs */}
-                <div className="flex flex-row-reverse border-b border-neutral-800">
+                 <div className="flex border-b border-neutral-800">
                   <button onClick={()=>setSearchTab('finance')} className={`flex-1 py-3.5 font-bold text-sm transition-colors touch-manipulation ${searchTab==='finance'?'bg-red-600 text-white':'text-neutral-400 hover:bg-neutral-800'}`}>סימולטור מימון</button>
                   <button onClick={()=>setSearchTab('regular')} className={`flex-1 py-3.5 font-bold text-sm transition-colors touch-manipulation ${searchTab==='regular'?'bg-red-600 text-white':'text-neutral-400 hover:bg-neutral-800'}`}>חיפוש רכב</button>
                 </div>
@@ -1147,12 +1147,12 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
                     </div>
                   )}
 
-                  {/* Finance Simulator */}
-                  {searchTab==='finance' && (
+{/* Finance Simulator */}
+{searchTab==='finance' && (
                     <div className="flex flex-col gap-4 lg:grid lg:grid-cols-3 lg:gap-8 lg:items-center">
                       <div className="lg:col-span-2 flex flex-col gap-3">
                         {/* New / Used toggle */}
-                        <div className="flex flex-row-reverse gap-2 p-1 bg-neutral-950 rounded-xl border border-neutral-800">
+                        <div className="flex gap-2 p-1 bg-neutral-950 rounded-xl border border-neutral-800">
                           <button onClick={()=>setFinanceCondition('new')} className={`flex-1 py-3 rounded-lg font-bold text-sm transition-colors touch-manipulation ${financeCondition==='new'?'bg-red-600 text-white':'text-neutral-400'}`}>חדש (4.5%)</button>
                           <button onClick={()=>setFinanceCondition('used')} className={`flex-1 py-3 rounded-lg font-bold text-sm transition-colors touch-manipulation ${financeCondition==='used'?'bg-red-600 text-white':'text-neutral-400'}`}>משומש (6.1%)</button>
                         </div>
@@ -1163,11 +1163,11 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
   { label:'מספר תשלומים', val:financePayments, min:12, max:100, step:1, set:setFinancePayments, prefix:'', suffix:' חודשים' },
 ].map((s,i) => (
   <div key={i} className="bg-neutral-950 rounded-xl border border-neutral-800 p-4">
-    <div className="flex justify-between items-center mb-3 flex-row-reverse">
+    <div className="flex justify-between items-center mb-3">
       <span className="text-neutral-400 text-sm">{s.label}</span>
       
       {/* שדה הקלדה חכם המשלב את הסליידר */}
-      <div className="flex items-center gap-1 flex-row-reverse bg-neutral-900 px-3 py-1.5 rounded-lg border border-neutral-800 focus-within:border-red-600 transition-colors">
+      <div className="flex items-center gap-1 bg-neutral-900 px-3 py-1.5 rounded-lg border border-neutral-800 focus-within:border-red-600 transition-colors">
         {s.prefix && <span className="text-white font-bold text-sm md:text-base">{s.prefix}</span>}
         <input 
           type="text" 
@@ -1199,11 +1199,11 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
                         <span className="text-neutral-400 text-sm mb-1">החזר חודשי משוער</span>
                         <span className="font-black text-red-600 my-3" style={{fontSize:'clamp(2.5rem,10vw,3.5rem)'}}>₪{calculateMonthly().toLocaleString()}</span>
                         <span className="text-xs text-neutral-500 mb-5">*החישוב משוער וכפוף לאישור. ט.ל.ח</span>
-                        <button onClick={handleFinanceSearch} className="w-full bg-red-600 hover:bg-red-500 active:bg-red-700 text-white font-bold py-4 rounded-xl transition-colors flex items-center justify-center gap-2 flex-row-reverse touch-manipulation">
-                          מצא רכב בתקציב זה <ChevronRight className="w-5 h-5 rotate-180"/>
+                        <button onClick={handleFinanceSearch} className="w-full bg-red-600 hover:bg-red-500 active:bg-red-700 text-white font-bold py-4 rounded-xl transition-colors flex items-center justify-center gap-2 touch-manipulation">
+                          <ChevronRight className="w-5 h-5"/> מצא רכב בתקציב זה
                         </button>
-                        <button onClick={() => setIsFinanceAppOpen(true)} className="w-full mt-3 bg-green-600 hover:bg-green-500 active:bg-green-700 text-white font-bold py-4 rounded-xl transition-colors shadow-lg flex items-center justify-center gap-2 flex-row-reverse text-sm md:text-base border border-green-500/50 touch-manipulation">
-                          לאישור מימון מהיר דיגיטלי <Shield className="w-5 h-5"/>
+                        <button onClick={() => setIsFinanceAppOpen(true)} className="w-full mt-3 bg-green-600 hover:bg-green-500 active:bg-green-700 text-white font-bold py-4 rounded-xl transition-colors shadow-lg flex items-center justify-center gap-2 text-sm md:text-base border border-green-500/50 touch-manipulation">
+                          <Shield className="w-5 h-5"/> לאישור מימון מהיר דיגיטלי
                         </button>
                       </div>
                     </div>
@@ -1213,21 +1213,21 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
             </div>
           </div>
 
-          {/* ──── NEW INVENTORY ──── */}
-          <section className="py-12 md:py-24 bg-neutral-950 border-b border-neutral-900">
+{/* ──── NEW INVENTORY ──── */}
+<section className="py-12 md:py-24 bg-neutral-950 border-b border-neutral-900">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <div className="flex justify-between items-center mb-6 flex-row-reverse">
+              <div className="flex justify-between items-center mb-6">
                 <div className="text-right">
                   <h2 className="font-bold" style={{fontSize:'clamp(1.25rem,5vw,2.5rem)'}}>רכבים <span className="text-red-600">חדשים</span></h2>
                   <p className="text-neutral-400 text-sm mt-1">מבחר הרכבים החדשים באולם שלנו.</p>
                 </div>
-                <button onClick={()=>navigateTo('new')} className="hidden md:flex items-center bg-white text-red-600 hover:bg-neutral-200 font-bold px-6 py-2.5 rounded-full gap-2 flex-row-reverse whitespace-nowrap text-sm transition-colors shadow-md min-h-0">
+                <button onClick={()=>navigateTo('new')} className="hidden md:flex items-center bg-white text-red-600 hover:bg-neutral-200 font-bold px-6 py-2.5 rounded-full gap-2 whitespace-nowrap text-sm transition-colors shadow-md min-h-0">
                   כל המלאי ({inventory.filter(c=>c.condition==='חדש').length}) <ChevronRight className="w-4 h-4 rotate-180"/>
                 </button>
               </div>
               <CarGrid cars={inventory.filter(c=>c.condition==='חדש' && c.showOnHome).slice(0,6)} />
               <div className="mt-5 md:hidden">
-                <button onClick={()=>navigateTo('new')} className="w-full bg-white text-red-600 font-bold py-4 rounded-2xl flex items-center justify-center gap-2 flex-row-reverse text-sm touch-manipulation shadow-md">
+                <button onClick={()=>navigateTo('new')} className="w-full bg-white text-red-600 font-bold py-4 rounded-2xl flex items-center justify-center gap-2 text-sm touch-manipulation shadow-md">
                   כל המלאי ({inventory.filter(c=>c.condition==='חדש').length}) <ChevronRight className="w-4 h-4 rotate-180"/>
                 </button>
               </div>
@@ -1237,18 +1237,18 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
           {/* ──── USED INVENTORY ──── */}
           <section className="py-12 md:py-24 bg-neutral-950">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <div className="flex justify-between items-center mb-6 flex-row-reverse">
+              <div className="flex justify-between items-center mb-6">
                 <div className="text-right">
                   <h2 className="font-bold" style={{fontSize:'clamp(1.25rem,5vw,2.5rem)'}}>רכבים <span className="text-red-600">משומשים</span></h2>
                   <p className="text-neutral-400 text-sm mt-1">רכבי יד שנייה מעולים לאחר בדיקה קפדנית.</p>
                 </div>
-                <button onClick={()=>navigateTo('used')} className="hidden md:flex items-center bg-white text-red-600 hover:bg-neutral-200 font-bold px-6 py-2.5 rounded-full gap-2 flex-row-reverse whitespace-nowrap text-sm transition-colors shadow-md min-h-0">
+                <button onClick={()=>navigateTo('used')} className="hidden md:flex items-center bg-white text-red-600 hover:bg-neutral-200 font-bold px-6 py-2.5 rounded-full gap-2 whitespace-nowrap text-sm transition-colors shadow-md min-h-0">
                   כל המלאי ({inventory.filter(c=>c.condition==='משומש').length}) <ChevronRight className="w-4 h-4 rotate-180"/>
                 </button>
               </div>
               <CarGrid cars={inventory.filter(c=>c.condition==='משומש' && c.showOnHome).slice(0,6)} />
               <div className="mt-5 md:hidden">
-                <button onClick={()=>navigateTo('used')} className="w-full bg-white text-red-600 font-bold py-4 rounded-2xl flex items-center justify-center gap-2 flex-row-reverse text-sm touch-manipulation shadow-md">
+                <button onClick={()=>navigateTo('used')} className="w-full bg-white text-red-600 font-bold py-4 rounded-2xl flex items-center justify-center gap-2 text-sm touch-manipulation shadow-md">
                   כל המלאי ({inventory.filter(c=>c.condition==='משומש').length}) <ChevronRight className="w-4 h-4 rotate-180"/>
                 </button>
               </div>
