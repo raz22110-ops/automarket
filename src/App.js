@@ -1109,6 +1109,48 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
           </div>
         </div>
       )}
+{/* Finance App Modal - Simplified */}
+{isFinanceAppOpen && (
+        <div className="fixed inset-0 z-[130] flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm">
+          <div className="bg-neutral-950 border border-neutral-800 rounded-t-3xl sm:rounded-2xl w-full sm:max-w-md flex flex-col shadow-2xl" style={{maxHeight:'92svh'}}>
+            <div className="bg-neutral-900 px-5 py-6 text-center border-b border-neutral-800 shrink-0 rounded-t-3xl sm:rounded-t-2xl relative">
+              <button onClick={()=>setIsFinanceAppOpen(false)} className="absolute top-3 left-4 bg-neutral-800 hover:bg-red-600 p-2 rounded-full text-neutral-400 hover:text-white transition-colors min-h-0 touch-manipulation"><X className="w-5 h-5"/></button>
+              <div className="w-14 h-14 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-3 border border-green-500/30 shadow-inner">
+                <Shield className="w-7 h-7 text-green-500"/>
+              </div>
+              <h2 className="text-xl font-bold text-white mb-1">אישור מימון <span className="text-green-500">מהיר</span></h2>
+              <p className="text-neutral-400 text-sm">כדי לייעל את התהליך, הכינו את המסמכים הבאים ושלחו לנו בוואטסאפ לבדיקה מהירה.</p>
+            </div>
+            
+            <div className="p-5 overflow-y-auto modal-safe-bottom text-right space-y-5">
+              <ul className="space-y-3">
+                {[
+                  'צילום תעודת זהות + ספח פתוח',
+                  'צילום רישיון נהיגה בתוקף',
+                  'במה עובד/ת ומה השכר ',
+                  'תצלום כרטיס אשראי קדימה ואחורה'
+                ].map((item, idx) => (
+                  <li key={idx} className="flex items-center gap-3 flex-row-reverse bg-neutral-900 p-3 rounded-xl border border-neutral-800">
+                    <div className="bg-green-500/20 p-1.5 rounded-full shrink-0"><Check className="w-4 h-4 text-green-500"/></div>
+                    <span className="text-neutral-200 text-sm font-medium">{item}</span>
+                  </li>
+                ))}
+              </ul>
+              
+              <a 
+                href="https://wa.me/972526441855?text=שלום,%20אני%20מעוניין%20לקבל%20אישור%20מימון%20מהיר.%20אשמח%20לשלוח%20לכם%20את%20המסמכים%20הנדרשים." 
+                target="_blank" 
+                rel="noopener noreferrer"
+                onClick={() => setIsFinanceAppOpen(false)}
+                className="w-full bg-green-600 hover:bg-green-500 active:bg-green-700 text-white font-bold py-4 rounded-xl transition-colors shadow-lg flex items-center justify-center gap-2 flex-row-reverse touch-manipulation inline-flex"
+              >
+                הבנתי, להעברת מסמכים לנציג <MessageCircle className="w-5 h-5"/>
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Admin Panel & CRM */}
       {isAdminOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-sm">
