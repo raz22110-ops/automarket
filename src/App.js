@@ -13,7 +13,7 @@ const supabaseHeaders = {
 
 const ISRAELI_CAR_MAKES = [
   "אאודי","אופל","אורא","איסוזו","אומודה","אינפיניטי","איווקו","אלפא רומיאו","אמ-גי","אסטון-מרטין",
-  "במוו","בי-ווי-די (BYD)","גאקו","ג'יפ","ג'נסיס","ג'ילי","גרייטוול","דאצ'יה","דודג'",
+  "במוו","בי-ווי-די (BYD)","גאקו","ג'יפ","ג'נסיס","ג'ילי","גרייטוול","דאצ'יה","דופנג","דודג'",
   "הונדה","יונדאי","וולוו","טויוטה","טסלה","יגואר","לנד רובר","לאדה","לקסוס","מאזדה",
   "מזראטי","מיני","מיצובישי","מרצדס","ניסאן","סאנגיונג","סובארו","סוזוקי",
   "סיאט","סיטרואן","סמארט","סקודה","פולקסווגן","פורד","פורשה","פיאט","פיג'ו",
@@ -670,7 +670,9 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
             </div>
 
             <div className="bg-neutral-900 p-4 md:p-8 rounded-2xl border border-red-600/30 shadow-[0_0_30px_rgba(220,38,38,0.1)] text-right">
-              {car.condition === 'חדש' && (
+              
+              {/* הקפאנו את ההזמנה הדיגיטלית על ידי הוספת false */}
+              {false && car.condition === 'חדש' && (
                 <div className="mb-5 pb-5 border-b border-neutral-800">
                   <h3 className="text-lg font-bold text-white mb-1.5">הבטח את הרכב שלך עכשיו</h3>
                   <p className="text-neutral-400 text-sm mb-3">שריין את הרכב החדש שלך דיגיטלית עם תשלום מקדמה.</p>
@@ -679,6 +681,7 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
                   </button>
                 </div>
               )}
+              
               <h3 className="text-lg font-bold text-white mb-1">אני מעוניין ברכב</h3>
               <p className="text-neutral-400 text-sm mb-4">השאר פרטים ונחזור אליך בהקדם.</p>
               <form onSubmit={handleLeadSubmit} className="space-y-3">
@@ -695,7 +698,10 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
                 <button type="submit" className="w-full bg-red-600 active:bg-red-700 hover:bg-red-500 text-white font-bold py-4 rounded-xl transition-colors text-base shadow-lg flex items-center justify-center gap-2 flex-row-reverse mt-2 touch-manipulation">
                   שלח בוואטסאפ <MessageCircle className="w-5 h-5"/>
                 </button>
-                <div className="text-center pt-1"><span className="text-neutral-500 text-sm">או התקשר: </span><a href="tel:052-644-1855" className="text-red-500 font-bold" dir="ltr">052-644-1855</a></div>
+                <div className="text-center pt-1">
+                  <span className="text-neutral-500 text-sm">או התקשר: </span>
+                  <a href="tel:052-644-1855" className="text-red-500 font-bold" dir="ltr">052-644-1855</a>
+                </div>
               </form>
             </div>
           </div>
@@ -1016,7 +1022,93 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
           </div>
         </div>
       )}
+{/* Digital Order Modal */}
+      {isDigitalOrderOpen && digitalOrderCar && (
+        <div className="fixed inset-0 z-[140] flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm">
+          <div className="bg-neutral-950 border border-neutral-800 rounded-t-3xl sm:rounded-2xl w-full sm:max-w-2xl flex flex-col shadow-2xl" style={{maxHeight:'92svh'}}>
+            <div className="bg-neutral-900 px-5 py-4 text-center border-b border-neutral-800 shrink-0 rounded-t-3xl sm:rounded-t-2xl relative">
+              <button onClick={()=>{setIsDigitalOrderOpen(false);setDigitalOrderCar(null);setDigitalOrderStatus('idle');}} className="absolute top-3 left-4 bg-neutral-800 hover:bg-red-600 p-2 rounded-full text-neutral-400 hover:text-white transition-colors min-h-0 touch-manipulation"><X className="w-5 h-5"/></button>
+              <h2 className="text-xl font-bold text-white mb-0.5">הזמנה דיגיטלית — מקדמה</h2>
+              <p className="text-neutral-400 text-sm">שריין: {digitalOrderCar.make} {digitalOrderCar.model}</p>
+            </div>
+            <div className="p-4 overflow-y-auto modal-safe-bottom">
+              <form onSubmit={handleDigitalOrderSubmit} className="space-y-5">
+                <div>
+                  <h3 className="text-right text-white font-bold mb-2 text-sm">אופן מסירה:</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    {[
+                      {id:'pickup',title:'איסוף מהסוכנות',price:0,desc:'ללא תוספת'},
+                      {id:'tow',title:'גרר לבית',price:500,desc:'עד פתח הבית'},
+                      {id:'display',title:'משאית VIP',price:2000,desc:'חווית מסירה מלאה', disabled: true}
+                    ].map(opt=>(
+                      <div 
+                        key={opt.id} 
+                        onClick={() => !opt.disabled && setDigitalOrderData({...digitalOrderData,delivery:opt.id})} 
+                        className={`border rounded-xl p-3 text-center transition-all touch-manipulation 
+                          ${opt.disabled ? 'opacity-50 cursor-not-allowed bg-neutral-900 border-neutral-800' : 
+                            digitalOrderData.delivery===opt.id ? 'bg-green-600/10 border-green-500 cursor-pointer' : 'bg-neutral-900 border-neutral-700 cursor-pointer'}`}
+                      >
+                        <div className="flex items-center justify-center gap-2 mb-1 flex-row-reverse">
+                          <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 
+                            ${opt.disabled ? 'border-neutral-700' : digitalOrderData.delivery===opt.id ? 'border-green-500' : 'border-neutral-500'}`}>
+                            {digitalOrderData.delivery===opt.id && !opt.disabled && <div className="w-2 h-2 bg-green-500 rounded-full"/>}
+                          </div>
+                          <span className={`font-bold text-sm ${opt.disabled ? 'text-neutral-500' : digitalOrderData.delivery===opt.id ? 'text-green-500' : 'text-white'}`}>
+                            {opt.title}
+                          </span>
+                        </div>
+                        <div className="text-neutral-400 text-xs">{opt.desc}</div>
+                        <div className={`font-bold mt-1 text-sm ${opt.disabled ? 'text-red-500' : 'text-white'}`}>
+                          {opt.disabled ? 'בקרוב...' : opt.price>0 ? `+ ₪${opt.price}` : 'חינם'}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="bg-neutral-900 p-4 rounded-2xl border border-neutral-800 space-y-3">
+                  <div className="flex items-center justify-end gap-2 mb-2">
+                    <span className="text-white font-bold">פרטי תשלום</span>
+                    <LockIcon className="w-4 h-4 text-neutral-400" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 text-right">
+                    <input type="text" value={digitalOrderData.name} onChange={e=>setDigitalOrderData({...digitalOrderData,name:e.target.value})} placeholder="שם בעל הכרטיס" className={`${INPUT_CLASS} col-span-2 sm:col-span-1`} required />
+                    <input type="text" value={digitalOrderData.id} onChange={e=>setDigitalOrderData({...digitalOrderData,id:e.target.value})} placeholder="תעודת זהות" className={`${INPUT_CLASS} col-span-2 sm:col-span-1`} required />
+                    <input type="tel" value={digitalOrderData.phone} onChange={e=>setDigitalOrderData({...digitalOrderData,phone:e.target.value})} placeholder="מספר טלפון" className={`${INPUT_CLASS} col-span-2`} required />
+                    <div className="col-span-2 border-t border-neutral-800 pt-3 flex items-center justify-end gap-2">
+                      <span className="text-neutral-400 text-xs">סביבה מאובטחת תקן PCI-DSS</span>
+                      <Shield className="w-4 h-4 text-green-500" />
+                    </div>
+                    <input type="text" value={digitalOrderData.ccNumber} onChange={e=>setDigitalOrderData({...digitalOrderData,ccNumber:e.target.value.replace(/\D/g,'')})} placeholder="מספר כרטיס אשראי" className={`${INPUT_CLASS} col-span-2 text-left`} required maxLength="16" dir="ltr" />
+                    <input type="text" value={digitalOrderData.ccExp} onChange={e=>setDigitalOrderData({...digitalOrderData,ccExp:e.target.value})} placeholder="MM/YY" className={`${INPUT_CLASS} text-center`} required maxLength="5" dir="ltr" />
+                    <input type="text" value={digitalOrderData.ccCvv} onChange={e=>setDigitalOrderData({...digitalOrderData,ccCvv:e.target.value.replace(/\D/g,'')})} placeholder="CVV" className={`${INPUT_CLASS} text-center`} required maxLength="4" dir="ltr" />
+                  </div>
+                </div>
 
+                {(() => {
+                  const carPrice = parseInt(digitalOrderCar.price.toString().replace(/\D/g,''))||0;
+                  const deliveryCost = digitalOrderData.delivery==='display'?2000:digitalOrderData.delivery==='tow'?500:0;
+                  const totalDeposit = 2000+deliveryCost;
+                  const remainingBalance = Math.max(0, carPrice-2000);
+                  return (
+                    <div className="bg-neutral-900 p-4 rounded-xl border border-neutral-800 space-y-2.5">
+                      <h4 className="text-right text-white font-bold border-b border-neutral-800 pb-2 text-sm">סיכום עסקה</h4>
+                      <div className="flex justify-between text-sm flex-row-reverse"><span className="text-neutral-400">מחיר רכב:</span><span className="text-white">₪{carPrice.toLocaleString()}</span></div>
+                      {deliveryCost>0&&<div className="flex justify-between text-sm flex-row-reverse"><span className="text-neutral-400">תוספת מסירה:</span><span className="text-white">₪{deliveryCost.toLocaleString()}</span></div>}
+                      <div className="border-t border-neutral-800/50 border-dashed my-1"/>
+                      <div className="flex justify-between items-center flex-row-reverse"><span className="text-neutral-300 font-bold text-sm">חיוב מקדמה כעת:</span><span className="text-xl font-black text-green-500">₪{totalDeposit.toLocaleString()}</span></div>
+                      <div className="flex justify-between items-center flex-row-reverse bg-neutral-950 p-3 rounded-lg border border-neutral-800"><span className="text-neutral-400 text-xs">יתרה במסירה:</span><span className="text-white font-bold">₪{remainingBalance.toLocaleString()}</span></div>
+                    </div>
+                  );
+                })()}
+
+                <button type="submit" disabled={digitalOrderStatus==='loading'} className={`w-full font-bold py-4 rounded-xl transition-colors shadow-lg flex items-center justify-center gap-2 flex-row-reverse touch-manipulation ${digitalOrderStatus==='loading'?'bg-neutral-700 text-neutral-400 cursor-not-allowed':digitalOrderStatus==='success'?'bg-green-600 text-white':'bg-green-600 hover:bg-green-500 text-white'}`}>
+                  {digitalOrderStatus==='loading'?<><div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"/>מעבד תשלום...</>:digitalOrderStatus==='success'?<><Check className="w-5 h-5"/>התשלום עבר בהצלחה!</>:<>בצע תשלום ושריין רכב <CreditCard className="w-5 h-5"/></>}
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Admin Panel & CRM */}
       {isAdminOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-sm">
