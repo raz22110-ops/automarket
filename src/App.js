@@ -13,7 +13,7 @@ const supabaseHeaders = {
 
 const ISRAELI_CAR_MAKES = [
   "אאודי","אופל","אורא","איסוזו","אומודה","אינפיניטי","איווקו","אלפא רומיאו","אמ-גי","אסטון-מרטין",
-  "במוו","בי-ווי-די (BYD)","גאקו","ג'יפ","ג'נסיס","ג'ילי","גרייטוול","דאצ'יה","דופנג","דודג'",
+  "במוו","בי-ווי-די (BYD)","גאקו","ג'יפ","ג'נסיס","ג'ילי","גרייטוול","דאצ'יה","דודג'",
   "הונדה","יונדאי","וולוו","טויוטה","טסלה","יגואר","לנד רובר","לאדה","לקסוס","מאזדה",
   "מזראטי","מיני","מיצובישי","מרצדס","ניסאן","סאנגיונג","סובארו","סוזוקי",
   "סיאט","סיטרואן","סמארט","סקודה","פולקסווגן","פורד","פורשה","פיאט","פיג'ו",
@@ -204,6 +204,24 @@ const CarDealershipApp = () => {
     link.click();
   };
 
+  // ייצוא מלאי הרכבים לאקסל
+  const handleExportInventoryCSV = () => {
+    const headers = ['יצרן', 'דגם', 'תת דגם', 'שנתון', 'מחיר', 'קילומטראז', 'יד', 'סוג הנעה', 'מצב', 'סטטוס', 'תאריך הוספה'];
+    const rows = inventory.map(car => {
+      return [
+        car.make || '', car.model || '', car.subModel || '', car.year || '',
+        car.price || '', car.mileage || '', car.owners || '', car.engineType || '',
+        car.condition || '', car.status || 'זמין', new Date(car.createdAt).toLocaleDateString('he-IL')
+      ].map(v => `"${(v+'').replace(/"/g, '""')}"`).join(',');
+    });
+    const csvContent = "\uFEFF" + [headers.join(','), ...rows].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `inventory_export_${new Date().toLocaleDateString('he-IL').replace(/\//g,'-')}.csv`;
+    link.click();
+  };
+
   const calculateMonthly = () => {
     const principal = Math.max(0, financePrice - financeDownPayment);
     if (!principal || !financePayments) return 0;
@@ -304,7 +322,7 @@ const CarDealershipApp = () => {
       let imageUrls = [];
       if (selectedFiles.length > 0) imageUrls = await uploadImagesToStorage(selectedFiles);
       const carToAdd = { ...newCar, status: 'זמין', id: Date.now().toString(), images: imageUrls, image: imageUrls[0] || '', createdAt: Date.now() };
-      const response = await fetch(`${mySupabaseUrl}/rest/v1/inventory`, { method: 'POST', headers: supabaseHeaders, body: JSON.stringify(carToAdd) });
+      const response = await fetch(`${mySupabaseUrl}/rest/v1/inventory?apikey=${mySupabaseKey}`, { method: 'POST', headers: supabaseHeaders, body: JSON.stringify(carToAdd) });
       if (!response.ok) throw new Error('שגיאה בשמירת הרכב');
       setInventory(p => { const newList = [carToAdd, ...p]; updateFacebookCatalog(newList); return newList; });
       setNewCar(EMPTY_CAR); setSelectedFiles([]); setUploadStatus('success'); setTimeout(() => setUploadStatus('idle'), 3500);
@@ -318,7 +336,7 @@ const CarDealershipApp = () => {
       let imageUrls = editCar.images || [];
       if (editSelectedFiles.length > 0) imageUrls = await uploadImagesToStorage(editSelectedFiles);
       const updatedCar = { ...editCar, images: imageUrls, image: imageUrls[0] || editCar.image || '' };
-      const response = await fetch(`${mySupabaseUrl}/rest/v1/inventory?id=eq.${updatedCar.id}`, { method: 'PATCH', headers: supabaseHeaders, body: JSON.stringify(updatedCar) });
+      const response = await fetch(`${mySupabaseUrl}/rest/v1/inventory?id=eq.${updatedCar.id}&apikey=${mySupabaseKey}`, { method: 'PATCH', headers: supabaseHeaders, body: JSON.stringify(updatedCar) });
       if (!response.ok) throw new Error('שגיאה בעדכון הרכב');
       setInventory(p => { const newList = p.map(c => c.id === updatedCar.id ? updatedCar : c); updateFacebookCatalog(newList); return newList; });
       setEditStatus('success'); setEditSelectedFiles([]); setTimeout(() => { setEditStatus('idle'); setEditCar(null); }, 1800);
@@ -346,37 +364,6 @@ const CarDealershipApp = () => {
     try { await fetch(`${mySupabaseUrl}/rest/v1/leads`, { method: 'POST', headers: supabaseHeaders, body: JSON.stringify({ name: tradeData.name, phone: tradeData.phone, lead_type: 'טרייד-אין', car_details: `${tradeData.make} ${tradeData.model} (${tradeData.year})` }) }); } catch (err) {}
     const text = `שלום, אשמח לקבל הצעת טרייד-אין.\n\n*פרטי התקשרות:*\nשם: ${tradeData.name}\nטלפון: ${tradeData.phone}\n\n*פרטי הרכב שלי:*\nיצרן: ${tradeData.make}\nדגם: ${tradeData.model}\nשנתון: ${tradeData.year}\nסוג הנעה: ${tradeData.engine}\nקילומטראז': ${tradeData.km}\nבעלות: ${tradeData.ownership}\nיד: ${tradeData.owners}`;
     window.open(`https://wa.me/972526441855?text=${encodeURIComponent(text)}`, '_blank'); setIsTradeInOpen(false);
-  };
-
-  const handleFinanceAppSubmit = async (e) => {
-    e.preventDefault();
-    setFinanceAppStatus('loading');
-    try {
-      const uploadSingleFile = async (file) => { if (!file) return 'לא הועלה'; const urls = await uploadImagesToStorage([file]); return urls[0] || 'לא הועלה'; };
-      const idUrl = await uploadSingleFile(financeFiles.idImage); const attachmentUrl = await uploadSingleFile(financeFiles.idAttachment);
-      const licenseUrl = await uploadSingleFile(financeFiles.license); const ccFrontUrl = await uploadSingleFile(financeFiles.ccFront); const ccBackUrl = await uploadSingleFile(financeFiles.ccBack);
-      const details = `עיסוק: ${financeData.occupation} \nהכנסה משותפת: ₪${financeData.income} \nת.ז קדמי: ${idUrl} \nספח פתוח: ${attachmentUrl} \nרישיון נהיגה: ${licenseUrl} \nאשראי קדמי: ${ccFrontUrl} \nאשראי אחורי: ${ccBackUrl}`;
-      await fetch(`${mySupabaseUrl}/rest/v1/leads`, { method: 'POST', headers: supabaseHeaders, body: JSON.stringify({ name: financeData.name, phone: financeData.phone, lead_type: 'אישור מימון דיגיטלי', car_details: details }) });
-      const text = `שלום, הגשתי בקשה לאישור מימון מהיר בדיגיטל.\nשם: ${financeData.name}\nטלפון: ${financeData.phone}\nעיסוק: ${financeData.occupation}\nהכנסה חודשית (בעל+אישה): ₪${financeData.income}\n\n*כל המסמכים הועלו בהצלחה למערכת.*`;
-      window.open(`https://wa.me/972526441855?text=${encodeURIComponent(text)}`, '_blank');
-      setFinanceAppStatus('success'); setTimeout(() => { setFinanceAppStatus('idle'); setIsFinanceAppOpen(false); setFinanceData({ name: '', phone: '', occupation: '', income: '' }); setFinanceFiles({ idImage: null, idAttachment: null, license: null, ccFront: null, ccBack: null }); }, 2000);
-    } catch (error) { setFinanceAppStatus('error'); setTimeout(() => setFinanceAppStatus('idle'), 4000); }
-  };
-
-  const handleDigitalOrderSubmit = async (e) => {
-    e.preventDefault();
-    setDigitalOrderStatus('loading');
-    try {
-      const deliveryCost = digitalOrderData.delivery === 'display' ? 2000 : digitalOrderData.delivery === 'tow' ? 500 : 0;
-      const depositAmount = 2000 + deliveryCost;
-      const deliveryText = digitalOrderData.delivery === 'display' ? 'משאית תצוגה VIP (₪2000)' : digitalOrderData.delivery === 'tow' ? 'גרר (₪500)' : 'איסוף מהסוכנות (חינם)';
-      const maskedCC = digitalOrderData.ccNumber.slice(-4) || '****';
-      const details = `רכב: ${digitalOrderCar?.make} ${digitalOrderCar?.model} (${digitalOrderCar?.year})\nסוג מסירה: ${deliveryText}\nסך הכל לתשלום מקדמה: ₪${depositAmount}\nאשראי שסיים ב: ${maskedCC}\nת.ז בעל הכרטיס: ${digitalOrderData.id}`;
-      await fetch(`${mySupabaseUrl}/rest/v1/leads`, { method: 'POST', headers: supabaseHeaders, body: JSON.stringify({ name: digitalOrderData.name, phone: digitalOrderData.phone, lead_type: 'הזמנה דיגיטלית - תשלום מקדמה', car_details: details }) });
-      const waText = `שלום, ביצעתי כרגע הזמנה דיגיטלית ושילמתי מקדמה בסך ₪${depositAmount} עבור ${digitalOrderCar?.make} ${digitalOrderCar?.model} חדש.\n*סוג מסירה:* ${deliveryText}\nשם: ${digitalOrderData.name}\nטלפון: ${digitalOrderData.phone}\nאשראי מסיים ב-${maskedCC}`;
-      window.open(`https://wa.me/972526441855?text=${encodeURIComponent(waText)}`, '_blank');
-      setDigitalOrderStatus('success'); setTimeout(() => { setDigitalOrderStatus('idle'); setIsDigitalOrderOpen(false); setDigitalOrderData({ name: '', phone: '', id: '', ccNumber: '', ccExp: '', ccCvv: '', delivery: 'pickup' }); setDigitalOrderCar(null); }, 2000);
-    } catch (error) { setDigitalOrderStatus('error'); setTimeout(() => setDigitalOrderStatus('idle'), 4000); }
   };
 
   const handlePasswordSubmit = (e) => {
@@ -670,8 +657,6 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
             </div>
 
             <div className="bg-neutral-900 p-4 md:p-8 rounded-2xl border border-red-600/30 shadow-[0_0_30px_rgba(220,38,38,0.1)] text-right">
-              
-              {/* הקפאנו את ההזמנה הדיגיטלית על ידי הוספת false */}
               {false && car.condition === 'חדש' && (
                 <div className="mb-5 pb-5 border-b border-neutral-800">
                   <h3 className="text-lg font-bold text-white mb-1.5">הבטח את הרכב שלך עכשיו</h3>
@@ -681,7 +666,6 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
                   </button>
                 </div>
               )}
-              
               <h3 className="text-lg font-bold text-white mb-1">אני מעוניין ברכב</h3>
               <p className="text-neutral-400 text-sm mb-4">השאר פרטים ונחזור אליך בהקדם.</p>
               <form onSubmit={handleLeadSubmit} className="space-y-3">
@@ -698,10 +682,7 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
                 <button type="submit" className="w-full bg-red-600 active:bg-red-700 hover:bg-red-500 text-white font-bold py-4 rounded-xl transition-colors text-base shadow-lg flex items-center justify-center gap-2 flex-row-reverse mt-2 touch-manipulation">
                   שלח בוואטסאפ <MessageCircle className="w-5 h-5"/>
                 </button>
-                <div className="text-center pt-1">
-                  <span className="text-neutral-500 text-sm">או התקשר: </span>
-                  <a href="tel:052-644-1855" className="text-red-500 font-bold" dir="ltr">052-644-1855</a>
-                </div>
+                <div className="text-center pt-1"><span className="text-neutral-500 text-sm">או התקשר: </span><a href="tel:052-644-1855" className="text-red-500 font-bold" dir="ltr">052-644-1855</a></div>
               </form>
             </div>
           </div>
@@ -954,13 +935,7 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
           <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="4" r="2.5"></circle><path d="M12 7.5v6"></path><path d="M6 10h12"></path><path d="M12 13.5l-3.5 8"></path><path d="M12 13.5l3.5 8"></path></svg>
         </button>
       </div>
-      {/* ──── כניסה סודית לניהול מלאי בנייד (כפתור שקוף בצד ימין באמצע - רק למובייל) ──── */}
-<button 
-  onClick={() => setIsPasswordPromptOpen(true)}
-  className="md:hidden fixed top-1/2 right-0 -translate-y-1/2 w-16 h-32 z-50 opacity-0 touch-manipulation"
-  aria-hidden="true"
-  tabIndex="-1"
-/>
+      <button onClick={() => setIsPasswordPromptOpen(true)} className="md:hidden fixed top-1/2 right-0 -translate-y-1/2 w-16 h-32 z-50 opacity-0 touch-manipulation" aria-hidden="true" tabIndex="-1" />
 
       {/* ================= MODALS ================= */}
       {/* Terms Modal */}
@@ -1022,95 +997,9 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
           </div>
         </div>
       )}
-{/* Digital Order Modal */}
-      {isDigitalOrderOpen && digitalOrderCar && (
-        <div className="fixed inset-0 z-[140] flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm">
-          <div className="bg-neutral-950 border border-neutral-800 rounded-t-3xl sm:rounded-2xl w-full sm:max-w-2xl flex flex-col shadow-2xl" style={{maxHeight:'92svh'}}>
-            <div className="bg-neutral-900 px-5 py-4 text-center border-b border-neutral-800 shrink-0 rounded-t-3xl sm:rounded-t-2xl relative">
-              <button onClick={()=>{setIsDigitalOrderOpen(false);setDigitalOrderCar(null);setDigitalOrderStatus('idle');}} className="absolute top-3 left-4 bg-neutral-800 hover:bg-red-600 p-2 rounded-full text-neutral-400 hover:text-white transition-colors min-h-0 touch-manipulation"><X className="w-5 h-5"/></button>
-              <h2 className="text-xl font-bold text-white mb-0.5">הזמנה דיגיטלית — מקדמה</h2>
-              <p className="text-neutral-400 text-sm">שריין: {digitalOrderCar.make} {digitalOrderCar.model}</p>
-            </div>
-            <div className="p-4 overflow-y-auto modal-safe-bottom">
-              <form onSubmit={handleDigitalOrderSubmit} className="space-y-5">
-                <div>
-                  <h3 className="text-right text-white font-bold mb-2 text-sm">אופן מסירה:</h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                    {[
-                      {id:'pickup',title:'איסוף מהסוכנות',price:0,desc:'ללא תוספת'},
-                      {id:'tow',title:'גרר לבית',price:500,desc:'עד פתח הבית'},
-                      {id:'display',title:'משאית VIP',price:2000,desc:'חווית מסירה מלאה', disabled: true}
-                    ].map(opt=>(
-                      <div 
-                        key={opt.id} 
-                        onClick={() => !opt.disabled && setDigitalOrderData({...digitalOrderData,delivery:opt.id})} 
-                        className={`border rounded-xl p-3 text-center transition-all touch-manipulation 
-                          ${opt.disabled ? 'opacity-50 cursor-not-allowed bg-neutral-900 border-neutral-800' : 
-                            digitalOrderData.delivery===opt.id ? 'bg-green-600/10 border-green-500 cursor-pointer' : 'bg-neutral-900 border-neutral-700 cursor-pointer'}`}
-                      >
-                        <div className="flex items-center justify-center gap-2 mb-1 flex-row-reverse">
-                          <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 
-                            ${opt.disabled ? 'border-neutral-700' : digitalOrderData.delivery===opt.id ? 'border-green-500' : 'border-neutral-500'}`}>
-                            {digitalOrderData.delivery===opt.id && !opt.disabled && <div className="w-2 h-2 bg-green-500 rounded-full"/>}
-                          </div>
-                          <span className={`font-bold text-sm ${opt.disabled ? 'text-neutral-500' : digitalOrderData.delivery===opt.id ? 'text-green-500' : 'text-white'}`}>
-                            {opt.title}
-                          </span>
-                        </div>
-                        <div className="text-neutral-400 text-xs">{opt.desc}</div>
-                        <div className={`font-bold mt-1 text-sm ${opt.disabled ? 'text-red-500' : 'text-white'}`}>
-                          {opt.disabled ? 'בקרוב...' : opt.price>0 ? `+ ₪${opt.price}` : 'חינם'}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <div className="bg-neutral-900 p-4 rounded-2xl border border-neutral-800 space-y-3">
-                  <div className="flex items-center justify-end gap-2 mb-2">
-                    <span className="text-white font-bold">פרטי תשלום</span>
-                    <LockIcon className="w-4 h-4 text-neutral-400" />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3 text-right">
-                    <input type="text" value={digitalOrderData.name} onChange={e=>setDigitalOrderData({...digitalOrderData,name:e.target.value})} placeholder="שם בעל הכרטיס" className={`${INPUT_CLASS} col-span-2 sm:col-span-1`} required />
-                    <input type="text" value={digitalOrderData.id} onChange={e=>setDigitalOrderData({...digitalOrderData,id:e.target.value})} placeholder="תעודת זהות" className={`${INPUT_CLASS} col-span-2 sm:col-span-1`} required />
-                    <input type="tel" value={digitalOrderData.phone} onChange={e=>setDigitalOrderData({...digitalOrderData,phone:e.target.value})} placeholder="מספר טלפון" className={`${INPUT_CLASS} col-span-2`} required />
-                    <div className="col-span-2 border-t border-neutral-800 pt-3 flex items-center justify-end gap-2">
-                      <span className="text-neutral-400 text-xs">סביבה מאובטחת תקן PCI-DSS</span>
-                      <Shield className="w-4 h-4 text-green-500" />
-                    </div>
-                    <input type="text" value={digitalOrderData.ccNumber} onChange={e=>setDigitalOrderData({...digitalOrderData,ccNumber:e.target.value.replace(/\D/g,'')})} placeholder="מספר כרטיס אשראי" className={`${INPUT_CLASS} col-span-2 text-left`} required maxLength="16" dir="ltr" />
-                    <input type="text" value={digitalOrderData.ccExp} onChange={e=>setDigitalOrderData({...digitalOrderData,ccExp:e.target.value})} placeholder="MM/YY" className={`${INPUT_CLASS} text-center`} required maxLength="5" dir="ltr" />
-                    <input type="text" value={digitalOrderData.ccCvv} onChange={e=>setDigitalOrderData({...digitalOrderData,ccCvv:e.target.value.replace(/\D/g,'')})} placeholder="CVV" className={`${INPUT_CLASS} text-center`} required maxLength="4" dir="ltr" />
-                  </div>
-                </div>
 
-                {(() => {
-                  const carPrice = parseInt(digitalOrderCar.price.toString().replace(/\D/g,''))||0;
-                  const deliveryCost = digitalOrderData.delivery==='display'?2000:digitalOrderData.delivery==='tow'?500:0;
-                  const totalDeposit = 2000+deliveryCost;
-                  const remainingBalance = Math.max(0, carPrice-2000);
-                  return (
-                    <div className="bg-neutral-900 p-4 rounded-xl border border-neutral-800 space-y-2.5">
-                      <h4 className="text-right text-white font-bold border-b border-neutral-800 pb-2 text-sm">סיכום עסקה</h4>
-                      <div className="flex justify-between text-sm flex-row-reverse"><span className="text-neutral-400">מחיר רכב:</span><span className="text-white">₪{carPrice.toLocaleString()}</span></div>
-                      {deliveryCost>0&&<div className="flex justify-between text-sm flex-row-reverse"><span className="text-neutral-400">תוספת מסירה:</span><span className="text-white">₪{deliveryCost.toLocaleString()}</span></div>}
-                      <div className="border-t border-neutral-800/50 border-dashed my-1"/>
-                      <div className="flex justify-between items-center flex-row-reverse"><span className="text-neutral-300 font-bold text-sm">חיוב מקדמה כעת:</span><span className="text-xl font-black text-green-500">₪{totalDeposit.toLocaleString()}</span></div>
-                      <div className="flex justify-between items-center flex-row-reverse bg-neutral-950 p-3 rounded-lg border border-neutral-800"><span className="text-neutral-400 text-xs">יתרה במסירה:</span><span className="text-white font-bold">₪{remainingBalance.toLocaleString()}</span></div>
-                    </div>
-                  );
-                })()}
-
-                <button type="submit" disabled={digitalOrderStatus==='loading'} className={`w-full font-bold py-4 rounded-xl transition-colors shadow-lg flex items-center justify-center gap-2 flex-row-reverse touch-manipulation ${digitalOrderStatus==='loading'?'bg-neutral-700 text-neutral-400 cursor-not-allowed':digitalOrderStatus==='success'?'bg-green-600 text-white':'bg-green-600 hover:bg-green-500 text-white'}`}>
-                  {digitalOrderStatus==='loading'?<><div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"/>מעבד תשלום...</>:digitalOrderStatus==='success'?<><Check className="w-5 h-5"/>התשלום עבר בהצלחה!</>:<>בצע תשלום ושריין רכב <CreditCard className="w-5 h-5"/></>}
-                </button>
-              </form>
-            </div>
-          </div>
-        </div>
-      )}
-{/* Finance App Modal - Simplified */}
-{isFinanceAppOpen && (
+      {/* Finance App Modal - Simplified & Fixed */}
+      {isFinanceAppOpen && (
         <div className="fixed inset-0 z-[130] flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm">
           <div className="bg-neutral-950 border border-neutral-800 rounded-t-3xl sm:rounded-2xl w-full sm:max-w-md flex flex-col shadow-2xl" style={{maxHeight:'92svh'}}>
             <div className="bg-neutral-900 px-5 py-6 text-center border-b border-neutral-800 shrink-0 rounded-t-3xl sm:rounded-t-2xl relative">
@@ -1127,8 +1016,8 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
                 {[
                   'צילום תעודת זהות + ספח פתוח',
                   'צילום רישיון נהיגה בתוקף',
-                  'במה עובד/ת ומה השכר ',
-                  'תצלום כרטיס אשראי קדימה ואחורה'
+                  '3 תלושי משכורת אחרונים (או שומה לעצמאים)',
+                  'תדפיס עו"ש מ-3 החודשים האחרונים'
                 ].map((item, idx) => (
                   <li key={idx} className="flex items-center gap-3 flex-row-reverse bg-neutral-900 p-3 rounded-xl border border-neutral-800">
                     <div className="bg-green-500/20 p-1.5 rounded-full shrink-0"><Check className="w-4 h-4 text-green-500"/></div>
@@ -1137,15 +1026,15 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
                 ))}
               </ul>
               
-              <a 
-                href="https://wa.me/972526441855?text=שלום,%20אני%20מעוניין%20לקבל%20אישור%20מימון%20מהיר.%20אשמח%20לשלוח%20לכם%20את%20המסמכים%20הנדרשים." 
-                target="_blank" 
-                rel="noopener noreferrer"
-                onClick={() => setIsFinanceAppOpen(false)}
-                className="w-full bg-green-600 hover:bg-green-500 active:bg-green-700 text-white font-bold py-4 rounded-xl transition-colors shadow-lg flex items-center justify-center gap-2 flex-row-reverse touch-manipulation inline-flex"
+              <button 
+                onClick={() => {
+                  window.open('https://wa.me/972526441855?text=' + encodeURIComponent('שלום, אני מעוניין לקבל אישור מימון מהיר. אשמח לשלוח לכם את המסמכים הנדרשים.'), '_blank');
+                  setIsFinanceAppOpen(false);
+                }}
+                className="w-full bg-green-600 hover:bg-green-500 active:bg-green-700 text-white font-bold py-4 rounded-xl transition-colors shadow-lg flex items-center justify-center gap-2 flex-row-reverse touch-manipulation"
               >
                 הבנתי, להעברת מסמכים לנציג <MessageCircle className="w-5 h-5"/>
-              </a>
+              </button>
             </div>
           </div>
         </div>
@@ -1221,7 +1110,15 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
                           <button onClick={()=>setAdminInvTab('sold')} className={`px-3 py-1 text-xs font-bold rounded-md transition-colors ${adminInvTab==='sold' ? 'bg-neutral-700 text-white' : 'text-neutral-400 hover:text-white'}`}>נמכרו</button>
                         </div>
                       </div>
-                      <span className="text-xs text-neutral-500 bg-neutral-800 px-2.5 py-1 rounded-full">{inventory.filter(c => adminInvTab === 'sold' ? c.status === 'נמכר' : c.status !== 'נמכר').length} רכבים</span>
+                      
+                      <div className="flex items-center gap-3 flex-row-reverse">
+                        <button onClick={handleExportInventoryCSV} className="flex items-center justify-center gap-1.5 bg-green-600/20 hover:bg-green-600 border border-green-600/50 text-green-500 hover:text-white px-3 py-1 rounded-lg transition-colors text-xs font-bold flex-row-reverse touch-manipulation">
+                          <Download className="w-3.5 h-3.5" /> ייצוא
+                        </button>
+                        <span className="text-xs text-neutral-500 bg-neutral-800 px-2.5 py-1 rounded-full hidden sm:block">
+                          {inventory.filter(c => adminInvTab === 'sold' ? c.status === 'נמכר' : c.status !== 'נמכר').length} רכבים
+                        </span>
+                      </div>
                     </div>
                     <div className="overflow-x-auto">
                       <table className="w-full text-right text-sm">
@@ -1425,6 +1322,7 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
                       <button type="button" onClick={() => { const t = editCar.trims.filter((_, i) => i !== idx); setEditCar({...editCar, trims: t}); }} className="bg-neutral-900 hover:bg-red-600 p-2.5 rounded-lg text-neutral-400 hover:text-white transition-colors"><X className="w-4 h-4"/></button>
                     </div>
                   ))}
+                  {(!editCar.trims || editCar.trims.length === 0) && <p className="text-xs text-neutral-500 text-right">לא נוספו תת-דגמים. המחיר הראשי יוצג.</p>}
                 </div>
                 <div className="col-span-2 md:col-span-3 text-right"><label className="block text-xs text-neutral-400 mb-1.5">החלפת תמונות (אופציונלי)</label><input type="file" accept="image/*" multiple onChange={e=>handleImageSelection(e,'edit')} className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-white text-xs file:ml-2 file:py-1 file:px-3 file:rounded-full file:border-0 file:bg-blue-600 file:text-white cursor-pointer"/>{editSelectedFiles.length>0&&<p className="text-xs text-blue-400 mt-1">✓ {editSelectedFiles.length} תמונות יחליפו את הישנות</p>}</div>
                 
@@ -1434,6 +1332,7 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
                   </button>
                   <button type="button" onClick={()=>{setEditCar(null);setEditStatus('idle');setEditSelectedFiles([]);}} className="px-5 py-3.5 bg-neutral-800 hover:bg-neutral-700 text-white rounded-xl font-medium touch-manipulation">ביטול</button>
                 </div>
+                {editStatus==='error'&&<div className="col-span-2 md:col-span-3 flex items-center gap-2 bg-red-500/10 border border-red-500/30 text-red-400 rounded-xl px-4 py-3 flex-row-reverse"><X className="w-4 h-4"/><span className="text-sm">שגיאה בשמירה — נסה שוב</span></div>}
               </form>
             </div>
           </div>
