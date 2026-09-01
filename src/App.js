@@ -222,6 +222,75 @@ const CarDealershipApp = () => {
     link.click();
   };
 
+  // ייצוא קטלוג למערכת המודעות של פייסבוק (Automotive Ads)
+  const handleExportFacebookCatalog = () => {
+    // כל הכותרות המדויקות שפייסבוק דורשת
+    const fbHeaders = [
+      "title","availability","price","offer_disclaimer","offer_disclaimer_url","image[0].url","image[0].tag[0]","video[0].url","video[0].tag[0]","vehicle_offer_id","offer_description","url","custom_label_0","custom_label_1","custom_label_2","custom_label_3","custom_label_4","custom_number_0","custom_number_1","custom_number_2","custom_number_3","custom_number_4","applink.android_app_name","applink.android_package","applink.android_url","applink.ios_app_name","applink.ios_app_store_id","applink.ios_url","applink.ipad_app_name","applink.ipad_app_store_id","applink.ipad_url","applink.iphone_app_name","applink.iphone_app_store_id","applink.iphone_url","applink.windows_phone_app_id","applink.windows_phone_app_name","applink.windows_phone_url","amount_price","amount_percentage","downpayment","cashback","start_time","end_time","comscore_market_codes[0]","comscore_market_codes[1]","offer_type","term_length","term_qualifier","amount_qualifier","downpayment_qualifier","estimated_margin","make","model","year","fuel_type","drivetrain","transmission","body_style","exterior_color","interior_color","trim","generation","interior_upholstery","overlay_disclaimer","product_tags[0]","product_tags[1]","product_priority_0","product_priority_1","product_priority_2","product_priority_3","product_priority_4"
+    ];
+
+    // פונקציות עזר לתרגום לעגה של פייסבוק
+    const getFuel = (type) => {
+      if (!type) return '';
+      if (type.includes('בנזין')) return 'GASOLINE';
+      if (type.includes('חשמלי')) return 'ELECTRIC';
+      if (type.includes('דיזל')) return 'DIESEL';
+      if (type.includes('הייבריד')) return 'HYBRID';
+      return 'GASOLINE';
+    };
+
+    const getBody = (type) => {
+      if (!type) return '';
+      if (type.includes('משפחתי') || type.includes('מנהלים')) return 'SEDAN';
+      if (type.includes('גיפ')) return 'SUV';
+      if (type.includes('מיני')) return 'HATCHBACK';
+      return 'SEDAN';
+    };
+
+    const rows = inventory.map(car => {
+      const cleanPrice = car.price ? car.price.toString().replace(/,/g, '') : '0';
+      const availability = car.status === 'נמכר' ? 'OUT_OF_STOCK' : 'AVAILABLE'; // פייסבוק דורשת לדעת מה נמכר כדי למחוק את המודעה
+      const image = car.images && car.images.length > 0 ? car.images[0] : (car.image || '');
+      const url = `${window.location.origin}${window.location.pathname}?car=${car.id}`; 
+      const title = `${car.make} ${car.model} ${car.year}`;
+      const desc = `${car.subModel || ''} | יד ${car.owners} | ${car.mileage} ק"מ`;
+      const extColor = car.colors ? car.colors.split(',')[0].replace(/:.*/,'').trim() : '';
+
+      // מיפוי הנתונים שלנו לטמפלט של פייסבוק
+      const dataMap = {
+        "title": title,
+        "availability": availability,
+        "price": `${cleanPrice} ILS`,
+        "image[0].url": image,
+        "vehicle_offer_id": car.id,
+        "offer_description": desc,
+        "url": url,
+        "make": car.make || '',
+        "model": car.model || '',
+        "year": car.year || '',
+        "fuel_type": getFuel(car.engineType),
+        "transmission": "AUTOMATIC",
+        "body_style": getBody(car.type),
+        "exterior_color": extColor,
+        "custom_label_0": car.condition === 'חדש' ? 'New' : 'Used',
+        "custom_label_1": car.type || ''
+      };
+
+      // יצירת השורה המדויקת עם 71 העמודות (משאיר ריק מה שלא רלוונטי)
+      return fbHeaders.map(header => {
+        const val = dataMap[header] || '';
+        return `"${(val+'').replace(/"/g, '""')}"`;
+      }).join(',');
+    });
+
+    const csvContent = "\uFEFF" + [fbHeaders.join(','), ...rows].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `facebook_catalog_${new Date().toLocaleDateString('he-IL').replace(/\//g,'-')}.csv`;
+    link.click();
+  };
+
   const calculateMonthly = () => {
     const principal = Math.max(0, financePrice - financeDownPayment);
     if (!principal || !financePayments) return 0;
@@ -1111,11 +1180,15 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
                         </div>
                       </div>
                       
-                      <div className="flex items-center gap-3 flex-row-reverse">
-                        <button onClick={handleExportInventoryCSV} className="flex items-center justify-center gap-1.5 bg-green-600/20 hover:bg-green-600 border border-green-600/50 text-green-500 hover:text-white px-3 py-1 rounded-lg transition-colors text-xs font-bold flex-row-reverse touch-manipulation">
-                          <Download className="w-3.5 h-3.5" /> ייצוא
+                      <div className="flex items-center gap-2 flex-row-reverse">
+                        <button onClick={handleExportFacebookCatalog} className="flex items-center justify-center gap-1.5 bg-blue-600/20 hover:bg-blue-600 border border-blue-600/50 text-blue-500 hover:text-white px-3 py-1 rounded-lg transition-colors text-xs font-bold flex-row-reverse touch-manipulation" title="הורדת קטלוג מותאם לפייסבוק">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.04c-5.5 0-10 4.48-10 10.02 0 5 3.66 9.15 8.44 9.9v-7H7.9v-2.9h2.54V9.85c0-2.51 1.49-3.89 3.78-3.89 1.09 0 2.23.2 2.23.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56v1.88h2.78l-.44 2.9h-2.34v7a10 10 0 0 0 8.44-9.9c0-5.54-4.5-10.02-10-10.02z"/></svg>
+                          פייסבוק
                         </button>
-                        <span className="text-xs text-neutral-500 bg-neutral-800 px-2.5 py-1 rounded-full hidden sm:block">
+                        <button onClick={handleExportInventoryCSV} className="flex items-center justify-center gap-1.5 bg-green-600/20 hover:bg-green-600 border border-green-600/50 text-green-500 hover:text-white px-3 py-1 rounded-lg transition-colors text-xs font-bold flex-row-reverse touch-manipulation" title="ייצוא רגיל לאקסל">
+                          <Download className="w-3.5 h-3.5" /> אקסל
+                        </button>
+                        <span className="text-xs text-neutral-500 bg-neutral-800 px-2.5 py-1 rounded-full hidden md:block">
                           {inventory.filter(c => adminInvTab === 'sold' ? c.status === 'נמכר' : c.status !== 'נמכר').length} רכבים
                         </span>
                       </div>
