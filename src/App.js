@@ -611,7 +611,17 @@ const CarDealershipApp = () => {
       return finalPrice;
     };
     const getCurrentModelName = () => selectedTrim ? `${car.model} (${selectedTrim.name})` : car.model;
+// ----- משתנים ופונקציית חישוב לסימולטור רכב ספציפי -----
+const [simDownPayment, setSimDownPayment] = useState(Math.floor(getBasePrice() * 0.25)); // ברירת מחדל: 25% מקדמה
+const [simPayments, setSimPayments] = useState(60);
 
+const calcLocalMonthly = () => {
+  const principal = Math.max(0, getCurrentPrice() - simDownPayment);
+  if (!principal || !simPayments) return 0;
+  const r = (car.condition === 'חדש' ? 0.045 : 0.061) / 12; // ריבית לפי מצב הרכב
+  return Math.round((principal * r) / (1 - Math.pow(1 + r, -simPayments)));
+};
+// -----------------------------------------------------------
     const handleLeadSubmit = async (e) => {
       e.preventDefault();
       let type = wantFinance ? 'מימון' : haveTradeIn ? 'טרייד-אין' : 'התעניינות ברכב';
@@ -735,8 +745,8 @@ const CarDealershipApp = () => {
               </RevealOnScroll>
             </div>
 
-            {/* RIGHT / Sidebar */}
-            <div className="space-y-4">
+{/* RIGHT / Sidebar */}
+<div className="space-y-4">
               <RevealOnScroll animation="slide-left" delay={150}>
                 <div className="hidden lg:block bg-neutral-900 p-5 md:p-8 rounded-2xl border border-neutral-800 text-right">
                   <h1 className="text-2xl md:text-3xl font-bold text-white mb-1">{car.make} <span className="text-xl font-normal text-neutral-300">{getCurrentModelName()}</span></h1>
@@ -749,8 +759,65 @@ const CarDealershipApp = () => {
                 </div>
               </RevealOnScroll>
 
+              {/* ----- התחלת סימולטור המימון הספציפי לרכב ----- */}
+              <RevealOnScroll animation="slide-left" delay={200}>
+                <div className="bg-neutral-900 p-5 md:p-6 rounded-2xl border border-neutral-800 text-right">
+                  <div className="flex justify-between items-center mb-4 flex-row-reverse">
+                    <h3 className="text-lg font-bold text-white flex items-center gap-2 flex-row-reverse">
+                      <DollarSign className="w-5 h-5 text-red-500"/>
+                      סימולטור מימון
+                    </h3>
+                    <span className="text-xs text-neutral-500 bg-neutral-950 px-2 py-1 rounded-md border border-neutral-800">{car.condition === 'חדש' ? 'ריבית 4.5%' : 'ריבית 6.1%'}</span>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <div className="bg-neutral-950 rounded-xl border border-neutral-800 p-3">
+                      <div className="flex justify-between items-center mb-3">
+                        <span className="text-neutral-400 text-sm">מקדמה</span>
+                        <div className="flex items-center gap-1 bg-neutral-900 px-2 py-1 rounded-lg border border-neutral-800 focus-within:border-red-600 transition-colors">
+                          <span className="text-white font-bold text-sm">₪</span>
+                          <input type="text" value={simDownPayment.toLocaleString()} onChange={e => {
+                            let val = Number(e.target.value.replace(/\D/g, ''));
+                            if (val > getCurrentPrice()) val = getCurrentPrice();
+                            setSimDownPayment(val);
+                          }} className="bg-transparent text-white font-bold text-center w-16 focus:outline-none text-sm" dir="ltr"/>
+                        </div>
+                      </div>
+                      <input type="range" min="0" max={getCurrentPrice()} step="1000" value={simDownPayment} onChange={e=>setSimDownPayment(Number(e.target.value))} />
+                    </div>
+
+                    <div className="bg-neutral-950 rounded-xl border border-neutral-800 p-3">
+                      <div className="flex justify-between items-center mb-3">
+                        <span className="text-neutral-400 text-sm">תשלומים</span>
+                        <div className="flex items-center gap-1 bg-neutral-900 px-2 py-1 rounded-lg border border-neutral-800 focus-within:border-red-600 transition-colors">
+                          <input type="text" value={simPayments} onChange={e => {
+                            let val = Number(e.target.value.replace(/\D/g, ''));
+                            if (val > 100) val = 100;
+                            setSimPayments(val);
+                          }} className="bg-transparent text-white font-bold text-center w-8 focus:outline-none text-sm" dir="ltr"/>
+                          <span className="text-white font-bold text-sm">חוד'</span>
+                        </div>
+                      </div>
+                      <input type="range" min="12" max="100" step="1" value={simPayments} onChange={e=>setSimPayments(Number(e.target.value))} />
+                    </div>
+                  </div>
+
+                  <div className="mt-4 bg-neutral-950 p-4 rounded-xl border border-red-600/20 text-center shadow-[0_0_15px_rgba(220,38,38,0.05)]">
+                    <span className="text-neutral-400 text-xs mb-1 block">החזר חודשי משוער</span>
+                    <span className="font-black text-red-600 text-3xl block mb-3">₪{calcLocalMonthly().toLocaleString()}</span>
+                    <button onClick={() => {
+                        setWantFinance(true); // מסמן אוטומטית "מעוניין במימון"
+                        document.getElementById('lead-form')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                      }} className="w-full bg-neutral-800 hover:bg-neutral-700 active:bg-neutral-600 text-white text-sm font-bold py-3 rounded-xl transition-colors border border-neutral-700 touch-manipulation">
+                      מעוניין בהצעה זו
+                    </button>
+                  </div>
+                </div>
+              </RevealOnScroll>
+              {/* ----- סוף סימולטור המימון הספציפי ----- */}
+
               <RevealOnScroll animation="slide-left" delay={300}>
-                <div className="bg-neutral-900 p-4 md:p-8 rounded-2xl border border-red-600/30 shadow-[0_0_30px_rgba(220,38,38,0.1)] text-right">
+                <div id="lead-form" className="bg-neutral-900 p-4 md:p-8 rounded-2xl border border-red-600/30 shadow-[0_0_30px_rgba(220,38,38,0.1)] text-right">
                   <h3 className="text-lg font-bold text-white mb-1">אני מעוניין ברכב</h3>
                   <p className="text-neutral-400 text-sm mb-4">השאר פרטים ונחזור אליך בהקדם.</p>
                   <form onSubmit={handleLeadSubmit} className="space-y-3">
