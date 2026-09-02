@@ -485,17 +485,17 @@ const CarDealershipApp = () => {
     else { navigator.clipboard.writeText(`${shareText}\n${shareUrl}`); alert('פרטי הרכב הועתקו ללוח!'); }
   };
 
-  /* ───────── CAR CARD WITH ANIMATION ───────── */
-  const CarGrid = ({ cars }) => (
+  /* ───────── CAR CARD ───────── */
+  const CarGrid = ({ cars, disableAnimation = false }) => (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8">
       {inventoryLoading ? (
         <div className="col-span-full py-20 text-center"><div className="w-12 h-12 border-4 border-red-600 border-t-transparent rounded-full animate-spin mb-4 mx-auto" /><p className="text-neutral-400">טוען מלאי מהענן...</p></div>
       ) : cars.length === 0 ? (
-        <RevealOnScroll animation="fade-in">
-          <div className="col-span-full py-20 text-center"><Car className="w-16 h-16 text-neutral-700 mx-auto mb-4" /><h3 className="text-xl font-bold text-white mb-2">לא נמצאו רכבים</h3><p className="text-neutral-400">כרגע אין רכבים בקטגוריה זו במלאי.</p></div>
-        </RevealOnScroll>
-      ) : cars.map((car, index) => (
-        <RevealOnScroll key={car.id} animation="scale-up" delay={index * 150}>
+        <div className="col-span-full py-20 text-center"><Car className="w-16 h-16 text-neutral-700 mx-auto mb-4" /><h3 className="text-xl font-bold text-white mb-2">לא נמצאו רכבים</h3><p className="text-neutral-400">כרגע אין רכבים בקטגוריה זו במלאי.</p></div>
+      ) : cars.map((car, index) => {
+        
+        // תוכן כרטיסיית הרכב (ללא האנימציה)
+        const cardContent = (
           <div className="group bg-neutral-900 rounded-2xl overflow-hidden border border-neutral-800 hover:border-red-600/50 transition-all duration-500 hover:shadow-[0_10px_30px_rgba(220,38,38,0.15)] active:scale-[0.98]">
             <div className="relative overflow-hidden bg-neutral-800" style={{height:'min(52vw, 240px)'}}>
               <div className="absolute top-3 right-3 z-10 bg-black/60 backdrop-blur-md text-white px-3 py-1 rounded-full text-xs font-medium border border-white/10">{car.type}</div>
@@ -504,7 +504,7 @@ const CarDealershipApp = () => {
                 {car.officialWarranty && (<div className="absolute top-10 left-3 z-10 bg-blue-600/80 backdrop-blur-md text-white px-2.5 py-1 rounded-full border border-blue-400/60 whitespace-nowrap" style={{fontSize:'10px',fontWeight:'600'}}>✓ יבואן רשמי</div>)}
               </div>
               <button onClick={(e) => handleShare(car, e)} className="absolute bottom-3 left-3 z-10 bg-black/60 hover:bg-red-600 backdrop-blur-md text-white p-2.5 rounded-full border border-white/10 transition-colors shadow-lg" title="שתף רכב"><Share2 className="w-4 h-4" /></button>
-              <img src={car.image||'/back.jpg'} alt={`${car.make} ${car.model}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out" onError={e=>e.target.src='/back.jpg'} />
+              <img src={car.image||'/back.jpg'} alt={`${car.make} ${car.model}`} loading="lazy" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out" onError={e=>e.target.src='/back.jpg'} />
             </div>
             <div className="p-4 text-right relative bg-neutral-900">
               <div className="mb-3">
@@ -527,8 +527,20 @@ const CarDealershipApp = () => {
               <button onClick={()=>{ setSelectedCar(car); window.history.pushState({}, '', `?car=${car.id}`); window.scrollTo(0,0); }} className="w-full bg-neutral-800 hover:bg-red-600 active:bg-red-700 text-white py-3 rounded-xl font-bold transition-all duration-300 text-sm border border-neutral-700 hover:border-red-500 touch-manipulation">לפרטים נוספים</button>
             </div>
           </div>
-        </RevealOnScroll>
-      ))}
+        );
+
+        // אם ביקשנו לבטל את האנימציה (למשל בעמוד כל המלאי), נרנדר מיד:
+        if (disableAnimation) {
+          return <div key={car.id}>{cardContent}</div>;
+        }
+
+        // אחרת (בדף הבית), נשתמש באנימציית גלילה:
+        return (
+          <RevealOnScroll key={car.id} animation="scale-up" delay={(index % 4) * 150}>
+            {cardContent}
+          </RevealOnScroll>
+        );
+      })}
     </div>
   );
 
@@ -746,7 +758,7 @@ const calcLocalMonthly = () => {
             </div>
 
 {/* RIGHT / Sidebar */}
-<div className="space-y-4">
+            <div className="space-y-4">
               <RevealOnScroll animation="slide-left" delay={150}>
                 <div className="hidden lg:block bg-neutral-900 p-5 md:p-8 rounded-2xl border border-neutral-800 text-right">
                   <h1 className="text-2xl md:text-3xl font-bold text-white mb-1">{car.make} <span className="text-xl font-normal text-neutral-300">{getCurrentModelName()}</span></h1>
