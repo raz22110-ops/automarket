@@ -26,12 +26,6 @@ const AGENTS = ["לא משויך", "יוסי", "דני", "אבי", "מיכל"];
 const INPUT_CLASS = "w-full bg-neutral-950 border border-neutral-800 rounded-xl px-4 py-3.5 text-white focus:border-red-600 focus:outline-none text-right text-base";
 const SELECT_CLASS = "w-full bg-neutral-950 border border-neutral-800 rounded-xl px-4 py-3.5 text-white focus:border-red-600 focus:outline-none text-right appearance-none text-base";
 
-const LockIcon = ({ className }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-    <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-  </svg>
-);
-
 const CAR_COLORS_MAP = {
   'לבן': '#FFFFFF', 'פנינה': '#FDEBD0', 'לבן פנינה': '#FDEBD0', 'שחור': '#111111',
   'שחור מטאלי': '#1A1A1A', 'כסף': '#C0C0C0', 'כסוף': '#C0C0C0', 'אפור': '#808080',
@@ -39,6 +33,40 @@ const CAR_COLORS_MAP = {
   'אדום': '#CC0000', 'כחול': '#003399', 'כחול כהה': '#000033', 'תכלת': '#66B2FF',
   'ירוק': '#004d00', 'חום': '#5C4033', 'ברונזה': '#CD7F32', 'זהב': '#FFD700',
   'שמפניה': '#F7E7CE', 'בורדו': '#800000', 'צהוב': '#FFCC00', 'כתום': '#FF6600', 'סגול': '#4B0082',
+};
+
+// --- רכיב האנימציה החדש ---
+const RevealOnScroll = ({ children, className = '', delay = 0, animation = 'fade-up' }) => {
+  const [isVisible, setIsVisible] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        setIsVisible(true);
+        observer.unobserve(entry.target);
+      }
+    }, { threshold: 0.15, rootMargin: '0px 0px -50px 0px' });
+    
+    if (ref.current) observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, []);
+
+  const base = "transition-all duration-[1200ms] ease-[cubic-bezier(0.25,1,0.5,1)] w-full"; 
+  const hidden = {
+    'fade-up': 'opacity-0 translate-y-16',
+    'fade-in': 'opacity-0',
+    'scale-up': 'opacity-0 scale-[0.92] translate-y-10',
+    'slide-right': 'opacity-0 translate-x-12',
+    'slide-left': 'opacity-0 -translate-x-12'
+  }[animation] || 'opacity-0 translate-y-16';
+  const visible = "opacity-100 translate-y-0 translate-x-0 scale-100";
+
+  return (
+    <div ref={ref} className={`${base} ${isVisible ? visible : hidden} ${className}`} style={{ transitionDelay: `${delay}ms` }}>
+      {children}
+    </div>
+  );
 };
 
 const CarDealershipApp = () => {
@@ -51,16 +79,9 @@ const CarDealershipApp = () => {
   const [isAccessibilityOpen, setIsAccessibilityOpen] = useState(false);
   
   const [isFinanceAppOpen, setIsFinanceAppOpen] = useState(false);
-  const [financeAppStatus, setFinanceAppStatus] = useState('idle');
-  const [financeData, setFinanceData] = useState({ name: '', phone: '', occupation: '', income: '' });
-  const [financeFiles, setFinanceFiles] = useState({ idImage: null, idAttachment: null, license: null, ccFront: null, ccBack: null });
-
+  
   const [isDigitalOrderOpen, setIsDigitalOrderOpen] = useState(false);
   const [digitalOrderCar, setDigitalOrderCar] = useState(null);
-  const [digitalOrderStatus, setDigitalOrderStatus] = useState('idle');
-  const [digitalOrderData, setDigitalOrderData] = useState({
-    name: '', phone: '', id: '', ccNumber: '', ccExp: '', ccCvv: '', delivery: 'pickup'
-  });
 
   const [adminPassword, setAdminPassword] = useState('');
   const [passwordError, setPasswordError] = useState('');
@@ -92,8 +113,8 @@ const CarDealershipApp = () => {
   const [editSelectedFiles, setEditSelectedFiles] = useState([]); 
 
   // --- CRM States ---
-  const [adminTab, setAdminTab] = useState('inventory'); // inventory | leads
-  const [adminInvTab, setAdminInvTab] = useState('available'); // available | sold
+  const [adminTab, setAdminTab] = useState('inventory'); 
+  const [adminInvTab, setAdminInvTab] = useState('available'); 
   const [leads, setLeads] = useState([]);
   const [leadsLoading, setLeadsLoading] = useState(false);
   const [crmSearch, setCrmSearch] = useState('');
@@ -128,7 +149,6 @@ const CarDealershipApp = () => {
     if (a11ySettings.highlightLinks) document.body.classList.add('a11y-highlight-links'); else document.body.classList.remove('a11y-highlight-links');
   }, [a11ySettings]);
 
-  // Secret Shortcut
   useEffect(() => {
     const handleSecretShortcut = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'm') {
@@ -177,7 +197,6 @@ const CarDealershipApp = () => {
     if (isAdminOpen && adminTab === 'leads') fetchLeads();
   }, [isAdminOpen, adminTab]);
 
-  // CRM Update Handlers
   const handleLeadUpdate = async (leadId, field, value) => {
     setLeads(prev => prev.map(l => l.id === leadId ? { ...l, [field]: value } : l));
     try {
@@ -204,7 +223,6 @@ const CarDealershipApp = () => {
     link.click();
   };
 
-  // ייצוא מלאי הרכבים לאקסל
   const handleExportInventoryCSV = () => {
     const headers = ['יצרן', 'דגם', 'תת דגם', 'שנתון', 'מחיר', 'קילומטראז', 'יד', 'סוג הנעה', 'מצב', 'סטטוס', 'תאריך הוספה'];
     const rows = inventory.map(car => {
@@ -222,14 +240,11 @@ const CarDealershipApp = () => {
     link.click();
   };
 
-  // ייצוא קטלוג למערכת המודעות של פייסבוק (Automotive Ads)
   const handleExportFacebookCatalog = () => {
-    // כל הכותרות המדויקות שפייסבוק דורשת
     const fbHeaders = [
       "title","availability","price","offer_disclaimer","offer_disclaimer_url","image[0].url","image[0].tag[0]","video[0].url","video[0].tag[0]","vehicle_offer_id","offer_description","url","custom_label_0","custom_label_1","custom_label_2","custom_label_3","custom_label_4","custom_number_0","custom_number_1","custom_number_2","custom_number_3","custom_number_4","applink.android_app_name","applink.android_package","applink.android_url","applink.ios_app_name","applink.ios_app_store_id","applink.ios_url","applink.ipad_app_name","applink.ipad_app_store_id","applink.ipad_url","applink.iphone_app_name","applink.iphone_app_store_id","applink.iphone_url","applink.windows_phone_app_id","applink.windows_phone_app_name","applink.windows_phone_url","amount_price","amount_percentage","downpayment","cashback","start_time","end_time","comscore_market_codes[0]","comscore_market_codes[1]","offer_type","term_length","term_qualifier","amount_qualifier","downpayment_qualifier","estimated_margin","make","model","year","fuel_type","drivetrain","transmission","body_style","exterior_color","interior_color","trim","generation","interior_upholstery","overlay_disclaimer","product_tags[0]","product_tags[1]","product_priority_0","product_priority_1","product_priority_2","product_priority_3","product_priority_4"
     ];
 
-    // פונקציות עזר לתרגום לעגה של פייסבוק
     const getFuel = (type) => {
       if (!type) return '';
       if (type.includes('בנזין')) return 'GASOLINE';
@@ -249,14 +264,13 @@ const CarDealershipApp = () => {
 
     const rows = inventory.map(car => {
       const cleanPrice = car.price ? car.price.toString().replace(/,/g, '') : '0';
-      const availability = car.status === 'נמכר' ? 'OUT_OF_STOCK' : 'AVAILABLE'; // פייסבוק דורשת לדעת מה נמכר כדי למחוק את המודעה
+      const availability = car.status === 'נמכר' ? 'OUT_OF_STOCK' : 'AVAILABLE'; 
       const image = car.images && car.images.length > 0 ? car.images[0] : (car.image || '');
       const url = `${window.location.origin}${window.location.pathname}?car=${car.id}`; 
       const title = `${car.make} ${car.model} ${car.year}`;
       const desc = `${car.subModel || ''} | יד ${car.owners} | ${car.mileage} ק"מ`;
       const extColor = car.colors ? car.colors.split(',')[0].replace(/:.*/,'').trim() : '';
 
-      // מיפוי הנתונים שלנו לטמפלט של פייסבוק
       const dataMap = {
         "title": title,
         "availability": availability,
@@ -276,7 +290,6 @@ const CarDealershipApp = () => {
         "custom_label_1": car.type || ''
       };
 
-      // יצירת השורה המדויקת עם 71 העמודות (משאיר ריק מה שלא רלוונטי)
       return fbHeaders.map(header => {
         const val = dataMap[header] || '';
         return `"${(val+'').replace(/"/g, '""')}"`;
@@ -332,7 +345,7 @@ const CarDealershipApp = () => {
 
   const updateFacebookCatalog = async (currentCars) => {
     try {
-      const availableCars = currentCars.filter(c => c.status !== 'נמכר'); // רק רכבים זמינים
+      const availableCars = currentCars.filter(c => c.status !== 'נמכר'); 
       const headers = ['id', 'title', 'description', 'availability', 'inventory', 'condition', 'price', 'link', 'image_link', 'brand'];
       const rows = availableCars.map(car => {
         const title = `${car.make} ${car.model} ${car.year}`;
@@ -370,7 +383,7 @@ const CarDealershipApp = () => {
           year: carData.shnat_yitzur ? carData.shnat_yitzur.toString() : prev.year, engineCapacity: carData.nefach_manoa ? carData.nefach_manoa.toString() : prev.engineCapacity,
           engineType: (carData.sug_delek_nm && carData.sug_delek_nm.includes('חשמל')) ? 'חשמלי' : (carData.sug_delek_nm && (carData.sug_delek_nm.includes('היברידי') || carData.sug_delek_nm.includes('הייבריד'))) ? 'הייבריד' : (carData.sug_delek_nm && carData.sug_delek_nm.includes('דיזל')) ? 'דיזל' : (carData.sug_delek_nm && carData.sug_delek_nm.includes('בנזין')) ? 'בנזין' : prev.engineType,
         }));
-        alert(`✅ הנתונים (יצרן, דגם, רמת גימור, שנתון ונפח מנוע) נמשכו בהצלחה!\nשים לב: יש להזין ידנית "יד" ו"קילומטראז'".`);
+        alert(`✅ הנתונים נמשכו בהצלחה!\nשים לב: יש להזין ידנית "יד" ו"קילומטראז'".`);
         setPlateNumber('');
       } else alert('❌ רכב לא נמצא במאגר משרד התחבורה.');
     } catch (error) { alert('אירעה שגיאה בחיבור למאגר.'); }
@@ -449,7 +462,7 @@ const CarDealershipApp = () => {
 
   const handleRegularSearch = () => {
     const results = inventory.filter(c => {
-      if (c.status === 'נמכר') return false; // אל תראה רכבים שנמכרו בחיפוש
+      if (c.status === 'נמכר') return false; 
       if (searchMake && c.make !== searchMake) return false;
       if (searchCondition && c.condition !== searchCondition) return false;
       if (searchCategory && c.type !== searchCategory) return false;
@@ -472,294 +485,298 @@ const CarDealershipApp = () => {
     else { navigator.clipboard.writeText(`${shareText}\n${shareUrl}`); alert('פרטי הרכב הועתקו ללוח!'); }
   };
 
-  /* ───────── CAR CARD ───────── */
+  /* ───────── CAR CARD WITH ANIMATION ───────── */
   const CarGrid = ({ cars }) => (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8">
       {inventoryLoading ? (
         <div className="col-span-full py-20 text-center"><div className="w-12 h-12 border-4 border-red-600 border-t-transparent rounded-full animate-spin mb-4 mx-auto" /><p className="text-neutral-400">טוען מלאי מהענן...</p></div>
       ) : cars.length === 0 ? (
-        <div className="col-span-full py-20 text-center"><Car className="w-16 h-16 text-neutral-700 mx-auto mb-4" /><h3 className="text-xl font-bold text-white mb-2">לא נמצאו רכבים</h3><p className="text-neutral-400">כרגע אין רכבים בקטגוריה זו במלאי.</p></div>
-      ) : cars.map(car => (
-        <div key={car.id} className="group bg-neutral-900 rounded-2xl overflow-hidden border border-neutral-800 hover:border-red-600/50 transition-all duration-300 active:scale-[0.98]">
-          <div className="relative overflow-hidden bg-neutral-800" style={{height:'min(52vw, 240px)'}}>
-            <div className="absolute top-3 right-3 z-10 bg-black/60 backdrop-blur-md text-white px-3 py-1 rounded-full text-xs font-medium border border-white/10">{car.type}</div>
-            <div className={`absolute top-3 left-3 z-10 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold border ${car.condition==='חדש'?'bg-red-600/90 text-white border-red-500':'bg-neutral-600/80 text-white border-neutral-500'}`}>
-              {car.condition === 'חדש' ? 'חדש 0 ק"מ יבואן רשמי' : car.condition}
-              {car.officialWarranty && (<div className="absolute top-10 left-3 z-10 bg-blue-600/80 backdrop-blur-md text-white px-2.5 py-1 rounded-full border border-blue-400/60 whitespace-nowrap" style={{fontSize:'10px',fontWeight:'600'}}>✓ יבואן רשמי</div>)}
-            </div>
-            <button onClick={(e) => handleShare(car, e)} className="absolute bottom-3 left-3 z-10 bg-black/60 hover:bg-red-600 backdrop-blur-md text-white p-2.5 rounded-full border border-white/10 transition-colors shadow-lg" title="שתף רכב"><Share2 className="w-4 h-4" /></button>
-            <img src={car.image||'/back.jpg'} alt={`${car.make} ${car.model}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" onError={e=>e.target.src='/back.jpg'} />
-          </div>
-          <div className="p-4 text-right">
-            <div className="mb-3">
-              <h3 className="text-base font-bold text-white leading-tight truncate">{car.make} {car.model}</h3>
-              <p className="text-neutral-400 text-xs mt-0.5 truncate">{car.year} | {car.subModel}</p>
-              <div className="mt-2 flex items-end justify-between flex-row-reverse">
-                <div>
-                  {car.showListPrice && car.listPrice && (<span className="text-neutral-500 line-through text-xs block">מחירון ₪{car.listPrice}</span>)}
-                  <p className="text-lg font-bold text-red-600 leading-tight">₪{car.price}</p>
-                </div>
-                {car.monthlyPayment && (<div className="bg-green-600 text-white text-xs font-bold px-2.5 py-1.5 rounded-lg inline-block shadow-sm">מ-₪{car.monthlyPayment}/לחודש</div>)}
+        <RevealOnScroll animation="fade-in">
+          <div className="col-span-full py-20 text-center"><Car className="w-16 h-16 text-neutral-700 mx-auto mb-4" /><h3 className="text-xl font-bold text-white mb-2">לא נמצאו רכבים</h3><p className="text-neutral-400">כרגע אין רכבים בקטגוריה זו במלאי.</p></div>
+        </RevealOnScroll>
+      ) : cars.map((car, index) => (
+        <RevealOnScroll key={car.id} animation="scale-up" delay={index * 150}>
+          <div className="group bg-neutral-900 rounded-2xl overflow-hidden border border-neutral-800 hover:border-red-600/50 transition-all duration-500 hover:shadow-[0_10px_30px_rgba(220,38,38,0.15)] active:scale-[0.98]">
+            <div className="relative overflow-hidden bg-neutral-800" style={{height:'min(52vw, 240px)'}}>
+              <div className="absolute top-3 right-3 z-10 bg-black/60 backdrop-blur-md text-white px-3 py-1 rounded-full text-xs font-medium border border-white/10">{car.type}</div>
+              <div className={`absolute top-3 left-3 z-10 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold border ${car.condition==='חדש'?'bg-red-600/90 text-white border-red-500':'bg-neutral-600/80 text-white border-neutral-500'}`}>
+                {car.condition === 'חדש' ? 'חדש 0 ק"מ יבואן רשמי' : car.condition}
+                {car.officialWarranty && (<div className="absolute top-10 left-3 z-10 bg-blue-600/80 backdrop-blur-md text-white px-2.5 py-1 rounded-full border border-blue-400/60 whitespace-nowrap" style={{fontSize:'10px',fontWeight:'600'}}>✓ יבואן רשמי</div>)}
               </div>
+              <button onClick={(e) => handleShare(car, e)} className="absolute bottom-3 left-3 z-10 bg-black/60 hover:bg-red-600 backdrop-blur-md text-white p-2.5 rounded-full border border-white/10 transition-colors shadow-lg" title="שתף רכב"><Share2 className="w-4 h-4" /></button>
+              <img src={car.image||'/back.jpg'} alt={`${car.make} ${car.model}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out" onError={e=>e.target.src='/back.jpg'} />
             </div>
-            <div className="grid grid-cols-2 gap-x-2 gap-y-1.5 mb-4 pt-3 border-t border-neutral-800 text-xs text-neutral-300">
-              <div className="flex items-center justify-end gap-1.5 truncate"><span className="truncate">{car.mileage} ק"מ</span><Gauge className="w-3.5 h-3.5 text-neutral-500 shrink-0"/></div>
-              <div className="flex items-center justify-end gap-1.5"><span>יד {car.owners}</span><User className="w-3.5 h-3.5 text-neutral-500 shrink-0"/></div>
-              <div className="flex items-center justify-end gap-1.5 truncate"><span className="truncate">{car.engineCapacity} סמ"ק</span><Settings className="w-3.5 h-3.5 text-neutral-500 shrink-0"/></div>
-              <div className="flex items-center justify-end gap-1.5 truncate"><span className="truncate">{car.engineType}</span><Zap className="w-3.5 h-3.5 text-neutral-500 shrink-0"/></div>
+            <div className="p-4 text-right relative bg-neutral-900">
+              <div className="mb-3">
+                <h3 className="text-base font-bold text-white leading-tight truncate group-hover:text-red-500 transition-colors duration-300">{car.make} {car.model}</h3>
+                <p className="text-neutral-400 text-xs mt-0.5 truncate">{car.year} | {car.subModel}</p>
+                <div className="mt-2 flex items-end justify-between flex-row-reverse">
+                  <div>
+                    {car.showListPrice && car.listPrice && (<span className="text-neutral-500 line-through text-xs block">מחירון ₪{car.listPrice}</span>)}
+                    <p className="text-lg font-bold text-red-600 leading-tight">₪{car.price}</p>
+                  </div>
+                  {car.monthlyPayment && (<div className="bg-green-600/10 text-green-500 border border-green-500/30 text-xs font-bold px-2.5 py-1.5 rounded-lg inline-block shadow-sm">מ-₪{car.monthlyPayment}/לחודש</div>)}
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-x-2 gap-y-1.5 mb-4 pt-3 border-t border-neutral-800/50 text-xs text-neutral-300">
+                <div className="flex items-center justify-end gap-1.5 truncate"><span className="truncate">{car.mileage} ק"מ</span><Gauge className="w-3.5 h-3.5 text-neutral-500 shrink-0"/></div>
+                <div className="flex items-center justify-end gap-1.5"><span>יד {car.owners}</span><User className="w-3.5 h-3.5 text-neutral-500 shrink-0"/></div>
+                <div className="flex items-center justify-end gap-1.5 truncate"><span className="truncate">{car.engineCapacity} סמ"ק</span><Settings className="w-3.5 h-3.5 text-neutral-500 shrink-0"/></div>
+                <div className="flex items-center justify-end gap-1.5 truncate"><span className="truncate">{car.engineType}</span><Zap className="w-3.5 h-3.5 text-neutral-500 shrink-0"/></div>
+              </div>
+              <button onClick={()=>{ setSelectedCar(car); window.history.pushState({}, '', `?car=${car.id}`); window.scrollTo(0,0); }} className="w-full bg-neutral-800 hover:bg-red-600 active:bg-red-700 text-white py-3 rounded-xl font-bold transition-all duration-300 text-sm border border-neutral-700 hover:border-red-500 touch-manipulation">לפרטים נוספים</button>
             </div>
-            <button onClick={()=>{ setSelectedCar(car); window.history.pushState({}, '', `?car=${car.id}`); window.scrollTo(0,0); }} className="w-full bg-red-600 hover:bg-red-500 active:bg-red-700 text-white py-3 rounded-xl font-bold transition-colors text-sm shadow-lg shadow-red-600/20 touch-manipulation">לפרטים נוספים</button>
           </div>
-        </div>
+        </RevealOnScroll>
       ))}
     </div>
   );
 
- /* ───────── INVENTORY PAGE ───────── */
-const GenericInventoryPage = ({ cars, title, subtitle }) => {
-  const [filterMake, setFilterMake] = useState('');
-  const [filterType, setFilterType] = useState('');
-  const [filterEngine, setFilterEngine] = useState('');
-  const [filterMaxPrice, setFilterMaxPrice] = useState(1500000);
+  /* ───────── INVENTORY PAGE ───────── */
+  const GenericInventoryPage = ({ cars, title, subtitle }) => {
+    const [filterMake, setFilterMake] = useState('');
+    const [filterType, setFilterType] = useState('');
+    const [filterEngine, setFilterEngine] = useState('');
+    const [filterMaxPrice, setFilterMaxPrice] = useState(1500000);
 
-  const filtered = cars.filter(car => {
-    if (filterMake && car.make !== filterMake) return false;
-    if (filterType && car.type !== filterType) return false;
-    if (filterEngine && car.engineType !== filterEngine) return false;
-    if (Number(car.price.toString().replace(/,/g,'')) > filterMaxPrice) return false;
-    return true;
-  });
-  const uniqueMakes = [...new Set(cars.map(c => c.make).filter(Boolean))].sort();
+    const filtered = cars.filter(car => {
+      if (filterMake && car.make !== filterMake) return false;
+      if (filterType && car.type !== filterType) return false;
+      if (filterEngine && car.engineType !== filterEngine) return false;
+      if (Number(car.price.toString().replace(/,/g,'')) > filterMaxPrice) return false;
+      return true;
+    });
+    const uniqueMakes = [...new Set(cars.map(c => c.make).filter(Boolean))].sort();
 
-  return (
-    <div className="pt-24 md:pt-36 pb-16 bg-neutral-950 min-h-screen">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="mb-6 border-b border-neutral-800 pb-5 text-right">
-          <h1 className="text-2xl md:text-5xl font-bold text-white mb-2">{title}</h1>
-          <p className="text-sm md:text-xl text-neutral-400">{subtitle}</p>
-        </div>
-        <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-4 mb-6 space-y-3">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <select value={filterMake} onChange={e=>setFilterMake(e.target.value)} className={SELECT_CLASS}>
-              <option value="">כל היצרנים</option>{uniqueMakes.map(m=><option key={m} value={m}>{m}</option>)}
-            </select>
-            <select value={filterType} onChange={e=>setFilterType(e.target.value)} className={SELECT_CLASS}>
-              <option value="">כל הקטגוריות</option>{['משפחתי','יוקרה','ספורט','גיפ','7 מקומות','מיני','מנהלים'].map(o=><option key={o} value={o}>{o}</option>)}
-            </select>
-            <select value={filterEngine} onChange={e=>setFilterEngine(e.target.value)} className={SELECT_CLASS}>
-              <option value="">כל סוגי הנעה</option>{['בנזין','הייבריד','חשמלי','דיזל','פלאג אין הייבריד'].map(o=><option key={o} value={o}>{o}</option>)}
-            </select>
-            <button onClick={()=>{setFilterMake('');setFilterType('');setFilterEngine('');setFilterMaxPrice(1500000);}} className="bg-neutral-800 hover:bg-red-600 text-neutral-300 hover:text-white rounded-xl px-4 py-3.5 text-sm font-bold transition-colors touch-manipulation">נקה סינון</button>
-          </div>
-          <div className="bg-neutral-950 p-3 rounded-xl border border-neutral-800">
-            <div className="flex justify-between mb-2 flex-row-reverse">
-              <span className="text-neutral-400 text-sm">מחיר מקסימלי</span>
-              <span className="text-white font-bold">₪{filterMaxPrice.toLocaleString()}</span>
+    return (
+      <div className="pt-24 md:pt-36 pb-16 bg-neutral-950 min-h-screen">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <RevealOnScroll animation="fade-up">
+            <div className="mb-6 border-b border-neutral-800 pb-5 text-right">
+              <h1 className="text-2xl md:text-5xl font-bold text-white mb-2">{title}</h1>
+              <p className="text-sm md:text-xl text-neutral-400">{subtitle}</p>
             </div>
-            <input type="range" min="10000" max="1500000" step="10000" value={filterMaxPrice} onChange={e=>setFilterMaxPrice(Number(e.target.value))} />
-          </div>
-          <p className="text-neutral-500 text-xs text-right">{filtered.length} רכבים תואמים</p>
+          </RevealOnScroll>
+          <RevealOnScroll animation="scale-up" delay={150}>
+            <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-4 mb-6 space-y-3">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <select value={filterMake} onChange={e=>setFilterMake(e.target.value)} className={SELECT_CLASS}>
+                  <option value="">כל היצרנים</option>{uniqueMakes.map(m=><option key={m} value={m}>{m}</option>)}
+                </select>
+                <select value={filterType} onChange={e=>setFilterType(e.target.value)} className={SELECT_CLASS}>
+                  <option value="">כל הקטגוריות</option>{['משפחתי','יוקרה','ספורט','גיפ','7 מקומות','מיני','מנהלים'].map(o=><option key={o} value={o}>{o}</option>)}
+                </select>
+                <select value={filterEngine} onChange={e=>setFilterEngine(e.target.value)} className={SELECT_CLASS}>
+                  <option value="">כל סוגי הנעה</option>{['בנזין','הייבריד','חשמלי','דיזל','פלאג אין הייבריד'].map(o=><option key={o} value={o}>{o}</option>)}
+                </select>
+                <button onClick={()=>{setFilterMake('');setFilterType('');setFilterEngine('');setFilterMaxPrice(1500000);}} className="bg-neutral-800 hover:bg-red-600 text-neutral-300 hover:text-white rounded-xl px-4 py-3.5 text-sm font-bold transition-colors touch-manipulation">נקה סינון</button>
+              </div>
+              <div className="bg-neutral-950 p-3 rounded-xl border border-neutral-800">
+                <div className="flex justify-between mb-2 flex-row-reverse">
+                  <span className="text-neutral-400 text-sm">מחיר מקסימלי</span>
+                  <span className="text-white font-bold">₪{filterMaxPrice.toLocaleString()}</span>
+                </div>
+                <input type="range" min="10000" max="1500000" step="10000" value={filterMaxPrice} onChange={e=>setFilterMaxPrice(Number(e.target.value))} />
+              </div>
+              <p className="text-neutral-500 text-xs text-right">{filtered.length} רכבים תואמים</p>
+            </div>
+          </RevealOnScroll>
+          <CarGrid cars={filtered} />
         </div>
-        <CarGrid cars={filtered} />
       </div>
-    </div>
-  );
-};
-
-/* ───────── CAR DETAILS ───────── */
-const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
-  const [leadName, setLeadName] = useState('');
-  const [leadPhone, setLeadPhone] = useState('');
-  const [wantFinance, setWantFinance] = useState(false);
-  const [haveTradeIn, setHaveTradeIn] = useState(false);
-  const [activeImg, setActiveImg] = useState(0);
-  const [selectedColor, setSelectedColor] = useState(null);
-  const [selectedTrim, setSelectedTrim] = useState(null);
-
-  const colorList = car.colors 
-    ? car.colors.split(',').map(c => {
-        const parts = c.trim().split(':'); const name = parts[0].trim(); const price = parts[1] ? parseInt(parts[1].replace(/\D/g, '')) || 0 : 0; return { name, price };
-      }).filter(c => c.name) 
-    : [];
-
-  const getBasePrice = () => parseInt(car.price.toString().replace(/\D/g, '')) || 0;
-  const getCurrentPrice = () => {
-    let finalPrice = getBasePrice();
-    if (selectedTrim && selectedTrim.price) finalPrice = parseInt(selectedTrim.price.toString().replace(/\D/g, '')) || finalPrice;
-    if (selectedColor && selectedColor.price > 0) finalPrice += selectedColor.price;
-    return finalPrice;
-  };
-  const getCurrentModelName = () => selectedTrim ? `${car.model} (${selectedTrim.name})` : car.model;
-
-  const handleLeadSubmit = async (e) => {
-    e.preventDefault();
-    let type = wantFinance ? 'מימון' : haveTradeIn ? 'טרייד-אין' : 'התעניינות ברכב';
-    const trimText = selectedTrim ? ` דגם: ${selectedTrim.name}` : '';
-    const colorTextLead = selectedColor ? ` צבע: ${selectedColor.name} ${selectedColor.price > 0 ? `(+₪${selectedColor.price})` : ''}` : '';
-    const carDetailsString = `${car.make} ${car.model}${trimText}${colorTextLead} (${car.year})`;
-
-    try { await fetch(`${mySupabaseUrl}/rest/v1/leads`, { method: 'POST', headers: supabaseHeaders, body: JSON.stringify({ name: leadName, phone: leadPhone, lead_type: type, car_details: carDetailsString }) }); } catch (err) {}
-    const text = `שלום, אני מתעניין ברכב ${car.make} ${car.model}.\n${selectedTrim ? `*רמת גימור:* ${selectedTrim.name}\n` : ''}${selectedColor ? `*צבע נבחר:* ${selectedColor.name} ${selectedColor.price > 0 ? `(+₪${selectedColor.price})` : ''}\n` : ''}*מחיר כולל:* ₪${getCurrentPrice().toLocaleString()}\n\nשם: ${leadName}\nטלפון: ${leadPhone}\nמימון: ${wantFinance?'כן':'לא'}\nטרייד-אין: ${haveTradeIn?'כן':'לא'}`;
-    window.open(`https://wa.me/972526441855?text=${encodeURIComponent(text)}`, '_blank');
+    );
   };
 
-  const handleDigitalOrderClick = () => {
-    onOpenDigitalOrder({ ...car, price: getCurrentPrice(), model: getCurrentModelName(), selectedColor: selectedColor ? selectedColor.name : 'לא נבחר' });
-  };
+  /* ───────── CAR DETAILS ───────── */
+  const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
+    const [leadName, setLeadName] = useState('');
+    const [leadPhone, setLeadPhone] = useState('');
+    const [wantFinance, setWantFinance] = useState(false);
+    const [haveTradeIn, setHaveTradeIn] = useState(false);
+    const [activeImg, setActiveImg] = useState(0);
+    const [selectedColor, setSelectedColor] = useState(null);
+    const [selectedTrim, setSelectedTrim] = useState(null);
 
-  const imgs = (car.images?.length > 0) ? car.images : [car.image || '/back.jpg'];
+    const colorList = car.colors 
+      ? car.colors.split(',').map(c => {
+          const parts = c.trim().split(':'); const name = parts[0].trim(); const price = parts[1] ? parseInt(parts[1].replace(/\D/g, '')) || 0 : 0; return { name, price };
+        }).filter(c => c.name) 
+      : [];
 
-  return (
-    <div className="pt-20 md:pt-36 pb-10 bg-neutral-950 min-h-screen" dir="rtl">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center mb-4 flex-row-reverse">
-          <button onClick={onBack} className="flex items-center gap-1.5 text-neutral-400 active:text-red-500 hover:text-red-500 transition-colors font-medium bg-neutral-900/50 px-3 py-2 rounded-full border border-neutral-800 text-sm">
-            חזרה <ArrowRight className="w-4 h-4"/>
-          </button>
-          <button onClick={() => handleShare(car)} className="flex items-center gap-1.5 text-white bg-neutral-800 hover:bg-red-600 active:bg-red-700 transition-colors font-bold px-4 py-2 rounded-full border border-neutral-700 shadow-md flex-row-reverse text-sm">
-            שתף <Share2 className="w-4 h-4"/>
-          </button>
-        </div>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 lg:gap-10">
-          {/* LEFT */}
-          <div className="lg:col-span-2 space-y-4">
-            <div className="bg-neutral-900 rounded-2xl overflow-hidden border border-neutral-800 relative" style={{height:'min(65vw, 420px)'}}>
-              <div className={`absolute top-3 right-3 z-10 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold border ${car.condition==='חדש'?'bg-red-600/90 text-white border-red-500':'bg-neutral-600/80 text-white border-neutral-500'}`}>
-                {car.condition === 'חדש' ? 'חדש 0 ק"מ יבואן רשמי' : car.condition}
-              </div>
+    const getBasePrice = () => parseInt(car.price.toString().replace(/\D/g, '')) || 0;
+    const getCurrentPrice = () => {
+      let finalPrice = getBasePrice();
+      if (selectedTrim && selectedTrim.price) finalPrice = parseInt(selectedTrim.price.toString().replace(/\D/g, '')) || finalPrice;
+      if (selectedColor && selectedColor.price > 0) finalPrice += selectedColor.price;
+      return finalPrice;
+    };
+    const getCurrentModelName = () => selectedTrim ? `${car.model} (${selectedTrim.name})` : car.model;
+
+    const handleLeadSubmit = async (e) => {
+      e.preventDefault();
+      let type = wantFinance ? 'מימון' : haveTradeIn ? 'טרייד-אין' : 'התעניינות ברכב';
+      const trimText = selectedTrim ? ` דגם: ${selectedTrim.name}` : '';
+      const colorTextLead = selectedColor ? ` צבע: ${selectedColor.name} ${selectedColor.price > 0 ? `(+₪${selectedColor.price})` : ''}` : '';
+      const carDetailsString = `${car.make} ${car.model}${trimText}${colorTextLead} (${car.year})`;
+
+      try { await fetch(`${mySupabaseUrl}/rest/v1/leads`, { method: 'POST', headers: supabaseHeaders, body: JSON.stringify({ name: leadName, phone: leadPhone, lead_type: type, car_details: carDetailsString }) }); } catch (err) {}
+      const text = `שלום, אני מתעניין ברכב ${car.make} ${car.model}.\n${selectedTrim ? `*רמת גימור:* ${selectedTrim.name}\n` : ''}${selectedColor ? `*צבע נבחר:* ${selectedColor.name} ${selectedColor.price > 0 ? `(+₪${selectedColor.price})` : ''}\n` : ''}*מחיר כולל:* ₪${getCurrentPrice().toLocaleString()}\n\nשם: ${leadName}\nטלפון: ${leadPhone}\nמימון: ${wantFinance?'כן':'לא'}\nטרייד-אין: ${haveTradeIn?'כן':'לא'}`;
+      window.open(`https://wa.me/972526441855?text=${encodeURIComponent(text)}`, '_blank');
+    };
+
+    const imgs = (car.images?.length > 0) ? car.images : [car.image || '/back.jpg'];
+
+    return (
+      <div className="pt-20 md:pt-36 pb-10 bg-neutral-950 min-h-screen" dir="rtl">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center mb-4 flex-row-reverse">
+            <button onClick={onBack} className="flex items-center gap-1.5 text-neutral-400 active:text-red-500 hover:text-red-500 transition-colors font-medium bg-neutral-900/50 px-3 py-2 rounded-full border border-neutral-800 text-sm">
+              חזרה <ArrowRight className="w-4 h-4"/>
+            </button>
+            <button onClick={() => handleShare(car)} className="flex items-center gap-1.5 text-white bg-neutral-800 hover:bg-red-600 active:bg-red-700 transition-colors font-bold px-4 py-2 rounded-full border border-neutral-700 shadow-md flex-row-reverse text-sm">
+              שתף <Share2 className="w-4 h-4"/>
+            </button>
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 lg:gap-10">
+            {/* LEFT */}
+            <div className="lg:col-span-2 space-y-4">
+              <RevealOnScroll animation="fade-up">
+                <div className="bg-neutral-900 rounded-2xl overflow-hidden border border-neutral-800 relative" style={{height:'min(65vw, 420px)'}}>
+                  <div className={`absolute top-3 right-3 z-10 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold border ${car.condition==='חדש'?'bg-red-600/90 text-white border-red-500':'bg-neutral-600/80 text-white border-neutral-500'}`}>
+                    {car.condition === 'חדש' ? 'חדש 0 ק"מ יבואן רשמי' : car.condition}
+                  </div>
+                  {imgs.length > 1 && (
+                    <>
+                      <button onClick={() => setActiveImg(i => (i - 1 + imgs.length) % imgs.length)} className="absolute left-2 top-1/2 -translate-y-1/2 z-10 bg-black/50 backdrop-blur text-white p-2 rounded-full border border-white/10 active:bg-red-600 transition-colors"><ChevronLeft className="w-4 h-4" /></button>
+                      <button onClick={() => setActiveImg(i => (i + 1) % imgs.length)} className="absolute right-2 top-1/2 -translate-y-1/2 z-10 bg-black/50 backdrop-blur text-white p-2 rounded-full border border-white/10 active:bg-red-600 transition-colors"><ChevronRight className="w-4 h-4" /></button>
+                      <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
+                        {imgs.map((_,i) => <div key={i} className={`w-1.5 h-1.5 rounded-full transition-all ${activeImg===i?'bg-red-500 w-3':'bg-white/40'}`}/>)}
+                      </div>
+                    </>
+                  )}
+                  <img src={imgs[activeImg]} alt={`${car.make} ${car.model}`} className="w-full h-full object-cover" onError={e=>e.target.src='/back.jpg'} />
+                </div>
+              </RevealOnScroll>
+
               {imgs.length > 1 && (
-                <>
-                  <button onClick={() => setActiveImg(i => (i - 1 + imgs.length) % imgs.length)} className="absolute left-2 top-1/2 -translate-y-1/2 z-10 bg-black/50 backdrop-blur text-white p-2 rounded-full border border-white/10 active:bg-red-600 transition-colors"><ChevronLeft className="w-4 h-4" /></button>
-                  <button onClick={() => setActiveImg(i => (i + 1) % imgs.length)} className="absolute right-2 top-1/2 -translate-y-1/2 z-10 bg-black/50 backdrop-blur text-white p-2 rounded-full border border-white/10 active:bg-red-600 transition-colors"><ChevronRight className="w-4 h-4" /></button>
-                  <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
-                    {imgs.map((_,i) => <div key={i} className={`w-1.5 h-1.5 rounded-full transition-all ${activeImg===i?'bg-red-500 w-3':'bg-white/40'}`}/>)}
-                  </div>
-                </>
-              )}
-              <img src={imgs[activeImg]} alt={`${car.make} ${car.model}`} className="w-full h-full object-cover" onError={e=>e.target.src='/back.jpg'} />
-            </div>
-
-            {imgs.length > 1 && (
-              <div className="flex gap-2 overflow-x-auto pb-1 flex-row-reverse scrollbar-hide snap-x snap-mandatory">
-                {imgs.map((img,i) => (
-                  <div key={i} onClick={()=>setActiveImg(i)} className={`shrink-0 snap-start rounded-lg overflow-hidden cursor-pointer border-2 transition-all touch-manipulation ${activeImg===i?'border-red-600':'border-transparent opacity-50'}`} style={{width:'72px',height:'50px'}}><img src={img} className="w-full h-full object-cover" alt="" /></div>
-                ))}
-              </div>
-            )}
-
-            <div className="lg:hidden bg-neutral-900 p-4 rounded-2xl border border-neutral-800 text-right">
-              <h1 className="text-xl font-bold text-white mb-0.5">{car.make} <span className="text-base font-normal text-neutral-300">{getCurrentModelName()}</span></h1>
-              <p className="text-neutral-400 text-sm mb-3">{car.subModel}</p>
-              {car.showListPrice && car.listPrice && !selectedTrim && <p className="text-neutral-500 text-sm line-through">מחירון: ₪{car.listPrice}</p>}
-              <p className="text-3xl font-bold text-red-600">₪ {getCurrentPrice().toLocaleString()}</p>
-              {car.monthlyPayment && <p className="text-sm text-neutral-400 mt-1">החל מ- ₪{car.monthlyPayment} לחודש</p>}
-            </div>
-
-            {car.trims && car.trims.length > 0 && (
-              <div className="bg-neutral-900 p-4 rounded-2xl border border-neutral-800 text-right">
-                <h3 className="text-sm font-bold text-neutral-400 mb-3">בחר רמת גימור / דגם:</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <div onClick={() => setSelectedTrim(null)} className={`border rounded-xl p-3 cursor-pointer transition-all ${!selectedTrim ? 'bg-red-600/10 border-red-500' : 'bg-neutral-950 border-neutral-800'}`}>
-                    <p className="font-bold text-white text-sm">דגם בסיס</p><p className="text-xs text-red-500 font-bold mt-1">₪{getBasePrice().toLocaleString()}</p>
-                  </div>
-                  {car.trims.map((trim, idx) => (
-                    <div key={idx} onClick={() => setSelectedTrim(trim)} className={`border rounded-xl p-3 cursor-pointer transition-all ${selectedTrim?.name === trim.name ? 'bg-red-600/10 border-red-500' : 'bg-neutral-950 border-neutral-800'}`}>
-                      <p className="font-bold text-white text-sm">{trim.name}</p><p className="text-xs text-red-500 font-bold mt-1">₪{(parseInt(trim.price)||0).toLocaleString()}</p>
-                    </div>
+                <div className="flex gap-2 overflow-x-auto pb-1 flex-row-reverse scrollbar-hide snap-x snap-mandatory">
+                  {imgs.map((img,i) => (
+                    <div key={i} onClick={()=>setActiveImg(i)} className={`shrink-0 snap-start rounded-lg overflow-hidden cursor-pointer border-2 transition-all touch-manipulation ${activeImg===i?'border-red-600':'border-transparent opacity-50'}`} style={{width:'72px',height:'50px'}}><img src={img} className="w-full h-full object-cover" alt="" /></div>
                   ))}
                 </div>
-              </div>
-            )}
+              )}
 
-            {colorList.length > 0 && (
-              <div className="bg-neutral-900 p-4 rounded-2xl border border-neutral-800 text-right">
-                <h3 className="text-sm font-bold text-neutral-400 mb-3">בחר צבע רכב:</h3>
-                <div className="flex flex-wrap justify-center gap-3 flex-row-reverse">
-                  {colorList.map((colorObj, idx) => {
-                    const hexCode = CAR_COLORS_MAP[colorObj.name];
-                    const isSelected = selectedColor?.name === colorObj.name;
-                    return (
-                      <button key={idx} type="button" onClick={() => setSelectedColor(colorObj)} className={`flex items-center gap-2.5 px-3 py-2 rounded-xl transition-all border touch-manipulation flex-row-reverse ${isSelected ? 'bg-neutral-800 border-red-500 shadow-[0_0_12px_rgba(220,38,38,0.3)] text-white scale-105' : 'bg-neutral-950 text-neutral-400 border-neutral-800 hover:border-neutral-600 hover:text-neutral-200'}`}>
-                        <span className={`block w-6 h-6 rounded-full shadow-inner flex-shrink-0 ${hexCode === '#FFFFFF' || hexCode === '#FDEBD0' ? 'border border-neutral-300' : 'border border-black/30'}`} style={{ backgroundColor: hexCode || 'transparent', backgroundImage: !hexCode ? 'linear-gradient(45deg, #ef4444, #3b82f6, #22c55e)' : 'none' }}/>
-                        <div className="text-right">
-                          <span className="block text-sm font-medium leading-none mt-1">{colorObj.name}</span>
-                          {colorObj.price > 0 && (<span className="block text-xs text-red-500 font-bold mt-1.5 leading-none">+₪{colorObj.price.toLocaleString()}</span>)}
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
-              {[ { icon:<Calendar className="w-5 h-5 text-red-600"/>, label:'שנת ייצור', val:car.year }, { icon:<Settings className="w-5 h-5 text-red-600"/>, label:'סוג הנעה', val:car.engineType }, { icon:<Gauge className="w-5 h-5 text-red-600"/>, label:"קילומטראז'", val:`${car.mileage} km` }, { icon:<Car className="w-5 h-5 text-red-600"/>, label:'קטגוריה', val:car.type }, ].map((s,i) => (
-                <div key={i} className="bg-neutral-900 p-3 sm:p-4 rounded-xl border border-neutral-800 text-center"><div className="flex justify-center mb-1.5">{s.icon}</div><p className="text-neutral-400 text-xs mb-0.5">{s.label}</p><p className="text-white font-bold text-sm">{s.val}</p></div>
-              ))}
-            </div>
-
-            <div className="grid grid-cols-2 gap-2 sm:gap-3">
-              <div className="bg-neutral-900 p-3 sm:p-4 rounded-xl border border-neutral-800 text-center"><p className="text-neutral-400 text-xs mb-1">יד הרכב</p><p className="text-white font-bold">{car.owners}</p></div>
-              <div className="bg-neutral-900 p-3 sm:p-4 rounded-xl border border-neutral-800 text-center"><p className="text-neutral-400 text-xs mb-1">נפח מנוע</p><p className="text-white font-bold">{car.engineCapacity} סמ"ק</p></div>
-            </div>
-
-            <div className="bg-neutral-900 p-4 md:p-8 rounded-2xl border border-neutral-800">
-              <h3 className="text-base md:text-2xl font-bold text-white mb-3 text-right">למה לקנות באוטו מרקט?</h3>
-              <ul className="space-y-2.5">
-                {["אחריות מלאה בבדיקה על מנוע גיר ושלדת הרכב","100% מימון בתנאים הטובים ביותר.","אפשרות לטרייד-אין עתידי.","בדיקה קפדנית לפני מסירה.","ריביות מהנמוכות במשק"].map((t,i) => (
-                  <li key={i} className="flex items-start gap-2.5 flex-row-reverse"><div className="mt-0.5 bg-red-600/20 p-1 rounded-full shrink-0"><Check className="w-3.5 h-3.5 text-red-500"/></div><span className="text-neutral-300 text-sm">{t}</span></li>
-                ))}
-              </ul>
-            </div>
-          </div>
-
-          {/* RIGHT / Sidebar */}
-          <div className="space-y-4">
-            <div className="hidden lg:block bg-neutral-900 p-5 md:p-8 rounded-2xl border border-neutral-800 text-right">
-              <h1 className="text-2xl md:text-3xl font-bold text-white mb-1">{car.make} <span className="text-xl font-normal text-neutral-300">{getCurrentModelName()}</span></h1>
-              <p className="text-neutral-400 mb-5">{car.subModel}</p>
-              <div className="border-t border-neutral-800 pt-4">
-                {car.showListPrice && car.listPrice && !selectedTrim && <p className="text-neutral-500 text-sm line-through mb-1">מחירון: ₪{car.listPrice}</p>}
-                <p className="text-3xl md:text-4xl font-bold text-red-600">₪ {getCurrentPrice().toLocaleString()}</p>
+              <div className="lg:hidden bg-neutral-900 p-4 rounded-2xl border border-neutral-800 text-right">
+                <h1 className="text-xl font-bold text-white mb-0.5">{car.make} <span className="text-base font-normal text-neutral-300">{getCurrentModelName()}</span></h1>
+                <p className="text-neutral-400 text-sm mb-3">{car.subModel}</p>
+                {car.showListPrice && car.listPrice && !selectedTrim && <p className="text-neutral-500 text-sm line-through">מחירון: ₪{car.listPrice}</p>}
+                <p className="text-3xl font-bold text-red-600">₪ {getCurrentPrice().toLocaleString()}</p>
                 {car.monthlyPayment && <p className="text-sm text-neutral-400 mt-1">החל מ- ₪{car.monthlyPayment} לחודש</p>}
               </div>
+
+              {car.trims && car.trims.length > 0 && (
+                <RevealOnScroll animation="fade-up" delay={150}>
+                  <div className="bg-neutral-900 p-4 rounded-2xl border border-neutral-800 text-right">
+                    <h3 className="text-sm font-bold text-neutral-400 mb-3">בחר רמת גימור / דגם:</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <div onClick={() => setSelectedTrim(null)} className={`border rounded-xl p-3 cursor-pointer transition-all ${!selectedTrim ? 'bg-red-600/10 border-red-500' : 'bg-neutral-950 border-neutral-800'}`}>
+                        <p className="font-bold text-white text-sm">דגם בסיס</p><p className="text-xs text-red-500 font-bold mt-1">₪{getBasePrice().toLocaleString()}</p>
+                      </div>
+                      {car.trims.map((trim, idx) => (
+                        <div key={idx} onClick={() => setSelectedTrim(trim)} className={`border rounded-xl p-3 cursor-pointer transition-all ${selectedTrim?.name === trim.name ? 'bg-red-600/10 border-red-500' : 'bg-neutral-950 border-neutral-800'}`}>
+                          <p className="font-bold text-white text-sm">{trim.name}</p><p className="text-xs text-red-500 font-bold mt-1">₪{(parseInt(trim.price)||0).toLocaleString()}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </RevealOnScroll>
+              )}
+
+              {colorList.length > 0 && (
+                <RevealOnScroll animation="fade-up" delay={200}>
+                  <div className="bg-neutral-900 p-4 rounded-2xl border border-neutral-800 text-right">
+                    <h3 className="text-sm font-bold text-neutral-400 mb-3">בחר צבע רכב:</h3>
+                    <div className="flex flex-wrap justify-center gap-3 flex-row-reverse">
+                      {colorList.map((colorObj, idx) => {
+                        const hexCode = CAR_COLORS_MAP[colorObj.name];
+                        const isSelected = selectedColor?.name === colorObj.name;
+                        return (
+                          <button key={idx} type="button" onClick={() => setSelectedColor(colorObj)} className={`flex items-center gap-2.5 px-3 py-2 rounded-xl transition-all border touch-manipulation flex-row-reverse ${isSelected ? 'bg-neutral-800 border-red-500 shadow-[0_0_12px_rgba(220,38,38,0.3)] text-white scale-105' : 'bg-neutral-950 text-neutral-400 border-neutral-800 hover:border-neutral-600 hover:text-neutral-200'}`}>
+                            <span className={`block w-6 h-6 rounded-full shadow-inner flex-shrink-0 ${hexCode === '#FFFFFF' || hexCode === '#FDEBD0' ? 'border border-neutral-300' : 'border border-black/30'}`} style={{ backgroundColor: hexCode || 'transparent', backgroundImage: !hexCode ? 'linear-gradient(45deg, #ef4444, #3b82f6, #22c55e)' : 'none' }}/>
+                            <div className="text-right">
+                              <span className="block text-sm font-medium leading-none mt-1">{colorObj.name}</span>
+                              {colorObj.price > 0 && (<span className="block text-xs text-red-500 font-bold mt-1.5 leading-none">+₪{colorObj.price.toLocaleString()}</span>)}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </RevealOnScroll>
+              )}
+
+              <RevealOnScroll animation="fade-up" delay={250}>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+                  {[ { icon:<Calendar className="w-5 h-5 text-red-600"/>, label:'שנת ייצור', val:car.year }, { icon:<Settings className="w-5 h-5 text-red-600"/>, label:'סוג הנעה', val:car.engineType }, { icon:<Gauge className="w-5 h-5 text-red-600"/>, label:"קילומטראז'", val:`${car.mileage} km` }, { icon:<Car className="w-5 h-5 text-red-600"/>, label:'קטגוריה', val:car.type }, ].map((s,i) => (
+                    <div key={i} className="bg-neutral-900 p-3 sm:p-4 rounded-xl border border-neutral-800 text-center"><div className="flex justify-center mb-1.5">{s.icon}</div><p className="text-neutral-400 text-xs mb-0.5">{s.label}</p><p className="text-white font-bold text-sm">{s.val}</p></div>
+                  ))}
+                </div>
+              </RevealOnScroll>
+
+              <RevealOnScroll animation="fade-up" delay={300}>
+                <div className="bg-neutral-900 p-4 md:p-8 rounded-2xl border border-neutral-800">
+                  <h3 className="text-base md:text-2xl font-bold text-white mb-3 text-right">למה לקנות באוטו מרקט?</h3>
+                  <ul className="space-y-2.5">
+                    {["אחריות מלאה בבדיקה על מנוע גיר ושלדת הרכב","100% מימון בתנאים הטובים ביותר.","אפשרות לטרייד-אין עתידי.","בדיקה קפדנית לפני מסירה.","ריביות מהנמוכות במשק"].map((t,i) => (
+                      <li key={i} className="flex items-start gap-2.5 flex-row-reverse"><div className="mt-0.5 bg-red-600/20 p-1 rounded-full shrink-0"><Check className="w-3.5 h-3.5 text-red-500"/></div><span className="text-neutral-300 text-sm">{t}</span></li>
+                    ))}
+                  </ul>
+                </div>
+              </RevealOnScroll>
             </div>
 
-            <div className="bg-neutral-900 p-4 md:p-8 rounded-2xl border border-red-600/30 shadow-[0_0_30px_rgba(220,38,38,0.1)] text-right">
-              {false && car.condition === 'חדש' && (
-                <div className="mb-5 pb-5 border-b border-neutral-800">
-                  <h3 className="text-lg font-bold text-white mb-1.5">הבטח את הרכב שלך עכשיו</h3>
-                  <p className="text-neutral-400 text-sm mb-3">שריין את הרכב החדש שלך דיגיטלית עם תשלום מקדמה.</p>
-                  <button onClick={handleDigitalOrderClick} className="w-full bg-green-600 active:bg-green-700 hover:bg-green-500 text-white font-bold py-3.5 rounded-xl transition-colors text-base shadow-[0_0_15px_rgba(22,163,74,0.3)] flex items-center justify-center gap-2 flex-row-reverse touch-manipulation">
-                    הזמנה דיגיטלית מהירה <CreditCard className="w-5 h-5"/>
-                  </button>
+            {/* RIGHT / Sidebar */}
+            <div className="space-y-4">
+              <RevealOnScroll animation="slide-left" delay={150}>
+                <div className="hidden lg:block bg-neutral-900 p-5 md:p-8 rounded-2xl border border-neutral-800 text-right">
+                  <h1 className="text-2xl md:text-3xl font-bold text-white mb-1">{car.make} <span className="text-xl font-normal text-neutral-300">{getCurrentModelName()}</span></h1>
+                  <p className="text-neutral-400 mb-5">{car.subModel}</p>
+                  <div className="border-t border-neutral-800 pt-4">
+                    {car.showListPrice && car.listPrice && !selectedTrim && <p className="text-neutral-500 text-sm line-through mb-1">מחירון: ₪{car.listPrice}</p>}
+                    <p className="text-3xl md:text-4xl font-bold text-red-600">₪ {getCurrentPrice().toLocaleString()}</p>
+                    {car.monthlyPayment && <p className="text-sm text-neutral-400 mt-1">החל מ- ₪{car.monthlyPayment} לחודש</p>}
+                  </div>
                 </div>
-              )}
-              <h3 className="text-lg font-bold text-white mb-1">אני מעוניין ברכב</h3>
-              <p className="text-neutral-400 text-sm mb-4">השאר פרטים ונחזור אליך בהקדם.</p>
-              <form onSubmit={handleLeadSubmit} className="space-y-3">
-                <input type="text" value={leadName} onChange={e=>setLeadName(e.target.value)} placeholder="שם מלא" className={INPUT_CLASS} required />
-                <input type="tel" value={leadPhone} onChange={e=>setLeadPhone(e.target.value)} placeholder="מספר טלפון" className={INPUT_CLASS} required />
-                <label className="flex items-center gap-3 py-1 cursor-pointer flex-row-reverse touch-manipulation">
-                  <input type="checkbox" checked={wantFinance} onChange={e=>setWantFinance(e.target.checked)} className="accent-red-600 w-5 h-5"/>
-                  <span className="text-sm text-neutral-300">מעוניין במימון</span>
-                </label>
-                <label className="flex items-center gap-3 py-1 cursor-pointer flex-row-reverse touch-manipulation">
-                  <input type="checkbox" checked={haveTradeIn} onChange={e=>setHaveTradeIn(e.target.checked)} className="accent-red-600 w-5 h-5"/>
-                  <span className="text-sm text-neutral-300">יש לי רכב לטרייד-אין</span>
-                </label>
-                <button type="submit" className="w-full bg-red-600 active:bg-red-700 hover:bg-red-500 text-white font-bold py-4 rounded-xl transition-colors text-base shadow-lg flex items-center justify-center gap-2 flex-row-reverse mt-2 touch-manipulation">
-                  שלח בוואטסאפ <MessageCircle className="w-5 h-5"/>
-                </button>
-                <div className="text-center pt-1"><span className="text-neutral-500 text-sm">או התקשר: </span><a href="tel:052-644-1855" className="text-red-500 font-bold" dir="ltr">052-644-1855</a></div>
-              </form>
+              </RevealOnScroll>
+
+              <RevealOnScroll animation="slide-left" delay={300}>
+                <div className="bg-neutral-900 p-4 md:p-8 rounded-2xl border border-red-600/30 shadow-[0_0_30px_rgba(220,38,38,0.1)] text-right">
+                  <h3 className="text-lg font-bold text-white mb-1">אני מעוניין ברכב</h3>
+                  <p className="text-neutral-400 text-sm mb-4">השאר פרטים ונחזור אליך בהקדם.</p>
+                  <form onSubmit={handleLeadSubmit} className="space-y-3">
+                    <input type="text" value={leadName} onChange={e=>setLeadName(e.target.value)} placeholder="שם מלא" className={INPUT_CLASS} required />
+                    <input type="tel" value={leadPhone} onChange={e=>setLeadPhone(e.target.value)} placeholder="מספר טלפון" className={INPUT_CLASS} required />
+                    <label className="flex items-center gap-3 py-1 cursor-pointer flex-row-reverse touch-manipulation">
+                      <input type="checkbox" checked={wantFinance} onChange={e=>setWantFinance(e.target.checked)} className="accent-red-600 w-5 h-5"/>
+                      <span className="text-sm text-neutral-300">מעוניין במימון</span>
+                    </label>
+                    <label className="flex items-center gap-3 py-1 cursor-pointer flex-row-reverse touch-manipulation">
+                      <input type="checkbox" checked={haveTradeIn} onChange={e=>setHaveTradeIn(e.target.checked)} className="accent-red-600 w-5 h-5"/>
+                      <span className="text-sm text-neutral-300">יש לי רכב לטרייד-אין</span>
+                    </label>
+                    <button type="submit" className="w-full bg-red-600 active:bg-red-700 hover:bg-red-500 text-white font-bold py-4 rounded-xl transition-colors text-base shadow-lg flex items-center justify-center gap-2 flex-row-reverse mt-2 touch-manipulation">
+                      שלח בוואטסאפ <MessageCircle className="w-5 h-5"/>
+                    </button>
+                    <div className="text-center pt-1"><span className="text-neutral-500 text-sm">או התקשר: </span><a href="tel:052-644-1855" className="text-red-500 font-bold" dir="ltr">052-644-1855</a></div>
+                  </form>
+                </div>
+              </RevealOnScroll>
             </div>
           </div>
         </div>
       </div>
-    </div>
-  );
-};
+    );
+  };
 
   /* ═══════════════════════════════
      MAIN RENDER
@@ -793,7 +810,6 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
             <button onClick={()=>navigateTo('home')} className="bg-transparent border-none p-0 min-h-0">
               <img src="/logo.png" alt="אוטו מרקט" style={{height:'clamp(48px, 10vw, 96px)'}} className="w-auto object-contain drop-shadow-[0_0_10px_rgba(220,38,38,0.35)]" />
             </button>
-            {/* Desktop nav */}
             <div className="hidden lg:flex items-center gap-6">
               {[
                 {l:'ראשי',a:()=>navigateTo('home'),active:currentView==='home'&&!selectedCar},
@@ -838,69 +854,78 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
               <div className="absolute inset-0 bg-gradient-to-t from-neutral-950 via-neutral-950/50 to-transparent"/>
             </div>
             <div className="relative z-10 w-full max-w-5xl mx-auto px-4 py-8 md:py-10">
-              <h1 className="font-bold text-white text-center drop-shadow-lg leading-tight mb-3" style={{fontSize:'clamp(1.75rem, 7vw, 4.5rem)'}}>המסע שלך לרכב הבא<br/><span className="text-red-600">מתחיל כאן.</span></h1>
-              <p className="text-neutral-300 mb-6 max-w-2xl mx-auto text-center" style={{fontSize:'clamp(0.875rem, 2.5vw, 1.25rem)'}}>אוטו מרקט מתמחה בכל סוגי הרכבים. פתרונות מימון וטרייד-אין מותאמים אישית.</p>
+              <RevealOnScroll animation="fade-up" delay={100}>
+                <h1 className="font-bold text-white text-center drop-shadow-lg leading-tight mb-3" style={{fontSize:'clamp(1.75rem, 7vw, 4.5rem)'}}>המסע שלך לרכב הבא<br/><span className="text-red-600">מתחיל כאן.</span></h1>
+              </RevealOnScroll>
               
-              <div className="bg-neutral-900/95 backdrop-blur-xl rounded-2xl border border-neutral-800 shadow-2xl overflow-hidden">
-                <div className="flex border-b border-neutral-800">
-                  <button onClick={()=>setSearchTab('finance')} className={`flex-1 py-3.5 font-bold text-sm transition-colors touch-manipulation ${searchTab==='finance'?'bg-red-600 text-white':'text-neutral-400 hover:bg-neutral-800'}`}>סימולטור מימון</button>
-                  <button onClick={()=>setSearchTab('regular')} className={`flex-1 py-3.5 font-bold text-sm transition-colors touch-manipulation ${searchTab==='regular'?'bg-red-600 text-white':'text-neutral-400 hover:bg-neutral-800'}`}>חיפוש רכב</button>
-                </div>
-                <div className="p-4 md:p-6">
-                  {searchTab==='regular' && (
-                    <div className="space-y-3">
-                      <select value={searchMake} onChange={e=>setSearchMake(e.target.value)} className={SELECT_CLASS}><option value="">כל היצרנים</option>{ISRAELI_CAR_MAKES.map(m=><option key={m} value={m}>{m}</option>)}</select>
-                      <div className="grid grid-cols-2 gap-3">
-                        <select value={searchCondition} onChange={e=>setSearchCondition(e.target.value)} className={SELECT_CLASS}><option value="">חדש / משומש</option><option value="חדש">רכב חדש</option><option value="משומש">רכב משומש</option></select>
-                        <select value={searchCategory} onChange={e=>setSearchCategory(e.target.value)} className={SELECT_CLASS}><option value="">קטגוריה</option><option value="משפחתי">משפחתי</option><option value="יוקרה">יוקרה</option><option value="ספורט">ספורט</option><option value="גיפ">גיפ</option><option value="7 מקומות">7 מקומות</option><option value="מיני">מיני</option><option value="מנהלים">מנהלים</option></select>
-                      </div>
-                      <div className="bg-neutral-950 p-4 rounded-xl border border-neutral-800">
-                        <div className="flex justify-between mb-3 flex-row-reverse"><span className="text-neutral-400 text-sm">תקציב מקסימלי</span><span className="text-white font-bold text-lg">₪{searchBudget.toLocaleString()}</span></div>
-                        <input type="range" min="10000" max="1500000" step="10000" value={searchBudget} onChange={e=>setSearchBudget(Number(e.target.value))} />
-                      </div>
-                      <button onClick={handleRegularSearch} className="w-full bg-red-600 text-white rounded-xl py-4 font-bold flex items-center justify-center gap-2 hover:bg-red-500 active:bg-red-700 transition-colors text-base flex-row-reverse touch-manipulation">חפש רכבים <Search className="w-5 h-5"/></button>
-                    </div>
-                  )}
-                  {searchTab==='finance' && (
-                    <div className="flex flex-col gap-4 lg:grid lg:grid-cols-3 lg:gap-8 lg:items-center">
-                      <div className="lg:col-span-2 flex flex-col gap-3">
-                        <div className="flex gap-2 p-1 bg-neutral-950 rounded-xl border border-neutral-800">
-                          <button onClick={()=>setFinanceCondition('new')} className={`flex-1 py-3 rounded-lg font-bold text-sm transition-colors touch-manipulation ${financeCondition==='new'?'bg-red-600 text-white':'text-neutral-400'}`}>חדש (4.5%)</button>
-                          <button onClick={()=>setFinanceCondition('used')} className={`flex-1 py-3 rounded-lg font-bold text-sm transition-colors touch-manipulation ${financeCondition==='used'?'bg-red-600 text-white':'text-neutral-400'}`}>משומש (6.1%)</button>
+              <RevealOnScroll animation="fade-up" delay={250}>
+                <p className="text-neutral-300 mb-6 max-w-2xl mx-auto text-center" style={{fontSize:'clamp(0.875rem, 2.5vw, 1.25rem)'}}>אוטו מרקט מתמחה בכל סוגי הרכבים. פתרונות מימון וטרייד-אין מותאמים אישית.</p>
+              </RevealOnScroll>
+              
+              <RevealOnScroll animation="scale-up" delay={400}>
+                <div className="bg-neutral-900/95 backdrop-blur-xl rounded-2xl border border-neutral-800 shadow-2xl overflow-hidden">
+                  <div className="flex border-b border-neutral-800">
+                    <button onClick={()=>setSearchTab('finance')} className={`flex-1 py-3.5 font-bold text-sm transition-colors touch-manipulation ${searchTab==='finance'?'bg-red-600 text-white':'text-neutral-400 hover:bg-neutral-800'}`}>סימולטור מימון</button>
+                    <button onClick={()=>setSearchTab('regular')} className={`flex-1 py-3.5 font-bold text-sm transition-colors touch-manipulation ${searchTab==='regular'?'bg-red-600 text-white':'text-neutral-400 hover:bg-neutral-800'}`}>חיפוש רכב</button>
+                  </div>
+                  <div className="p-4 md:p-6">
+                    {searchTab==='regular' && (
+                      <div className="space-y-3">
+                        <select value={searchMake} onChange={e=>setSearchMake(e.target.value)} className={SELECT_CLASS}><option value="">כל היצרנים</option>{ISRAELI_CAR_MAKES.map(m=><option key={m} value={m}>{m}</option>)}</select>
+                        <div className="grid grid-cols-2 gap-3">
+                          <select value={searchCondition} onChange={e=>setSearchCondition(e.target.value)} className={SELECT_CLASS}><option value="">חדש / משומש</option><option value="חדש">רכב חדש</option><option value="משומש">רכב משומש</option></select>
+                          <select value={searchCategory} onChange={e=>setSearchCategory(e.target.value)} className={SELECT_CLASS}><option value="">קטגוריה</option><option value="משפחתי">משפחתי</option><option value="יוקרה">יוקרה</option><option value="ספורט">ספורט</option><option value="גיפ">גיפ</option><option value="7 מקומות">7 מקומות</option><option value="מיני">מיני</option><option value="מנהלים">מנהלים</option></select>
                         </div>
-                        {[ { label:'שווי הרכב', val:financePrice, min:10000, max:800000, step:1000, set:setFinancePrice, prefix:'₪', suffix:'' }, { label:'מקדמה', val:financeDownPayment, min:0, max:250000, step:1000, set:setFinanceDownPayment, prefix:'₪', suffix:'' }, { label:'מספר תשלומים', val:financePayments, min:12, max:100, step:1, set:setFinancePayments, prefix:'', suffix:' חודשים' } ].map((s,i) => (
-                          <div key={i} className="bg-neutral-950 rounded-xl border border-neutral-800 p-4">
-                            <div className="flex justify-between items-center mb-3">
-                              <span className="text-neutral-400 text-sm">{s.label}</span>
-                              <div className="flex items-center gap-1 bg-neutral-900 px-3 py-1.5 rounded-lg border border-neutral-800 focus-within:border-red-600 transition-colors">
-                                {s.prefix && <span className="text-white font-bold text-sm md:text-base">{s.prefix}</span>}
-                                <input type="text" value={s.val ? s.val.toLocaleString() : ''} onChange={e => s.set(Number(e.target.value.replace(/\D/g, '')))} onBlur={() => { if (s.val < s.min) s.set(s.min); if (s.val > s.max) s.set(s.max); }} className="bg-transparent text-white font-bold text-center w-20 focus:outline-none text-base" dir="ltr"/>
-                                {s.suffix && <span className="text-white font-bold text-sm md:text-base">{s.suffix}</span>}
-                              </div>
-                            </div>
-                            <input type="range" min={s.min} max={s.max} step={s.step} value={s.val} onChange={e=>s.set(Number(e.target.value))} />
+                        <div className="bg-neutral-950 p-4 rounded-xl border border-neutral-800">
+                          <div className="flex justify-between mb-3 flex-row-reverse"><span className="text-neutral-400 text-sm">תקציב מקסימלי</span><span className="text-white font-bold text-lg">₪{searchBudget.toLocaleString()}</span></div>
+                          <input type="range" min="10000" max="1500000" step="10000" value={searchBudget} onChange={e=>setSearchBudget(Number(e.target.value))} />
+                        </div>
+                        <button onClick={handleRegularSearch} className="w-full bg-red-600 text-white rounded-xl py-4 font-bold flex items-center justify-center gap-2 hover:bg-red-500 active:bg-red-700 transition-colors text-base flex-row-reverse touch-manipulation">חפש רכבים <Search className="w-5 h-5"/></button>
+                      </div>
+                    )}
+                    {searchTab==='finance' && (
+                      <div className="flex flex-col gap-4 lg:grid lg:grid-cols-3 lg:gap-8 lg:items-center">
+                        <div className="lg:col-span-2 flex flex-col gap-3">
+                          <div className="flex gap-2 p-1 bg-neutral-950 rounded-xl border border-neutral-800">
+                            <button onClick={()=>setFinanceCondition('new')} className={`flex-1 py-3 rounded-lg font-bold text-sm transition-colors touch-manipulation ${financeCondition==='new'?'bg-red-600 text-white':'text-neutral-400'}`}>חדש (4.5%)</button>
+                            <button onClick={()=>setFinanceCondition('used')} className={`flex-1 py-3 rounded-lg font-bold text-sm transition-colors touch-manipulation ${financeCondition==='used'?'bg-red-600 text-white':'text-neutral-400'}`}>משומש (6.1%)</button>
                           </div>
-                        ))}
+                          {[ { label:'שווי הרכב', val:financePrice, min:10000, max:800000, step:1000, set:setFinancePrice, prefix:'₪', suffix:'' }, { label:'מקדמה', val:financeDownPayment, min:0, max:250000, step:1000, set:setFinanceDownPayment, prefix:'₪', suffix:'' }, { label:'מספר תשלומים', val:financePayments, min:12, max:100, step:1, set:setFinancePayments, prefix:'', suffix:' חודשים' } ].map((s,i) => (
+                            <div key={i} className="bg-neutral-950 rounded-xl border border-neutral-800 p-4">
+                              <div className="flex justify-between items-center mb-3">
+                                <span className="text-neutral-400 text-sm">{s.label}</span>
+                                <div className="flex items-center gap-1 bg-neutral-900 px-3 py-1.5 rounded-lg border border-neutral-800 focus-within:border-red-600 transition-colors">
+                                  {s.prefix && <span className="text-white font-bold text-sm md:text-base">{s.prefix}</span>}
+                                  <input type="text" value={s.val ? s.val.toLocaleString() : ''} onChange={e => s.set(Number(e.target.value.replace(/\D/g, '')))} onBlur={() => { if (s.val < s.min) s.set(s.min); if (s.val > s.max) s.set(s.max); }} className="bg-transparent text-white font-bold text-center w-20 focus:outline-none text-base" dir="ltr"/>
+                                  {s.suffix && <span className="text-white font-bold text-sm md:text-base">{s.suffix}</span>}
+                                </div>
+                              </div>
+                              <input type="range" min={s.min} max={s.max} step={s.step} value={s.val} onChange={e=>s.set(Number(e.target.value))} />
+                            </div>
+                          ))}
+                        </div>
+                        <div className="bg-neutral-950 p-5 rounded-2xl border border-red-600/40 flex flex-col items-center text-center shadow-[0_0_25px_rgba(220,38,38,0.12)]">
+                          <span className="text-neutral-400 text-sm mb-1">החזר חודשי משוער</span><span className="font-black text-red-600 my-3" style={{fontSize:'clamp(2.5rem,10vw,3.5rem)'}}>₪{calculateMonthly().toLocaleString()}</span><span className="text-xs text-neutral-500 mb-5">*החישוב משוער וכפוף לאישור. ט.ל.ח</span>
+                          <button onClick={handleFinanceSearch} className="w-full bg-red-600 hover:bg-red-500 active:bg-red-700 text-white font-bold py-4 rounded-xl transition-colors flex items-center justify-center gap-2 touch-manipulation"><ChevronRight className="w-5 h-5"/> מצא רכב בתקציב זה</button>
+                          <button onClick={() => setIsFinanceAppOpen(true)} className="w-full mt-3 bg-green-600 hover:bg-green-500 active:bg-green-700 text-white font-bold py-4 rounded-xl transition-colors shadow-lg flex items-center justify-center gap-2 text-sm md:text-base border border-green-500/50 touch-manipulation"><Shield className="w-5 h-5"/> לאישור מימון מהיר דיגיטלי</button>
+                        </div>
                       </div>
-                      <div className="bg-neutral-950 p-5 rounded-2xl border border-red-600/40 flex flex-col items-center text-center shadow-[0_0_25px_rgba(220,38,38,0.12)]">
-                        <span className="text-neutral-400 text-sm mb-1">החזר חודשי משוער</span><span className="font-black text-red-600 my-3" style={{fontSize:'clamp(2.5rem,10vw,3.5rem)'}}>₪{calculateMonthly().toLocaleString()}</span><span className="text-xs text-neutral-500 mb-5">*החישוב משוער וכפוף לאישור. ט.ל.ח</span>
-                        <button onClick={handleFinanceSearch} className="w-full bg-red-600 hover:bg-red-500 active:bg-red-700 text-white font-bold py-4 rounded-xl transition-colors flex items-center justify-center gap-2 touch-manipulation"><ChevronRight className="w-5 h-5"/> מצא רכב בתקציב זה</button>
-                        <button onClick={() => setIsFinanceAppOpen(true)} className="w-full mt-3 bg-green-600 hover:bg-green-500 active:bg-green-700 text-white font-bold py-4 rounded-xl transition-colors shadow-lg flex items-center justify-center gap-2 text-sm md:text-base border border-green-500/50 touch-manipulation"><Shield className="w-5 h-5"/> לאישור מימון מהיר דיגיטלי</button>
-                      </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
-              </div>
+              </RevealOnScroll>
             </div>
           </div>
 
           {/* ──── INVENTORY SECTIONS ──── */}
           <section className="py-12 md:py-24 bg-neutral-950 border-b border-neutral-900">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <div className="flex justify-between items-center mb-6">
-                <div className="text-right"><h2 className="font-bold" style={{fontSize:'clamp(1.25rem,5vw,2.5rem)'}}>רכבים <span className="text-red-600">חדשים</span></h2><p className="text-neutral-400 text-sm mt-1">מבחר הרכבים החדשים באולם שלנו.</p></div>
-                <button onClick={()=>navigateTo('new')} className="hidden md:flex items-center bg-white text-red-600 hover:bg-neutral-200 font-bold px-6 py-2.5 rounded-full gap-2 whitespace-nowrap text-sm transition-colors shadow-md min-h-0">כל המלאי ({inventory.filter(c=>c.condition==='חדש' && c.status !== 'נמכר').length}) <ChevronRight className="w-4 h-4 rotate-180"/></button>
-              </div>
+              <RevealOnScroll animation="fade-up">
+                <div className="flex justify-between items-center mb-6">
+                  <div className="text-right"><h2 className="font-bold" style={{fontSize:'clamp(1.25rem,5vw,2.5rem)'}}>רכבים <span className="text-red-600">חדשים</span></h2><p className="text-neutral-400 text-sm mt-1">מבחר הרכבים החדשים באולם שלנו.</p></div>
+                  <button onClick={()=>navigateTo('new')} className="hidden md:flex items-center bg-white text-red-600 hover:bg-neutral-200 font-bold px-6 py-2.5 rounded-full gap-2 whitespace-nowrap text-sm transition-colors shadow-md min-h-0">כל המלאי ({inventory.filter(c=>c.condition==='חדש' && c.status !== 'נמכר').length}) <ChevronRight className="w-4 h-4 rotate-180"/></button>
+                </div>
+              </RevealOnScroll>
               <CarGrid cars={inventory.filter(c=>c.condition==='חדש' && c.showOnHome && c.status !== 'נמכר').slice(0,6)} />
               <div className="mt-5 md:hidden"><button onClick={()=>navigateTo('new')} className="w-full bg-white text-red-600 font-bold py-4 rounded-2xl flex items-center justify-center gap-2 text-sm touch-manipulation shadow-md">כל המלאי ({inventory.filter(c=>c.condition==='חדש' && c.status !== 'נמכר').length}) <ChevronRight className="w-4 h-4 rotate-180"/></button></div>
             </div>
@@ -908,10 +933,12 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
 
           <section className="py-12 md:py-24 bg-neutral-950">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <div className="flex justify-between items-center mb-6">
-                <div className="text-right"><h2 className="font-bold" style={{fontSize:'clamp(1.25rem,5vw,2.5rem)'}}>רכבים <span className="text-red-600">משומשים</span></h2><p className="text-neutral-400 text-sm mt-1">רכבי יד שנייה מעולים לאחר בדיקה קפדנית.</p></div>
-                <button onClick={()=>navigateTo('used')} className="hidden md:flex items-center bg-white text-red-600 hover:bg-neutral-200 font-bold px-6 py-2.5 rounded-full gap-2 whitespace-nowrap text-sm transition-colors shadow-md min-h-0">כל המלאי ({inventory.filter(c=>c.condition==='משומש' && c.status !== 'נמכר').length}) <ChevronRight className="w-4 h-4 rotate-180"/></button>
-              </div>
+              <RevealOnScroll animation="fade-up">
+                <div className="flex justify-between items-center mb-6">
+                  <div className="text-right"><h2 className="font-bold" style={{fontSize:'clamp(1.25rem,5vw,2.5rem)'}}>רכבים <span className="text-red-600">משומשים</span></h2><p className="text-neutral-400 text-sm mt-1">רכבי יד שנייה מעולים לאחר בדיקה קפדנית.</p></div>
+                  <button onClick={()=>navigateTo('used')} className="hidden md:flex items-center bg-white text-red-600 hover:bg-neutral-200 font-bold px-6 py-2.5 rounded-full gap-2 whitespace-nowrap text-sm transition-colors shadow-md min-h-0">כל המלאי ({inventory.filter(c=>c.condition==='משומש' && c.status !== 'נמכר').length}) <ChevronRight className="w-4 h-4 rotate-180"/></button>
+                </div>
+              </RevealOnScroll>
               <CarGrid cars={inventory.filter(c=>c.condition==='משומש' && c.showOnHome && c.status !== 'נמכר').slice(0,6)} />
               <div className="mt-5 md:hidden"><button onClick={()=>navigateTo('used')} className="w-full bg-white text-red-600 font-bold py-4 rounded-2xl flex items-center justify-center gap-2 text-sm touch-manipulation shadow-md">כל המלאי ({inventory.filter(c=>c.condition==='משומש' && c.status !== 'נמכר').length}) <ChevronRight className="w-4 h-4 rotate-180"/></button></div>
             </div>
@@ -920,32 +947,44 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
           {/* ──── SERVICES & ABOUT & CTA ──── */}
           <section className="py-12 md:py-24 bg-neutral-900 border-y border-neutral-800">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <div className="text-center mb-8 md:mb-16"><h2 className="font-bold mb-3" style={{fontSize:'clamp(1.25rem,5vw,2.5rem)'}}>המעטפת <span className="text-red-600">המושלמת</span></h2><p className="text-neutral-400 max-w-2xl mx-auto text-sm md:text-base">חווית רכישה מלאה, מימון וטרייד-אין תחת קורת גג אחת.</p></div>
+              <RevealOnScroll animation="fade-up">
+                <div className="text-center mb-8 md:mb-16"><h2 className="font-bold mb-3" style={{fontSize:'clamp(1.25rem,5vw,2.5rem)'}}>המעטפת <span className="text-red-600">המושלמת</span></h2><p className="text-neutral-400 max-w-2xl mx-auto text-sm md:text-base">חווית רכישה מלאה, מימון וטרייד-אין תחת קורת גג אחת.</p></div>
+              </RevealOnScroll>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-8">
-                {[ { icon:<DollarSign className="w-7 h-7"/>, title:'פתרונות מימון', text:'מימון אטרקטיבי עד 100% מול הגופים המובילים בענף.' }, { icon:<Car className="w-7 h-7"/>, title:'טרייד אין הוגן', text:'שקיפות מלאה ומחירון הוגן לרכב הישן שלך.' }, { icon:<Shield className="w-7 h-7"/>, title:'אחריות ובדיקה', text:'כל רכב עובר בדיקה מקיפה לשקט הנפשי שלך.' } ].map((s,i) => (<div key={i} className="bg-neutral-950 p-6 md:p-8 rounded-2xl border border-neutral-800 text-center hover:-translate-y-1 transition-transform duration-300"><div className="w-14 h-14 bg-neutral-900 rounded-full flex items-center justify-center mx-auto mb-4 border border-neutral-700 text-red-600">{s.icon}</div><h3 className="text-lg font-bold mb-2">{s.title}</h3><p className="text-neutral-400 text-sm">{s.text}</p></div>))}
+                {[ { icon:<DollarSign className="w-7 h-7"/>, title:'פתרונות מימון', text:'מימון אטרקטיבי עד 100% מול הגופים המובילים בענף.' }, { icon:<Car className="w-7 h-7"/>, title:'טרייד אין הוגן', text:'שקיפות מלאה ומחירון הוגן לרכב הישן שלך.' }, { icon:<Shield className="w-7 h-7"/>, title:'אחריות ובדיקה', text:'כל רכב עובר בדיקה מקיפה לשקט הנפשי שלך.' } ].map((s,i) => (
+                  <RevealOnScroll key={i} animation="fade-up" delay={i * 200}>
+                    <div className="bg-neutral-950 p-6 md:p-8 rounded-2xl border border-neutral-800 text-center hover:-translate-y-2 hover:border-red-600/30 hover:shadow-[0_15px_40px_rgba(220,38,38,0.1)] transition-all duration-500 cursor-default">
+                      <div className="w-14 h-14 bg-neutral-900 rounded-full flex items-center justify-center mx-auto mb-4 border border-neutral-700 text-red-600">{s.icon}</div>
+                      <h3 className="text-lg font-bold mb-2">{s.title}</h3>
+                      <p className="text-neutral-400 text-sm">{s.text}</p>
+                    </div>
+                  </RevealOnScroll>
+                ))}
               </div>
             </div>
           </section>
 
-          <section id="about" className="py-12 md:py-24 bg-neutral-950">
+          <section id="about" className="py-12 md:py-24 bg-neutral-950 overflow-hidden">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="flex flex-col md:flex-row gap-8 md:gap-12 items-center md:flex-row-reverse">
-                <div className="w-full md:w-1/2 text-right">
+                <RevealOnScroll animation="slide-left" className="w-full md:w-1/2 text-right">
                   <h2 className="font-bold mb-4" style={{fontSize:'clamp(1.25rem,5vw,2.5rem)'}}>למה לבחור <span className="text-red-600">באוטו מרקט?</span></h2>
                   <p className="text-neutral-300 text-base mb-5 leading-relaxed">שנים של ניסיון בענף הרכב, עם דגש על שקיפות מוחלטת, מקצועיות ושירות VIP.</p>
                   <ul className="space-y-3 mb-6">{[{b:'מבחר מוקפד:',t:'כל רכב נבחר בקפידה ועובר בדיקות קפדניות.'},{b:'שקיפות מלאה:',t:'כל ההיסטוריה של הרכב, ללא הפתעות.'}].map((item,i)=>(<li key={i} className="flex items-start gap-3 flex-row-reverse"><div className="mt-0.5 bg-red-600/20 p-1 rounded-full shrink-0"><Check className="w-3.5 h-3.5 text-red-500"/></div><span className="text-neutral-300 text-sm"><strong>{item.b}</strong> {item.t}</span></li>))}</ul>
                   <button onClick={()=>navigateTo('home','contact')} className="border-2 border-red-600 text-red-500 px-6 py-3 rounded-xl font-bold hover:bg-red-600 hover:text-white transition-colors text-sm touch-manipulation">דברו איתנו</button>
-                </div>
-                <div className="w-full md:w-1/2 relative">
-                  <div className="absolute inset-0 bg-red-600/20 rounded-3xl blur-2xl"/><img src="https://i.postimg.cc/KjMP5Mc5/E7704582-D1FB-45CC-B594-D8641EFCB546.jpg" alt="אולם תצוגה" className="relative z-10 rounded-3xl shadow-2xl border border-neutral-800 w-full"/>
-                </div>
+                </RevealOnScroll>
+                
+                <RevealOnScroll animation="slide-right" className="w-full md:w-1/2 relative">
+                  <div className="absolute inset-0 bg-red-600/20 rounded-3xl blur-3xl transform scale-95" />
+                  <img src="https://i.postimg.cc/KjMP5Mc5/E7704582-D1FB-45CC-B594-D8641EFCB546.jpg" alt="אולם תצוגה" className="relative z-10 rounded-3xl shadow-2xl border border-neutral-800 w-full hover:scale-[1.02] transition-transform duration-700"/>
+                </RevealOnScroll>
               </div>
             </div>
           </section>
 
           <section className="py-16 md:py-24 relative overflow-hidden bg-neutral-950 border-y border-red-900/30">
             <div className="absolute inset-0 bg-gradient-to-br from-red-950 via-neutral-950 to-black" /><div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(rgba(255,255,255,0.2) 1px, transparent 1px)', backgroundSize: '24px 24px' }} /><div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(220,38,38,0.25)_0,transparent_60%)]" />
-            <div className="max-w-4xl mx-auto px-4 relative z-10 text-center">
+            <RevealOnScroll animation="scale-up" className="max-w-4xl mx-auto px-4 relative z-10 text-center">
               <h2 className="font-bold text-white mb-4 drop-shadow-md" style={{fontSize:'clamp(1.25rem,5vw,3rem)'}}>מחפש רכב ולא מצאת באתר?</h2>
               <p className="text-neutral-300 text-base md:text-xl mb-8 font-medium">השאר פרטים ונשמח לחזור אלייך למצוא לך את הרכב החדש שלך.</p>
               <form className="flex flex-col gap-4 max-w-lg mx-auto" onSubmit={async(e)=>{ e.preventDefault(); const name=e.target.elements[0].value, phone=e.target.elements[1].value; try { await fetch(`${mySupabaseUrl}/rest/v1/leads`,{method:'POST',headers:supabaseHeaders,body:JSON.stringify({name,phone,lead_type:'פנייה כללית',car_details:'אין'})}); } catch(err){} window.open(`https://wa.me/972526441855?text=${encodeURIComponent(`שלום, הגעתי מהאתר.\nשם: ${name}\nטלפון: ${phone}`)}`, '_blank'); }}>
@@ -953,11 +992,11 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
                 <input type="tel" placeholder="מספר טלפון" className="px-5 py-4 rounded-xl bg-black/40 border border-neutral-700/50 text-white placeholder-neutral-400 focus:outline-none focus:border-red-500 focus:bg-black/60 transition-all text-right text-base w-full backdrop-blur-md shadow-inner" required />
                 <button type="submit" className="px-6 py-4 mt-2 bg-gradient-to-l from-red-700 to-red-600 text-white rounded-xl font-bold hover:from-red-600 hover:to-red-500 active:scale-[0.98] transition-all flex items-center justify-center gap-2 flex-row-reverse w-full text-base shadow-[0_0_20px_rgba(220,38,38,0.3)] touch-manipulation">שלח בוואטסאפ <MessageCircle className="w-5 h-5"/></button>
               </form>
-            </div>
+            </RevealOnScroll>
           </section>
 
           <section className="pt-12 pb-0 md:pt-24 md:pb-0 bg-neutral-900 border-t border-neutral-800 overflow-hidden">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"><h2 className="font-bold mb-10 text-center" style={{fontSize:'clamp(1.25rem,5vw,2.5rem)'}}>לקוחות <span className="text-red-600">ממליצים</span></h2><div className="elfsight-app-cd4992b8-3823-4c23-a4c1-57b0f3db6698 -mb-35 md:-mb-45"></div></div>
+            <RevealOnScroll animation="fade-up" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"><h2 className="font-bold mb-10 text-center" style={{fontSize:'clamp(1.25rem,5vw,2.5rem)'}}>לקוחות <span className="text-red-600">ממליצים</span></h2><div className="elfsight-app-cd4992b8-3823-4c23-a4c1-57b0f3db6698 -mb-35 md:-mb-45"></div></RevealOnScroll>
           </section>
         </>
       )}
@@ -1067,7 +1106,7 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
         </div>
       )}
 
-      {/* Finance App Modal - Simplified & Fixed */}
+      {/* Finance App Modal */}
       {isFinanceAppOpen && (
         <div className="fixed inset-0 z-[130] flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm">
           <div className="bg-neutral-950 border border-neutral-800 rounded-t-3xl sm:rounded-2xl w-full sm:max-w-md flex flex-col shadow-2xl" style={{maxHeight:'92svh'}}>
