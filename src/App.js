@@ -1148,20 +1148,20 @@ const CarDealershipApp = () => {
         </div>
       )}
 
-      {/* Admin Panel & CRM */}
-      {isAdminOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-sm">
-          <div className="bg-neutral-900 border border-neutral-800 rounded-2xl w-full max-w-6xl overflow-hidden flex flex-col" style={{maxHeight:'94svh'}}>
+{/* Admin Panel & CRM - חלון ניהול מורחב */}
+{isAdminOpen && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-neutral-950 sm:p-4 sm:bg-black/90 sm:backdrop-blur-sm">
+          <div className="bg-neutral-900 sm:border border-neutral-800 sm:rounded-2xl w-full h-full sm:h-[96svh] overflow-hidden flex flex-col shadow-2xl">
             
             <div className="flex justify-between items-center px-5 py-4 border-b border-neutral-800 bg-neutral-950 flex-row-reverse shrink-0">
               <button onClick={()=>{setIsAdminOpen(false); setAdminTab('inventory');}} className="bg-neutral-800 hover:bg-red-600 p-2 rounded-full text-neutral-400 hover:text-white transition-colors min-h-0 touch-manipulation"><X className="w-5 h-5"/></button>
               <div className="flex bg-neutral-900 rounded-lg p-1 border border-neutral-800 flex-row-reverse">
-                <button onClick={()=>setAdminTab('inventory')} className={`px-4 py-2 text-sm font-bold rounded-md transition-colors ${adminTab==='inventory' ? 'bg-red-600 text-white shadow-md' : 'text-neutral-400 hover:text-white'}`}>מלאי רכבים</button>
-                <button onClick={()=>setAdminTab('leads')} className={`px-4 py-2 text-sm font-bold rounded-md transition-colors ${adminTab==='leads' ? 'bg-blue-600 text-white shadow-md' : 'text-neutral-400 hover:text-white'}`}>מערכת CRM</button>
+                <button onClick={()=>setAdminTab('inventory')} className={`px-5 py-2 text-sm font-bold rounded-md transition-colors ${adminTab==='inventory' ? 'bg-red-600 text-white shadow-md' : 'text-neutral-400 hover:text-white'}`}>מלאי רכבים</button>
+                <button onClick={()=>setAdminTab('leads')} className={`px-5 py-2 text-sm font-bold rounded-md transition-colors ${adminTab==='leads' ? 'bg-blue-600 text-white shadow-md' : 'text-neutral-400 hover:text-white'}`}>מערכת CRM</button>
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4 space-y-5">
+            <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-5">
               {adminTab === 'inventory' ? (
                 <>
                   {/* הוספת רכב */}
@@ -1370,7 +1370,14 @@ const CarDealershipApp = () => {
                                     <td className="px-3 py-3 text-neutral-300 max-w-[150px] truncate" title={lead.car_details}>{lead.car_details}</td>
                                     <td className="px-3 py-3"><span className="px-2.5 py-1 bg-blue-600/20 border border-blue-600/30 text-blue-400 rounded-full text-xs font-medium whitespace-nowrap">{lead.lead_type}</span></td>
                                     <td className="px-3 py-3"><div className="font-bold text-white whitespace-nowrap">{lead.name}</div><div className="font-mono text-neutral-400 text-xs mt-0.5" dir="ltr">{lead.phone}</div></td>
-                                    <td className="px-3 py-3 text-xs text-neutral-500 whitespace-nowrap">{new Date(lead.created_at).toLocaleDateString('he-IL', {hour: '2-digit', minute:'2-digit'})}</td>
+                                    <td className="px-3 py-3 text-xs whitespace-nowrap text-right">
+  <div className="text-neutral-300 font-bold mb-0.5">
+    {new Date(lead.created_at).toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+  </div>
+  <div className="text-neutral-500 font-mono" dir="ltr">
+    {new Date(lead.created_at).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}
+  </div>
+</td>
                                   </tr>
                                 );
                               })}
