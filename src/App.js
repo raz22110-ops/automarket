@@ -115,6 +115,7 @@ const CarDealershipApp = () => {
   // --- CRM States ---
   const [adminTab, setAdminTab] = useState('inventory'); 
   const [adminInvTab, setAdminInvTab] = useState('available'); 
+  const [adminInvSearch, setAdminInvSearch] = useState(''); // שורת חיפוש לניהול המלאי
   const [leads, setLeads] = useState([]);
   const [leadsLoading, setLeadsLoading] = useState(false);
   const [crmSearch, setCrmSearch] = useState('');
@@ -441,7 +442,6 @@ const CarDealershipApp = () => {
     } catch { alert('שגיאה בעדכון הסטטוס'); }
   };
 
-  // פונקציה חדשה - החזר למלאי
   const handleMarkAsAvailable = async (id) => {
     try {
       await fetch(`${mySupabaseUrl}/rest/v1/inventory?id=eq.${id}`, { method: 'PATCH', headers: supabaseHeaders, body: JSON.stringify({ status: 'זמין' }) });
@@ -935,39 +935,37 @@ const calcLocalMonthly = () => {
       ) : (
         <>
           {/* ──── HERO ──── */}
-          <div className="relative flex flex-col overflow-hidden" style={{paddingTop:'clamp(64px,14vw,112px)', minHeight:'100svh'}}>
-            <div className="absolute inset-0">
-              <video autoPlay loop muted playsInline src="/hero-loop.mp4" className="w-full h-full object-cover opacity-100" />
-              {/* גרדיאנט חכם - כהה למעלה ולמטה, שקוף באמצע כדי לראות את הוידאו */}
-              <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-neutral-950"/>
+          <div className="relative flex flex-col items-center justify-center min-h-[100svh] pt-32 pb-12 overflow-hidden">
+            <div className="absolute inset-0 z-0">
+              <video autoPlay loop muted playsInline src="/hero-loop.mp4" className="w-full h-full object-cover" />
+              {/* שכבת כהות אחידה כדי שהוידאו יהיה ברור ויפה */}
+              <div className="absolute inset-0 bg-black/40" />
+              {/* מעבר חלק לחלק התחתון של האתר (השחרה רק ממש למטה) */}
+              <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-neutral-950 to-transparent" />
             </div>
-            
-            <div className="relative z-10 w-full max-w-5xl mx-auto px-4 flex flex-col flex-1 pb-6 md:pb-12">
-              
-              {/* כותרות ממורכזות ונקיות */}
-              <div className="flex-1 flex flex-col justify-center items-center mt-[-4svh]">
+
+            <div className="relative z-10 w-full max-w-5xl mx-auto px-4 flex flex-col items-center gap-8 md:gap-12">
+              <div className="text-center">
                 <RevealOnScroll animation="fade-up" delay={100}>
-                  <h1 className="font-bold text-white text-center drop-shadow-2xl leading-tight mb-4 tracking-tight" style={{fontSize:'clamp(2.5rem, 8vw, 5rem)'}}>
+                  <h1 className="font-bold text-white drop-shadow-2xl leading-tight mb-4 tracking-tight" style={{fontSize:'clamp(2.5rem, 8vw, 4.5rem)'}}>
                     המסע שלך לרכב הבא<br/><span className="text-red-600">מתחיל כאן.</span>
                   </h1>
                 </RevealOnScroll>
-                
                 <RevealOnScroll animation="fade-up" delay={250}>
-                  <p className="text-neutral-100 mb-6 max-w-2xl mx-auto text-center font-medium drop-shadow-lg" style={{fontSize:'clamp(1rem, 2.5vw, 1.35rem)'}}>
-                    אוטו מרקט מתמחה בכל סוגי הרכבים. <br className="md:hidden" />פתרונות מימון וטרייד-אין מותאמים אישית.
+                  <p className="text-neutral-200 max-w-2xl mx-auto font-medium drop-shadow-md" style={{fontSize:'clamp(1rem, 2.5vw, 1.25rem)'}}>
+                    אוטו מרקט מתמחה בכל סוגי הרכבים. פתרונות מימון וטרייד-אין מותאמים אישית.
                   </p>
                 </RevealOnScroll>
               </div>
               
-              {/* סימולטור נדחף לתחתית המסך */}
-              <div className="w-full mt-auto">
+              <div className="w-full max-w-4xl">
                 <RevealOnScroll animation="scale-up" delay={400}>
-                  <div className="bg-neutral-900/85 backdrop-blur-2xl rounded-3xl border border-neutral-800 shadow-[0_30px_60px_rgba(0,0,0,0.6)] overflow-hidden">
-                    <div className="flex border-b border-neutral-800">
-                      <button onClick={()=>setSearchTab('finance')} className={`flex-1 py-3.5 font-bold text-sm transition-colors touch-manipulation ${searchTab==='finance'?'bg-red-600 text-white':'text-neutral-400 hover:bg-neutral-800'}`}>סימולטור מימון</button>
-                      <button onClick={()=>setSearchTab('regular')} className={`flex-1 py-3.5 font-bold text-sm transition-colors touch-manipulation ${searchTab==='regular'?'bg-red-600 text-white':'text-neutral-400 hover:bg-neutral-800'}`}>חיפוש רכב</button>
+                  <div className="bg-neutral-900/60 backdrop-blur-xl rounded-3xl border border-white/10 shadow-2xl overflow-hidden">
+                    <div className="flex border-b border-white/10">
+                      <button onClick={()=>setSearchTab('finance')} className={`flex-1 py-4 font-bold text-sm transition-colors touch-manipulation ${searchTab==='finance'?'bg-red-600 text-white':'text-neutral-300 hover:bg-white/10 hover:text-white'}`}>סימולטור מימון</button>
+                      <button onClick={()=>setSearchTab('regular')} className={`flex-1 py-4 font-bold text-sm transition-colors touch-manipulation ${searchTab==='regular'?'bg-red-600 text-white':'text-neutral-300 hover:bg-white/10 hover:text-white'}`}>חיפוש רכב</button>
                     </div>
-                    <div className="p-4 md:p-6">
+                    <div className="p-4 md:p-6 bg-neutral-950/40">
                       {searchTab==='regular' && (
                         <div className="space-y-3">
                           <select value={searchMake} onChange={e=>setSearchMake(e.target.value)} className={SELECT_CLASS}><option value="">כל היצרנים</option>{ISRAELI_CAR_MAKES.map(m=><option key={m} value={m}>{m}</option>)}</select>
@@ -975,7 +973,7 @@ const calcLocalMonthly = () => {
                             <select value={searchCondition} onChange={e=>setSearchCondition(e.target.value)} className={SELECT_CLASS}><option value="">חדש / משומש</option><option value="חדש">רכב חדש</option><option value="משומש">רכב משומש</option></select>
                             <select value={searchCategory} onChange={e=>setSearchCategory(e.target.value)} className={SELECT_CLASS}><option value="">קטגוריה</option><option value="משפחתי">משפחתי</option><option value="יוקרה">יוקרה</option><option value="ספורט">ספורט</option><option value="גיפ">גיפ</option><option value="7 מקומות">7 מקומות</option><option value="מיני">מיני</option><option value="מנהלים">מנהלים</option></select>
                           </div>
-                          <div className="bg-neutral-950 p-4 rounded-xl border border-neutral-800">
+                          <div className="bg-neutral-950/80 p-4 rounded-xl border border-neutral-800">
                             <div className="flex justify-between mb-3 flex-row-reverse"><span className="text-neutral-400 text-sm">תקציב מקסימלי</span><span className="text-white font-bold text-lg">₪{searchBudget.toLocaleString()}</span></div>
                             <input type="range" min="10000" max="1500000" step="10000" value={searchBudget} onChange={e=>setSearchBudget(Number(e.target.value))} />
                           </div>
@@ -985,15 +983,15 @@ const calcLocalMonthly = () => {
                       {searchTab==='finance' && (
                         <div className="flex flex-col gap-4 lg:grid lg:grid-cols-3 lg:gap-8 lg:items-center">
                           <div className="lg:col-span-2 flex flex-col gap-3">
-                            <div className="flex gap-2 p-1 bg-neutral-950 rounded-xl border border-neutral-800">
+                            <div className="flex gap-2 p-1 bg-neutral-950/80 rounded-xl border border-neutral-800">
                               <button onClick={()=>setFinanceCondition('new')} className={`flex-1 py-3 rounded-lg font-bold text-sm transition-colors touch-manipulation ${financeCondition==='new'?'bg-red-600 text-white':'text-neutral-400'}`}>חדש (4.5%)</button>
                               <button onClick={()=>setFinanceCondition('used')} className={`flex-1 py-3 rounded-lg font-bold text-sm transition-colors touch-manipulation ${financeCondition==='used'?'bg-red-600 text-white':'text-neutral-400'}`}>משומש (6.1%)</button>
                             </div>
                             {[ { label:'שווי הרכב', val:financePrice, min:10000, max:800000, step:1000, set:setFinancePrice, prefix:'₪', suffix:'' }, { label:'מקדמה', val:financeDownPayment, min:0, max:250000, step:1000, set:setFinanceDownPayment, prefix:'₪', suffix:'' }, { label:'מספר תשלומים', val:financePayments, min:12, max:100, step:1, set:setFinancePayments, prefix:'', suffix:' חודשים' } ].map((s,i) => (
-                              <div key={i} className="bg-neutral-950 rounded-xl border border-neutral-800 p-4">
+                              <div key={i} className="bg-neutral-950/80 rounded-xl border border-neutral-800 p-4">
                                 <div className="flex justify-between items-center mb-3">
                                   <span className="text-neutral-400 text-sm">{s.label}</span>
-                                  <div className="flex items-center gap-1 bg-neutral-900 px-3 py-1.5 rounded-lg border border-neutral-800 focus-within:border-red-600 transition-colors">
+                                  <div className="flex items-center gap-1 bg-neutral-900 px-3 py-1.5 rounded-lg border border-neutral-700 focus-within:border-red-600 transition-colors">
                                     {s.prefix && <span className="text-white font-bold text-sm md:text-base">{s.prefix}</span>}
                                     <input type="text" value={s.val ? s.val.toLocaleString() : ''} onChange={e => s.set(Number(e.target.value.replace(/\D/g, '')))} onBlur={() => { if (s.val < s.min) s.set(s.min); if (s.val > s.max) s.set(s.max); }} className="bg-transparent text-white font-bold text-center w-20 focus:outline-none text-base" dir="ltr"/>
                                     {s.suffix && <span className="text-white font-bold text-sm md:text-base">{s.suffix}</span>}
@@ -1003,7 +1001,7 @@ const calcLocalMonthly = () => {
                               </div>
                             ))}
                           </div>
-                          <div className="bg-neutral-950 p-5 rounded-2xl border border-red-600/40 flex flex-col items-center text-center shadow-[0_0_25px_rgba(220,38,38,0.12)]">
+                          <div className="bg-neutral-950/80 p-5 rounded-2xl border border-red-600/40 flex flex-col items-center text-center shadow-[0_0_25px_rgba(220,38,38,0.12)]">
                             <span className="text-neutral-400 text-sm mb-1">החזר חודשי משוער</span><span className="font-black text-red-600 my-3" style={{fontSize:'clamp(2.5rem,10vw,3.5rem)'}}>₪{calculateMonthly().toLocaleString()}</span><span className="text-xs text-neutral-500 mb-5">*החישוב משוער וכפוף לאישור. ט.ל.ח</span>
                             <button onClick={handleFinanceSearch} className="w-full bg-red-600 hover:bg-red-500 active:bg-red-700 text-white font-bold py-4 rounded-xl transition-colors flex items-center justify-center gap-2 touch-manipulation"><ChevronRight className="w-5 h-5"/> מצא רכב בתקציב זה</button>
                             <button onClick={() => setIsFinanceAppOpen(true)} className="w-full mt-3 bg-green-600 hover:bg-green-500 active:bg-green-700 text-white font-bold py-4 rounded-xl transition-colors shadow-lg flex items-center justify-center gap-2 text-sm md:text-base border border-green-500/50 touch-manipulation"><Shield className="w-5 h-5"/> לאישור מימון מהיר דיגיטלי</button>
@@ -1014,7 +1012,6 @@ const calcLocalMonthly = () => {
                   </div>
                 </RevealOnScroll>
               </div>
-              
             </div>
           </div>
 
@@ -1309,28 +1306,39 @@ const calcLocalMonthly = () => {
                     </div>
                   </div>
 
-                  {/* טבלת מלאי / נמכרו */}
+                  {/* טבלת מלאי / נמכרו עם חיפוש משולב */}
                   <div className="bg-neutral-950 rounded-2xl border border-neutral-800 overflow-hidden">
-                    <div className="flex items-center justify-between px-4 py-3 border-b border-neutral-800 bg-neutral-900/60 flex-row-reverse">
-                      <div className="flex items-center gap-3 flex-row-reverse">
-                        <Car className="w-4 h-4 text-red-600"/>
-                        <div className="flex bg-neutral-950 rounded-lg p-1 border border-neutral-700 flex-row-reverse">
-                          <button onClick={()=>setAdminInvTab('available')} className={`px-3 py-1 text-xs font-bold rounded-md transition-colors ${adminInvTab==='available' ? 'bg-neutral-700 text-white' : 'text-neutral-400 hover:text-white'}`}>זמינים</button>
-                          <button onClick={()=>setAdminInvTab('sold')} className={`px-3 py-1 text-xs font-bold rounded-md transition-colors ${adminInvTab==='sold' ? 'bg-neutral-700 text-white' : 'text-neutral-400 hover:text-white'}`}>נמכרו</button>
+                    <div className="flex flex-col md:flex-row items-center justify-between px-4 py-3 border-b border-neutral-800 bg-neutral-900/60 gap-3 flex-row-reverse">
+                      <div className="flex items-center gap-3 flex-row-reverse w-full md:w-auto justify-between md:justify-start">
+                        <div className="flex items-center gap-2 flex-row-reverse">
+                          <Car className="w-4 h-4 text-red-600 hidden sm:block"/>
+                          <div className="flex bg-neutral-950 rounded-lg p-1 border border-neutral-700 flex-row-reverse">
+                            <button onClick={()=>setAdminInvTab('available')} className={`px-4 py-1.5 text-xs font-bold rounded-md transition-colors ${adminInvTab==='available' ? 'bg-neutral-700 text-white shadow-sm' : 'text-neutral-400 hover:text-white'}`}>זמינים</button>
+                            <button onClick={()=>setAdminInvTab('sold')} className={`px-4 py-1.5 text-xs font-bold rounded-md transition-colors ${adminInvTab==='sold' ? 'bg-neutral-700 text-white shadow-sm' : 'text-neutral-400 hover:text-white'}`}>נמכרו</button>
+                          </div>
                         </div>
                       </div>
                       
-                      <div className="flex items-center gap-2 flex-row-reverse">
-                        <button onClick={handleExportFacebookCatalog} className="flex items-center justify-center gap-1.5 bg-blue-600/20 hover:bg-blue-600 border border-blue-600/50 text-blue-500 hover:text-white px-3 py-1 rounded-lg transition-colors text-xs font-bold flex-row-reverse touch-manipulation" title="הורדת קטלוג מותאם לפייסבוק">
+                      {/* --- חיפוש במלאי --- */}
+                      <div className="relative w-full md:w-64">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
+                        <input 
+                          type="text" 
+                          placeholder="חיפוש רכב (יצרן, דגם, שנתון)..." 
+                          value={adminInvSearch} 
+                          onChange={(e) => setAdminInvSearch(e.target.value)} 
+                          className="w-full bg-neutral-950 border border-neutral-700 rounded-lg pl-10 pr-4 py-1.5 text-white text-right focus:border-red-500 outline-none text-sm shadow-inner" 
+                        />
+                      </div>
+
+                      <div className="flex items-center gap-2 flex-row-reverse w-full md:w-auto">
+                        <button onClick={handleExportFacebookCatalog} className="flex items-center justify-center gap-1.5 bg-blue-600/20 hover:bg-blue-600 border border-blue-600/50 text-blue-500 hover:text-white px-3 py-1.5 rounded-lg transition-colors text-xs font-bold flex-row-reverse touch-manipulation" title="הורדת קטלוג מותאם לפייסבוק">
                           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.04c-5.5 0-10 4.48-10 10.02 0 5 3.66 9.15 8.44 9.9v-7H7.9v-2.9h2.54V9.85c0-2.51 1.49-3.89 3.78-3.89 1.09 0 2.23.2 2.23.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56v1.88h2.78l-.44 2.9h-2.34v7a10 10 0 0 0 8.44-9.9c0-5.54-4.5-10.02-10-10.02z"/></svg>
                           פייסבוק
                         </button>
-                        <button onClick={handleExportInventoryCSV} className="flex items-center justify-center gap-1.5 bg-green-600/20 hover:bg-green-600 border border-green-600/50 text-green-500 hover:text-white px-3 py-1 rounded-lg transition-colors text-xs font-bold flex-row-reverse touch-manipulation" title="ייצוא רגיל לאקסל">
+                        <button onClick={handleExportInventoryCSV} className="flex items-center justify-center gap-1.5 bg-green-600/20 hover:bg-green-600 border border-green-600/50 text-green-500 hover:text-white px-3 py-1.5 rounded-lg transition-colors text-xs font-bold flex-row-reverse touch-manipulation" title="ייצוא רגיל לאקסל">
                           <Download className="w-3.5 h-3.5" /> אקסל
                         </button>
-                        <span className="text-xs text-neutral-500 bg-neutral-800 px-2.5 py-1 rounded-full hidden md:block">
-                          {inventory.filter(c => adminInvTab === 'sold' ? c.status === 'נמכר' : c.status !== 'נמכר').length} רכבים
-                        </span>
                       </div>
                     </div>
                     <div className="overflow-x-auto">
@@ -1339,7 +1347,16 @@ const calcLocalMonthly = () => {
                           <tr><th className="px-3 py-3 text-center">פעולות</th><th className="px-3 py-3">מחיר</th><th className="px-3 py-3">מצב</th><th className="px-3 py-3">רכב</th><th className="px-3 py-3">פרטים</th><th className="px-3 py-3">תמונה</th></tr>
                         </thead>
                         <tbody className="divide-y divide-neutral-800/60">
-                          {inventory.filter(c => adminInvTab === 'sold' ? c.status === 'נמכר' : c.status !== 'נמכר').map(car=>(
+                          {inventory
+                            .filter(c => adminInvTab === 'sold' ? c.status === 'נמכר' : c.status !== 'נמכר')
+                            .filter(c => {
+                              if (!adminInvSearch) return true;
+                              const term = adminInvSearch.toLowerCase();
+                              return (c.make && c.make.toLowerCase().includes(term)) || 
+                                     (c.model && c.model.toLowerCase().includes(term)) || 
+                                     (c.year && c.year.toString().includes(term));
+                            })
+                            .map(car=>(
                             <tr key={car.id} className="hover:bg-neutral-900/40">
                               <td className="px-3 py-3">
                                 <div className="flex gap-1.5 justify-center">
