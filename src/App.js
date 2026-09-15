@@ -1472,10 +1472,9 @@ const calcLocalMonthly = () => {
           </div>
         </div>
       )}
-
-      {/* Delete Confirm */}
-      {deleteConfirmId && (
-        <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center p-4 bg-black/85 backdrop-blur-sm">
+{/* Delete Confirm */}
+{deleteConfirmId && (
+  <div className="fixed inset-0 flex items-end sm:items-center justify-center p-4 bg-black/85 backdrop-blur-sm" style={{ zIndex: 9999 }}>
           <div className="bg-neutral-900 border border-red-600/40 rounded-t-3xl sm:rounded-2xl p-6 w-full sm:max-w-sm text-center shadow-2xl modal-safe-bottom">
             <div className="w-14 h-14 bg-red-600/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-600/30"><Trash2 className="w-7 h-7 text-red-500"/></div>
             <h3 className="text-xl font-bold text-white mb-2">מחיקת רכב</h3>
@@ -1488,9 +1487,9 @@ const calcLocalMonthly = () => {
         </div>
       )}
 
-      {/* Edit Modal */}
-      {editCar && (
-        <div className="fixed inset-0 z-[150] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/85 backdrop-blur-sm">
+{/* Edit Modal */}
+{editCar && (
+  <div className="fixed inset-0 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/85 backdrop-blur-sm" style={{ zIndex: 9999 }}>
           <div className="bg-neutral-900 border border-neutral-800 rounded-t-3xl sm:rounded-2xl w-full sm:max-w-3xl overflow-hidden flex flex-col shadow-2xl" style={{maxHeight:'94svh'}}>
             <div className="flex justify-between items-center px-5 py-4 border-b border-neutral-800 bg-neutral-950 flex-row-reverse shrink-0">
               <button onClick={()=>{setEditCar(null);setEditStatus('idle');setEditSelectedFiles([]);}} className="bg-neutral-800 hover:bg-red-600 p-2 rounded-full text-neutral-400 hover:text-white transition-colors min-h-0 touch-manipulation"><X className="w-5 h-5"/></button>
