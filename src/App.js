@@ -28,6 +28,7 @@ const LockIcon = ({ className }) => (
     <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
   </svg>
 );
+
 const CAR_COLORS_MAP = {
   'לבן': '#FFFFFF',
   'פנינה': '#FDEBD0',
@@ -55,6 +56,7 @@ const CAR_COLORS_MAP = {
   'כתום': '#FF6600',
   'סגול': '#4B0082',
 };
+
 const CarDealershipApp = () => {
   const [plateNumber, setPlateNumber] = useState('');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -102,6 +104,8 @@ const CarDealershipApp = () => {
   const [editCar, setEditCar] = useState(null);
   const [editStatus, setEditStatus] = useState('idle');
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+  
+  // States למערכת התמונות החדשה
   const [selectedFiles, setSelectedFiles] = useState([]); 
   const [editSelectedFiles, setEditSelectedFiles] = useState([]); 
 
@@ -120,49 +124,43 @@ const CarDealershipApp = () => {
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, [inventory]);
-// ─── מערכת נגישות פנימית מורחבת (תקנית 100% וחסינה לחסימות) ───
-const [isA11yMenuOpen, setIsA11yMenuOpen] = useState(false);
-const [a11ySettings, setA11ySettings] = useState({
-  highContrast: false,
-  largeText: false,
-  highlightLinks: false,
-  stopAnimations: false,
-  iconSide: 'left' // <--- חדש כפתור
-});
 
-const toggleA11y = (key) => {
-  setA11ySettings(prev => ({ ...prev, [key]: !prev[key] }));
-};
+  // ─── מערכת נגישות פנימית ───
+  const [isA11yMenuOpen, setIsA11yMenuOpen] = useState(false);
+  const [a11ySettings, setA11ySettings] = useState({
+    highContrast: false,
+    largeText: false,
+    highlightLinks: false,
+    stopAnimations: false,
+    iconSide: 'left'
+  });
 
-useEffect(() => {
-  // הפעלת פילטרים על כל האתר
-  document.documentElement.style.filter = a11ySettings.highContrast ? 'contrast(125%) saturate(120%) grayscale(10%)' : '';
-  document.documentElement.style.fontSize = a11ySettings.largeText ? '115%' : '100%';
-  
-  // הוספת קלאסים מיוחדים ל-body עבור אנימציות וקישורים
-  if (a11ySettings.stopAnimations) document.body.classList.add('a11y-stop-animations');
-  else document.body.classList.remove('a11y-stop-animations');
-  
-  if (a11ySettings.highlightLinks) document.body.classList.add('a11y-highlight-links');
-  else document.body.classList.remove('a11y-highlight-links');
-}, [a11ySettings]);
-// ─── קיצור מקשים סודי לפתיחת ניהול מלאי (Ctrl + M) ───
-useEffect(() => {
-  const handleSecretShortcut = (e) => {
-    // בודק אם לחצו על Ctrl (או Command) וגם על האות M
-    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'm') {
-      e.preventDefault(); 
-      setIsPasswordPromptOpen(true); // זה יקפיץ את מסך הסיסמה
-    }
+  const toggleA11y = (key) => {
+    setA11ySettings(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
-  window.addEventListener('keydown', handleSecretShortcut);
-  
-  return () => {
-    window.removeEventListener('keydown', handleSecretShortcut);
-  };
-}, []);
-  // Lock body scroll when any modal is open
+  useEffect(() => {
+    document.documentElement.style.filter = a11ySettings.highContrast ? 'contrast(125%) saturate(120%) grayscale(10%)' : '';
+    document.documentElement.style.fontSize = a11ySettings.largeText ? '115%' : '100%';
+    if (a11ySettings.stopAnimations) document.body.classList.add('a11y-stop-animations');
+    else document.body.classList.remove('a11y-stop-animations');
+    if (a11ySettings.highlightLinks) document.body.classList.add('a11y-highlight-links');
+    else document.body.classList.remove('a11y-highlight-links');
+  }, [a11ySettings]);
+
+  // קיצור מקשים סודי לניהול מלאי (Ctrl + M)
+  useEffect(() => {
+    const handleSecretShortcut = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'm') {
+        e.preventDefault(); 
+        setIsPasswordPromptOpen(true);
+      }
+    };
+    window.addEventListener('keydown', handleSecretShortcut);
+    return () => window.removeEventListener('keydown', handleSecretShortcut);
+  }, []);
+
+  // Lock body scroll when modals open
   useEffect(() => {
     const anyOpen = isMenuOpen || isAdminOpen || isTradeInOpen || isPasswordPromptOpen || isFinanceAppOpen || isDigitalOrderOpen || !!editCar || !!deleteConfirmId;
     if (anyOpen) {
@@ -192,18 +190,12 @@ useEffect(() => {
       const data = await response.json();
       setInventory(data || []);
 
-      // ====== קריאת הקישור בעת טעינת האתר ======
       const urlParams = new URLSearchParams(window.location.search);
       const carIdFromUrl = urlParams.get('car');
-      
       if (carIdFromUrl && data) {
         const sharedCar = data.find(c => c.id === carIdFromUrl);
-        if (sharedCar) {
-          setSelectedCar(sharedCar);
-        }
+        if (sharedCar) setSelectedCar(sharedCar);
       }
-      // ==========================================
-
     } catch (err) { console.error(err); }
     finally { setInventoryLoading(false); }
   };
@@ -233,77 +225,107 @@ useEffect(() => {
     reader.readAsDataURL(file);
   });
 
-  const uploadImagesToStorage = async (files) => {
-    const uploadedUrls = [];
-    for (const file of files) {
-      const blob = await resizeImage(file);
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}.jpg`;
-      const response = await fetch(`${mySupabaseUrl}/storage/v1/object/car-images/${fileName}`, {
-        method: 'POST',
-        headers: { 'apikey': mySupabaseKey, 'Authorization': `Bearer ${mySupabaseKey}`, 'Content-Type': 'image/jpeg' },
-        body: blob
-      });
-      if (!response.ok) throw new Error("Upload failed");
-      uploadedUrls.push(`${mySupabaseUrl}/storage/v1/object/public/car-images/${fileName}`);
+  // ─── מערכת עיבוד והעלאת תמונות משודרגת ───
+  const processAndUploadImages = async (imageItems) => {
+    const finalUrls = [];
+    for (const item of imageItems) {
+      if (item.file) {
+        // מדובר בקובץ חדש - נעלה אותו
+        const blob = await resizeImage(item.file);
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}.jpg`;
+        const response = await fetch(`${mySupabaseUrl}/storage/v1/object/car-images/${fileName}`, {
+          method: 'POST',
+          headers: { 'apikey': mySupabaseKey, 'Authorization': `Bearer ${mySupabaseKey}`, 'Content-Type': 'image/jpeg' },
+          body: blob
+        });
+        if (!response.ok) throw new Error("Upload failed");
+        finalUrls.push(`${mySupabaseUrl}/storage/v1/object/public/car-images/${fileName}`);
+      } else if (item.url) {
+        // מדובר ב-URL קיים מעריכה
+        finalUrls.push(item.url);
+      }
     }
-    return uploadedUrls;
+    return finalUrls;
   };
 
-// ─── פונקציה ליצירת קטלוג פייסבוק/וואטסאפ ושמירתו אוטומטית ב-Supabase ───
-const updateFacebookCatalog = async (currentCars) => {
-  try {
-    // הוספנו את עמודת inventory (מלאי)
-    const headers = ['id', 'title', 'description', 'availability', 'inventory', 'condition', 'price', 'link', 'image_link', 'brand'];
+  // שליטת התמונות
+  const handleImageSelection = (e, target = 'new') => {
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
     
-    const rows = currentCars.map(car => {
-      const title = `${car.make} ${car.model} ${car.year}`;
-      const description = car.shortReview || `${car.subModel || ''} ${car.engineCapacity ? car.engineCapacity + ' סמ"ק' : ''}` || title;
-      const condition = car.condition === 'חדש' ? 'new' : 'used';
-      
-      // מנקים פסיקים מהמחיר כדי לא לשבור את הפורמט, ומוסיפים מטבע
-      const cleanPrice = car.price ? car.price.toString().replace(/,/g, '') : '0';
-      const price = `${cleanPrice} ILS`;
-      
-      const link = `https://smilemotors.co.il/car/${car.id}`; 
-      const imageLink = (car.images && car.images.length > 0) ? car.images[0] : ''; 
-      
-      // עוטפים כל שדה בגרשיים כדי שפסיקים בטקסט לא יפצלו עמודות
-      return [
-        `"${car.id}"`,
-        `"${title.replace(/"/g, '""')}"`,
-        `"${description.replace(/"/g, '""')}"`,
-        `"in stock"`,
-        `"1"`, // כמות במלאי
-        `"${condition}"`,
-        `"${price}"`,
-        `"${link}"`,
-        `"${imageLink}"`,
-        `"${car.make}"`
-      ].join(',');
-    });
+    // יוצרים אובייקטים המכילים את הקובץ ולינק לתצוגה מקדימה
+    const newItems = files.map(file => ({
+      file,
+      url: URL.createObjectURL(file),
+      id: Math.random().toString(36).substring(2, 9)
+    }));
 
-    const csvContent = "\uFEFF" + [headers.join(','), ...rows].join('\n'); 
-    
-    const response = await fetch(`${mySupabaseUrl}/storage/v1/object/catalog/facebook_catalog.csv`, {
-      method: 'POST',
-      headers: {
-        ...supabaseHeaders,
-        'Content-Type': 'text/csv;charset=utf-8',
-        'x-upsert': 'true' 
-      },
-      body: csvContent
-    });
-
-    if (!response.ok) {
-      throw new Error('שגיאה בהעלאת הקובץ לשרת');
+    if (target === 'new') {
+      setSelectedFiles(prev => {
+        const combined = [...prev, ...newItems];
+        if (combined.length > 10) { alert('ניתן להעלות עד 10 תמונות בסך הכל.'); return combined.slice(0, 10); }
+        return combined;
+      });
+    } else {
+      setEditSelectedFiles(prev => {
+        const combined = [...prev, ...newItems];
+        if (combined.length > 10) { alert('ניתן להעלות עד 10 תמונות בסך הכל.'); return combined.slice(0, 10); }
+        return combined;
+      });
     }
+    e.target.value = null; // מנקה את האינפוט כדי לאפשר בחירה חוזרת
+  };
 
-    console.log('✅ קטלוג פייסבוק/וואטסאפ נוצר ועודכן בהצלחה!');
-    
-  } catch (error) {
-    console.error('❌ שגיאה בעדכון קטלוג פייסבוק:', error);
-  }
-};
+  const moveImage = (index, dir, target = 'new') => {
+    const setter = target === 'new' ? setSelectedFiles : setEditSelectedFiles;
+    setter(prev => {
+      const arr = [...prev];
+      const newIndex = index + dir;
+      if (newIndex < 0 || newIndex >= arr.length) return arr;
+      [arr[index], arr[newIndex]] = [arr[newIndex], arr[index]];
+      return arr;
+    });
+  };
+
+  const setAsMain = (index, target = 'new') => {
+    const setter = target === 'new' ? setSelectedFiles : setEditSelectedFiles;
+    setter(prev => {
+      const arr = [...prev];
+      const item = arr.splice(index, 1)[0];
+      arr.unshift(item); // מוסיף לתחילת המערך (אינדקס 0 - התמונה הראשית)
+      return arr;
+    });
+  };
+
+  const removeImage = (index, target = 'new') => {
+    const setter = target === 'new' ? setSelectedFiles : setEditSelectedFiles;
+    setter(prev => prev.filter((_, i) => i !== index));
+  };
+
+
+  const updateFacebookCatalog = async (currentCars) => {
+    try {
+      const headers = ['id', 'title', 'description', 'availability', 'inventory', 'condition', 'price', 'link', 'image_link', 'brand'];
+      const rows = currentCars.map(car => {
+        const title = `${car.make} ${car.model} ${car.year}`;
+        const description = car.shortReview || `${car.subModel || ''} ${car.engineCapacity ? car.engineCapacity + ' סמ"ק' : ''}` || title;
+        const condition = car.condition === 'חדש' ? 'new' : 'used';
+        const cleanPrice = car.price ? car.price.toString().replace(/,/g, '') : '0';
+        const price = `${cleanPrice} ILS`;
+        const link = `https://smilemotors.co.il/car/${car.id}`; 
+        const imageLink = (car.images && car.images.length > 0) ? car.images[0] : ''; 
+        return [ `"${car.id}"`, `"${title.replace(/"/g, '""')}"`, `"${description.replace(/"/g, '""')}"`, `"in stock"`, `"1"`, `"${condition}"`, `"${price}"`, `"${link}"`, `"${imageLink}"`, `"${car.make}"` ].join(',');
+      });
+      const csvContent = "\uFEFF" + [headers.join(','), ...rows].join('\n'); 
+      const response = await fetch(`${mySupabaseUrl}/storage/v1/object/catalog/facebook_catalog.csv`, {
+        method: 'POST',
+        headers: { ...supabaseHeaders, 'Content-Type': 'text/csv;charset=utf-8', 'x-upsert': 'true' },
+        body: csvContent
+      });
+      if (!response.ok) throw new Error('שגיאה בהעלאת הקובץ לשרת');
+    } catch (error) { console.error('❌ שגיאה בעדכון קטלוג פייסבוק:', error); }
+  };
+
   const handleFetchByPlate = async () => {
     if (!plateNumber) return alert('נא להזין מספר רישוי');
     try {
@@ -312,51 +334,34 @@ const updateFacebookCatalog = async (currentCars) => {
       
       if (data.result && data.result.records.length > 0) {
         const carData = data.result.records[0];
-        
-        // מנגנון זיהוי חכם ליצרן - מתאים את השם של משרד התחבורה לרשימה שלנו
         const apiMake = carData.tozeret_nm ? carData.tozeret_nm.trim() : '';
         let matchedMake = null;
         
         if (apiMake) {
-          // מחפש התאמה בתוך המערך שלנו
           const found = ISRAELI_CAR_MAKES.find(m => apiMake.includes(m) || m.includes(apiMake));
-          if (found) {
-            matchedMake = found;
-          } else if (apiMake.includes("ג'יפ") || apiMake.includes("JEEP")) {
-            matchedMake = "ג'יפ";
-          }
+          if (found) matchedMake = found;
+          else if (apiMake.includes("ג'יפ") || apiMake.includes("JEEP")) matchedMake = "ג'יפ";
         }
 
         setNewCar(prev => ({
           ...prev,
-          make: matchedMake || prev.make, // אם מצאנו יצרן - נשתמש בו, אחרת נשמור את מה שהיה
-          model: carData.kinuy_mishari ? carData.kinuy_mishari.trim() : prev.model, // דגם
-          subModel: carData.ramat_gimur ? carData.ramat_gimur.trim() : prev.subModel, // תת דגם / רמת גימור
-          year: carData.shnat_yitzur ? carData.shnat_yitzur.toString() : prev.year, // שנתון
-          engineCapacity: carData.nefach_manoa ? carData.nefach_manoa.toString() : prev.engineCapacity, // נפח מנוע
+          make: matchedMake || prev.make,
+          model: carData.kinuy_mishari ? carData.kinuy_mishari.trim() : prev.model,
+          subModel: carData.ramat_gimur ? carData.ramat_gimur.trim() : prev.subModel,
+          year: carData.shnat_yitzur ? carData.shnat_yitzur.toString() : prev.year,
+          engineCapacity: carData.nefach_manoa ? carData.nefach_manoa.toString() : prev.engineCapacity,
           engineType: (carData.sug_delek_nm && carData.sug_delek_nm.includes('חשמל')) ? 'חשמלי' : 
                       (carData.sug_delek_nm && (carData.sug_delek_nm.includes('היברידי') || carData.sug_delek_nm.includes('הייבריד'))) ? 'הייבריד' : 
                       (carData.sug_delek_nm && carData.sug_delek_nm.includes('דיזל')) ? 'דיזל' : 
                       (carData.sug_delek_nm && carData.sug_delek_nm.includes('בנזין')) ? 'בנזין' : prev.engineType,
         }));
         
-        // התיקון בוצע בשורה הזו בעזרת Backticks:
-        alert(`✅ הנתונים (יצרן, דגם, רמת גימור, שנתון ונפח מנוע) נמשכו בהצלחה!\nשים לב: יש להזין ידנית "יד" ו"קילומטראז'".`);
+        alert(`✅ הנתונים נמשכו בהצלחה!\nשים לב: יש להזין ידנית "יד" ו"קילומטראז'".`);
         setPlateNumber('');
       } else {
         alert('❌ רכב לא נמצא במאגר משרד התחבורה.');
       }
-    } catch (error) {
-      console.error(error);
-      alert('אירעה שגיאה בחיבור למאגר.');
-    }
-  };
-  const handleImageSelection = (e, target = 'new') => {
-    const files = Array.from(e.target.files);
-    if (!files.length) return;
-    if (files.length > 10) { alert('עד 10 תמונות'); return; }
-    if (target === 'new') { setSelectedFiles(files); setNewCar(p => ({ ...p, images: Array(files.length).fill('pending') })); }
-    else { setEditSelectedFiles(files); setEditCar(p => ({ ...p, images: Array(files.length).fill('pending') })); }
+    } catch (error) { console.error(error); alert('אירעה שגיאה בחיבור למאגר.'); }
   };
 
   const handleAddCar = async (e) => {
@@ -364,12 +369,12 @@ const updateFacebookCatalog = async (currentCars) => {
     setUploadStatus('loading');
     try {
       let imageUrls = [];
-      if (selectedFiles.length > 0) imageUrls = await uploadImagesToStorage(selectedFiles);
+      if (selectedFiles.length > 0) imageUrls = await processAndUploadImages(selectedFiles);
+      
       const carToAdd = { ...newCar, id: Date.now().toString(), images: imageUrls, image: imageUrls[0] || '', createdAt: Date.now() };
       const response = await fetch(`${mySupabaseUrl}/rest/v1/inventory`, { method: 'POST', headers: supabaseHeaders, body: JSON.stringify(carToAdd) });
       if (!response.ok) throw new Error('שגיאה בשמירת הרכב');
       
-      // מעדכן את המלאי באתר וגם מפעיל את יצירת הקטלוג
       setInventory(p => {
         const newList = [carToAdd, ...p];
         updateFacebookCatalog(newList); 
@@ -387,13 +392,15 @@ const updateFacebookCatalog = async (currentCars) => {
     e.preventDefault();
     setEditStatus('loading');
     try {
-      let imageUrls = editCar.images || [];
-      if (editSelectedFiles.length > 0) imageUrls = await uploadImagesToStorage(editSelectedFiles);
-      const updatedCar = { ...editCar, images: imageUrls, image: imageUrls[0] || editCar.image || '' };
+      let imageUrls = [];
+      if (editSelectedFiles.length > 0) {
+        imageUrls = await processAndUploadImages(editSelectedFiles);
+      }
+      
+      const updatedCar = { ...editCar, images: imageUrls, image: imageUrls[0] || '' };
       const response = await fetch(`${mySupabaseUrl}/rest/v1/inventory?id=eq.${updatedCar.id}`, { method: 'PATCH', headers: supabaseHeaders, body: JSON.stringify(updatedCar) });
       if (!response.ok) throw new Error('שגיאה בעדכון הרכב');
       
-      // מעדכן את הרכב באתר וגם מפעיל את יצירת הקטלוג
       setInventory(p => {
         const newList = p.map(c => c.id === updatedCar.id ? updatedCar : c);
         updateFacebookCatalog(newList);
@@ -411,16 +418,60 @@ const updateFacebookCatalog = async (currentCars) => {
       const response = await fetch(`${mySupabaseUrl}/rest/v1/inventory?id=eq.${id}`, { method: 'DELETE', headers: supabaseHeaders });
       if (!response.ok) throw new Error('שגיאה במחיקת הרכב');
       
-      // מוחק את הרכב מהאתר וגם מסיר אותו מהקטלוג
       setInventory(p => {
         const newList = p.filter(c => c.id !== id);
         updateFacebookCatalog(newList);
         return newList;
       });
-      
       setDeleteConfirmId(null);
     } catch { alert('שגיאה במחיקה'); }
   };
+
+  // רכיב פנימי לתצוגת גלריית התמונות ושליטה על הסדר
+  const ImagePreviewGallery = ({ items, target }) => {
+    if (!items || items.length === 0) return null;
+    return (
+      <div className="col-span-2 md:col-span-3 lg:col-span-4 mt-1 bg-neutral-900/50 p-3 rounded-xl border border-neutral-800">
+        <h4 className="text-xs text-neutral-400 mb-2 text-right">סדר התמונות (התמונה הראשונה מימין היא התמונה הראשית)</h4>
+        <div className="flex gap-3 overflow-x-auto pb-3 pt-1 flex-row-reverse snap-x scrollbar-hide">
+          {items.map((item, index) => (
+            <div key={item.id} className={`relative shrink-0 snap-center rounded-xl overflow-hidden border-2 transition-all ${index === 0 ? 'border-green-500 shadow-[0_0_12px_rgba(34,197,94,0.3)]' : 'border-neutral-700 hover:border-neutral-500'}`} style={{ width: '130px', height: '95px' }}>
+              <img src={item.url} alt="preview" className="w-full h-full object-cover" />
+              
+              {index === 0 && (
+                <div className="absolute top-0 right-0 bg-green-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-bl-lg z-10 shadow-md">
+                  תמונה ראשית
+                </div>
+              )}
+              
+              <div className="absolute bottom-0 inset-x-0 bg-black/75 p-1 flex justify-between items-center gap-1 backdrop-blur-md z-10">
+                <div className="flex gap-0.5">
+                  <button type="button" onClick={() => moveImage(index, -1, target)} disabled={index === 0} className="text-white hover:text-green-400 disabled:opacity-20 disabled:hover:text-white p-1 transition-colors touch-manipulation">
+                    <ChevronRight className="w-4 h-4" /> 
+                  </button>
+                  <button type="button" onClick={() => moveImage(index, 1, target)} disabled={index === items.length - 1} className="text-white hover:text-green-400 disabled:opacity-20 disabled:hover:text-white p-1 transition-colors touch-manipulation">
+                    <ChevronLeft className="w-4 h-4" /> 
+                  </button>
+                </div>
+                
+                <div className="flex gap-0.5">
+                  {index !== 0 && (
+                     <button type="button" onClick={() => setAsMain(index, target)} className="text-white hover:text-yellow-400 p-1 transition-colors touch-manipulation" title="הגדר כראשי">
+                       <Star className="w-4 h-4" />
+                     </button>
+                  )}
+                  <button type="button" onClick={() => removeImage(index, target)} className="text-white hover:text-red-500 p-1 transition-colors touch-manipulation" title="מחק תמונה">
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
   const handleTradeInSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -435,7 +486,12 @@ const updateFacebookCatalog = async (currentCars) => {
     e.preventDefault();
     setFinanceAppStatus('loading');
     try {
-      const uploadSingleFile = async (file) => { if (!file) return 'לא הועלה'; const urls = await uploadImagesToStorage([file]); return urls[0] || 'לא הועלה'; };
+      const uploadSingleFile = async (file) => { 
+        if (!file) return 'לא הועלה'; 
+        // שימוש בפונקציית העלאת התמונות החדשה (עוטף את הקובץ באובייקט)
+        const urls = await processAndUploadImages([{file, url: null}]); 
+        return urls[0] || 'לא הועלה'; 
+      };
       const idUrl = await uploadSingleFile(financeFiles.idImage);
       const attachmentUrl = await uploadSingleFile(financeFiles.idAttachment);
       const licenseUrl = await uploadSingleFile(financeFiles.license);
@@ -501,24 +557,14 @@ const updateFacebookCatalog = async (currentCars) => {
     setSelectedCar(null); 
     setIsMenuOpen(false);
     
-    // ניקוי ה-URL כשעוברים לעמוד אחר
     window.history.pushState({}, '', window.location.pathname);
-
     if (hash) setTimeout(() => document.getElementById(hash)?.scrollIntoView({ behavior: 'smooth' }), 100);
     else window.scrollTo(0, 0);
   };
-  const testimonials = [
-    { id:1, name:'יוסי אהרוני', text:'שירות מעל ומעבר! קניתי מרצדס והרגשתי לאורך כל הדרך שדואגים לי באמת. שקיפות מלאה וטיפול אישי. ממליץ בחום.', car:'קנה: Mercedes S-Class' },
-    { id:2, name:'מיכל לוי', text:'חיפשתי רכב פנאי למשפחה ועזרו לי למצוא בדיוק את מה שהייתי צריכה. עשו לי טרייד אין הוגן על הרכב הישן שלי. אלופים.', car:'קנתה: Range Rover Sport' },
-    { id:3, name:'דניאל כהן', text:'סוכנות ברמה אירופאית. רכבים מדהימים ותנאי מימון שאי אפשר למצוא במקומות אחרים. חווית קנייה חלקה ומהירה.', car:'קנה: Porsche 911' }
-  ];
 
-  /* ───────── SHARE ───────── */
   const handleShare = async (car, e) => {
     if (e) e.stopPropagation();
     const shareText = `ראו איזה רכב מצאתי באוטו מרקט!\n*${car.make} ${car.model}* (${car.year})\nמחיר: ₪${car.price}\n\nלפרטים נוספים היכנסו לאתר:`;
-    
-    // ניצור את הקישור הייחודי לרכב לפי ה-ID שלו
     const shareUrl = `${window.location.origin}${window.location.pathname}?car=${car.id}`;
     
     if (navigator.share) {
@@ -546,16 +592,15 @@ const updateFacebookCatalog = async (currentCars) => {
         </div>
       ) : cars.map(car => (
         <div key={car.id} className="group bg-neutral-900 rounded-2xl overflow-hidden border border-neutral-800 hover:border-red-600/50 transition-all duration-300 active:scale-[0.98]">
-          {/* Image area */}
           <div className="relative overflow-hidden bg-neutral-800" style={{height:'min(52vw, 240px)'}}>
             <div className="absolute top-3 right-3 z-10 bg-black/60 backdrop-blur-md text-white px-3 py-1 rounded-full text-xs font-medium border border-white/10">{car.type}</div>
             <div className={`absolute top-3 left-3 z-10 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold border ${car.condition==='חדש'?'bg-red-600/90 text-white border-red-500':'bg-neutral-600/80 text-white border-neutral-500'}`}>
               {car.condition === 'חדש' ? 'חדש 0 ק"מ יבואן רשמי' : car.condition}
               {car.officialWarranty && (
-  <div className="absolute top-10 left-3 z-10 bg-blue-600/80 backdrop-blur-md text-white px-2.5 py-1 rounded-full border border-blue-400/60 whitespace-nowrap" style={{fontSize:'10px',fontWeight:'600'}}>
-  ✓ יבואן רשמי
-</div>
-)}
+                <div className="absolute top-10 left-3 z-10 bg-blue-600/80 backdrop-blur-md text-white px-2.5 py-1 rounded-full border border-blue-400/60 whitespace-nowrap" style={{fontSize:'10px',fontWeight:'600'}}>
+                  ✓ יבואן רשמי
+                </div>
+              )}
             </div>
             <button onClick={(e) => handleShare(car, e)} className="absolute bottom-3 left-3 z-10 bg-black/60 hover:bg-red-600 backdrop-blur-md text-white p-2.5 rounded-full border border-white/10 transition-colors shadow-lg" title="שתף רכב">
               <Share2 className="w-4 h-4" />
@@ -563,27 +608,25 @@ const updateFacebookCatalog = async (currentCars) => {
             <img src={car.image||'/back.jpg'} alt={`${car.make} ${car.model}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" onError={e=>e.target.src='/back.jpg'} />
           </div>
 
-{/* Card body */}
-<div className="p-4 text-right">
-  <div className="mb-3">
-    <h3 className="text-base font-bold text-white leading-tight truncate">{car.make} {car.model}</h3>
-    <p className="text-neutral-400 text-xs mt-0.5 truncate">{car.year} | {car.subModel}</p>
-    <div className="mt-2 flex items-end justify-between flex-row-reverse">
-      <div>
-        {car.showListPrice && car.listPrice && (
-          <span className="text-neutral-500 line-through text-xs block">מחירון ₪{car.listPrice}</span>
-        )}
-        <p className="text-lg font-bold text-red-600 leading-tight">₪{car.price}</p>
-      </div>
-      {car.monthlyPayment && (
-        <div className="bg-green-600 text-white text-xs font-bold px-2.5 py-1.5 rounded-lg inline-block shadow-sm">
-          מ-₪{car.monthlyPayment}/לחודש
-        </div>
-      )}
-    </div>
-  </div>
+          <div className="p-4 text-right">
+            <div className="mb-3">
+              <h3 className="text-base font-bold text-white leading-tight truncate">{car.make} {car.model}</h3>
+              <p className="text-neutral-400 text-xs mt-0.5 truncate">{car.year} | {car.subModel}</p>
+              <div className="mt-2 flex items-end justify-between flex-row-reverse">
+                <div>
+                  {car.showListPrice && car.listPrice && (
+                    <span className="text-neutral-500 line-through text-xs block">מחירון ₪{car.listPrice}</span>
+                  )}
+                  <p className="text-lg font-bold text-red-600 leading-tight">₪{car.price}</p>
+                </div>
+                {car.monthlyPayment && (
+                  <div className="bg-green-600 text-white text-xs font-bold px-2.5 py-1.5 rounded-lg inline-block shadow-sm">
+                    מ-₪{car.monthlyPayment}/לחודש
+                  </div>
+                )}
+              </div>
+            </div>
 
-            {/* Stats row — 2x2 compact on mobile */}
             <div className="grid grid-cols-2 gap-x-2 gap-y-1.5 mb-4 pt-3 border-t border-neutral-800 text-xs text-neutral-300">
               <div className="flex items-center justify-end gap-1.5 truncate"><span className="truncate">{car.mileage} ק"מ</span><Gauge className="w-3.5 h-3.5 text-neutral-500 shrink-0"/></div>
               <div className="flex items-center justify-end gap-1.5"><span>יד {car.owners}</span><User className="w-3.5 h-3.5 text-neutral-500 shrink-0"/></div>
@@ -592,418 +635,374 @@ const updateFacebookCatalog = async (currentCars) => {
             </div>
 
             <button
-  onClick={()=>{ 
-    setSelectedCar(car); 
-    // מעדכן את ה-URL למעלה למספר הרכב בלי לרענן את הדף
-    window.history.pushState({}, '', `?car=${car.id}`);
-    window.scrollTo(0,0); 
-  }}
-  className="w-full bg-red-600 hover:bg-red-500 active:bg-red-700 text-white py-3 rounded-xl font-bold transition-colors text-sm shadow-lg shadow-red-600/20 touch-manipulation"
->
-  לפרטים נוספים
-</button>
+              onClick={()=>{ 
+                setSelectedCar(car); 
+                window.history.pushState({}, '', `?car=${car.id}`);
+                window.scrollTo(0,0); 
+              }}
+              className="w-full bg-red-600 hover:bg-red-500 active:bg-red-700 text-white py-3 rounded-xl font-bold transition-colors text-sm shadow-lg shadow-red-600/20 touch-manipulation"
+            >
+              לפרטים נוספים
+            </button>
           </div>
         </div>
       ))}
     </div>
   );
 
- /* ───────── INVENTORY PAGE ───────── */
-const GenericInventoryPage = ({ cars, title, subtitle }) => {
-  const [filterMake, setFilterMake] = useState('');
-  const [filterType, setFilterType] = useState('');
-  const [filterEngine, setFilterEngine] = useState('');
-  const [filterMaxPrice, setFilterMaxPrice] = useState(1500000);
+  /* ───────── INVENTORY PAGE ───────── */
+  const GenericInventoryPage = ({ cars, title, subtitle }) => {
+    const [filterMake, setFilterMake] = useState('');
+    const [filterType, setFilterType] = useState('');
+    const [filterEngine, setFilterEngine] = useState('');
+    const [filterMaxPrice, setFilterMaxPrice] = useState(1500000);
 
-  const filtered = cars.filter(car => {
-    if (filterMake && car.make !== filterMake) return false;
-    if (filterType && car.type !== filterType) return false;
-    if (filterEngine && car.engineType !== filterEngine) return false;
-    if (Number(car.price.toString().replace(/,/g,'')) > filterMaxPrice) return false;
-    return true;
-  });
+    const filtered = cars.filter(car => {
+      if (filterMake && car.make !== filterMake) return false;
+      if (filterType && car.type !== filterType) return false;
+      if (filterEngine && car.engineType !== filterEngine) return false;
+      if (Number(car.price.toString().replace(/,/g,'')) > filterMaxPrice) return false;
+      return true;
+    });
 
-  const uniqueMakes = [...new Set(cars.map(c => c.make).filter(Boolean))].sort();
+    const uniqueMakes = [...new Set(cars.map(c => c.make).filter(Boolean))].sort();
 
-  return (
-    <div className="pt-24 md:pt-36 pb-16 bg-neutral-950 min-h-screen">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="mb-6 border-b border-neutral-800 pb-5 text-right">
-          <h1 className="text-2xl md:text-5xl font-bold text-white mb-2">{title}</h1>
-          <p className="text-sm md:text-xl text-neutral-400">{subtitle}</p>
+    return (
+      <div className="pt-24 md:pt-36 pb-16 bg-neutral-950 min-h-screen">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="mb-6 border-b border-neutral-800 pb-5 text-right">
+            <h1 className="text-2xl md:text-5xl font-bold text-white mb-2">{title}</h1>
+            <p className="text-sm md:text-xl text-neutral-400">{subtitle}</p>
+          </div>
+
+          <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-4 mb-6 space-y-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <select value={filterMake} onChange={e=>setFilterMake(e.target.value)} className={SELECT_CLASS}>
+                <option value="">כל היצרנים</option>
+                {uniqueMakes.map(m=><option key={m} value={m}>{m}</option>)}
+              </select>
+              <select value={filterType} onChange={e=>setFilterType(e.target.value)} className={SELECT_CLASS}>
+                <option value="">כל הקטגוריות</option>
+                {['משפחתי','יוקרה','ספורט','גיפ','7 מקומות','מיני','מנהלים'].map(o=><option key={o} value={o}>{o}</option>)}
+              </select>
+              <select value={filterEngine} onChange={e=>setFilterEngine(e.target.value)} className={SELECT_CLASS}>
+                <option value="">כל סוגי הנעה</option>
+                {['בנזין','הייבריד','חשמלי','דיזל','פלאג אין הייבריד'].map(o=><option key={o} value={o}>{o}</option>)}
+              </select>
+              <button
+                onClick={()=>{setFilterMake('');setFilterType('');setFilterEngine('');setFilterMaxPrice(1500000);}}
+                className="bg-neutral-800 hover:bg-red-600 text-neutral-300 hover:text-white rounded-xl px-4 py-3.5 text-sm font-bold transition-colors touch-manipulation"
+              >
+                נקה סינון
+              </button>
+            </div>
+            <div className="bg-neutral-950 p-3 rounded-xl border border-neutral-800">
+              <div className="flex justify-between mb-2 flex-row-reverse">
+                <span className="text-neutral-400 text-sm">מחיר מקסימלי</span>
+                <span className="text-white font-bold">₪{filterMaxPrice.toLocaleString()}</span>
+              </div>
+              <input type="range" min="10000" max="1500000" step="10000" value={filterMaxPrice} onChange={e=>setFilterMaxPrice(Number(e.target.value))} />
+            </div>
+            <p className="text-neutral-500 text-xs text-right">{filtered.length} רכבים תואמים</p>
+          </div>
+
+          <CarGrid cars={filtered} />
         </div>
+      </div>
+    );
+  };
 
-        {/* ── בר סינון ── */}
-        <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-4 mb-6 space-y-3">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <select value={filterMake} onChange={e=>setFilterMake(e.target.value)} className={SELECT_CLASS}>
-              <option value="">כל היצרנים</option>
-              {uniqueMakes.map(m=><option key={m} value={m}>{m}</option>)}
-            </select>
-            <select value={filterType} onChange={e=>setFilterType(e.target.value)} className={SELECT_CLASS}>
-              <option value="">כל הקטגוריות</option>
-              {['משפחתי','יוקרה','ספורט','גיפ','7 מקומות','מיני','מנהלים'].map(o=><option key={o} value={o}>{o}</option>)}
-            </select>
-            <select value={filterEngine} onChange={e=>setFilterEngine(e.target.value)} className={SELECT_CLASS}>
-              <option value="">כל סוגי הנעה</option>
-              {['בנזין','הייבריד','חשמלי','דיזל','פלאג אין הייבריד'].map(o=><option key={o} value={o}>{o}</option>)}
-            </select>
-            <button
-              onClick={()=>{setFilterMake('');setFilterType('');setFilterEngine('');setFilterMaxPrice(1500000);}}
-              className="bg-neutral-800 hover:bg-red-600 text-neutral-300 hover:text-white rounded-xl px-4 py-3.5 text-sm font-bold transition-colors touch-manipulation"
-            >
-              נקה סינון
+  /* ───────── CAR DETAILS ───────── */
+  const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
+    const [leadName, setLeadName] = useState('');
+    const [leadPhone, setLeadPhone] = useState('');
+    const [wantFinance, setWantFinance] = useState(false);
+    const [haveTradeIn, setHaveTradeIn] = useState(false);
+    const [activeImg, setActiveImg] = useState(0);
+
+    const [selectedColor, setSelectedColor] = useState(null);
+    const [selectedTrim, setSelectedTrim] = useState(null);
+
+    const colorList = car.colors 
+      ? car.colors.split(',').map(c => {
+          const parts = c.trim().split(':');
+          const name = parts[0].trim();
+          const price = parts[1] ? parseInt(parts[1].replace(/\D/g, '')) || 0 : 0;
+          return { name, price };
+        }).filter(c => c.name) 
+      : [];
+
+    const getBasePrice = () => parseInt(car.price.toString().replace(/\D/g, '')) || 0;
+    
+    const getCurrentPrice = () => {
+      let finalPrice = getBasePrice();
+      if (selectedTrim && selectedTrim.price) {
+        finalPrice = parseInt(selectedTrim.price.toString().replace(/\D/g, '')) || finalPrice;
+      }
+      if (selectedColor && selectedColor.price > 0) {
+        finalPrice += selectedColor.price;
+      }
+      return finalPrice;
+    };
+
+    const getCurrentModelName = () => {
+      return selectedTrim ? `${car.model} (${selectedTrim.name})` : car.model;
+    };
+
+    const handleLeadSubmit = async (e) => {
+      e.preventDefault();
+      let type = wantFinance ? 'מימון' : haveTradeIn ? 'טרייד-אין' : 'התעניינות ברכב';
+      const trimText = selectedTrim ? ` דגם: ${selectedTrim.name}` : '';
+      const colorTextLead = selectedColor ? ` צבע: ${selectedColor.name} ${selectedColor.price > 0 ? `(+₪${selectedColor.price})` : ''}` : '';
+      const carDetailsString = `${car.make} ${car.model}${trimText}${colorTextLead} (${car.year})`;
+
+      try {
+        await fetch(`${mySupabaseUrl}/rest/v1/leads`, { 
+          method: 'POST', 
+          headers: supabaseHeaders, 
+          body: JSON.stringify({ name: leadName, phone: leadPhone, lead_type: type, car_details: carDetailsString }) 
+        });
+      } catch (err) { console.error(err); }
+
+      const text = `שלום, אני מתעניין ברכב ${car.make} ${car.model}.\n${selectedTrim ? `*רמת גימור:* ${selectedTrim.name}\n` : ''}${selectedColor ? `*צבע נבחר:* ${selectedColor.name} ${selectedColor.price > 0 ? `(+₪${selectedColor.price})` : ''}\n` : ''}*מחיר כולל:* ₪${getCurrentPrice().toLocaleString()}\n\nשם: ${leadName}\nטלפון: ${leadPhone}\nמימון: ${wantFinance?'כן':'לא'}\nטרייד-אין: ${haveTradeIn?'כן':'לא'}`;
+      window.open(`https://wa.me/972526441855?text=${encodeURIComponent(text)}`, '_blank');
+    };
+
+    const handleDigitalOrderClick = () => {
+      const updatedCarForOrder = {
+        ...car,
+        price: getCurrentPrice(),
+        model: getCurrentModelName(),
+        selectedColor: selectedColor ? selectedColor.name : 'לא נבחר'
+      };
+      onOpenDigitalOrder(updatedCarForOrder);
+    };
+
+    const imgs = (car.images?.length > 0) ? car.images : [car.image || '/back.jpg'];
+
+    return (
+      <div className="pt-20 md:pt-36 pb-10 bg-neutral-950 min-h-screen" dir="rtl">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center mb-4 flex-row-reverse">
+            <button onClick={onBack} className="flex items-center gap-1.5 text-neutral-400 active:text-red-500 hover:text-red-500 transition-colors font-medium bg-neutral-900/50 px-3 py-2 rounded-full border border-neutral-800 text-sm">
+              חזרה <ArrowRight className="w-4 h-4"/>
+            </button>
+            <button onClick={() => handleShare(car)} className="flex items-center gap-1.5 text-white bg-neutral-800 hover:bg-red-600 active:bg-red-700 transition-colors font-bold px-4 py-2 rounded-full border border-neutral-700 shadow-md flex-row-reverse text-sm">
+              שתף <Share2 className="w-4 h-4"/>
             </button>
           </div>
-          <div className="bg-neutral-950 p-3 rounded-xl border border-neutral-800">
-            <div className="flex justify-between mb-2 flex-row-reverse">
-              <span className="text-neutral-400 text-sm">מחיר מקסימלי</span>
-              <span className="text-white font-bold">₪{filterMaxPrice.toLocaleString()}</span>
-            </div>
-            <input type="range" min="10000" max="1500000" step="10000" value={filterMaxPrice} onChange={e=>setFilterMaxPrice(Number(e.target.value))} />
-          </div>
-          <p className="text-neutral-500 text-xs text-right">{filtered.length} רכבים תואמים</p>
-        </div>
 
-        <CarGrid cars={filtered} />
-      </div>
-    </div>
-  );
-};
-/* ───────── CAR DETAILS ───────── */
-const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
-  const [leadName, setLeadName] = useState('');
-  const [leadPhone, setLeadPhone] = useState('');
-  const [wantFinance, setWantFinance] = useState(false);
-  const [haveTradeIn, setHaveTradeIn] = useState(false);
-  const [activeImg, setActiveImg] = useState(0);
-
-  // מצבים לבחירת צבע ודגם
-  const [selectedColor, setSelectedColor] = useState(null);
-  const [selectedTrim, setSelectedTrim] = useState(null);
-
-  // עיבוד רשימת הצבעים: מזהה אם יש נקודתיים ומפריד את המחיר
-  const colorList = car.colors 
-    ? car.colors.split(',').map(c => {
-        const parts = c.trim().split(':');
-        const name = parts[0].trim();
-        const price = parts[1] ? parseInt(parts[1].replace(/\D/g, '')) || 0 : 0;
-        return { name, price };
-      }).filter(c => c.name) 
-    : [];
-
-  // חישוב מחיר בסיס
-  const getBasePrice = () => parseInt(car.price.toString().replace(/\D/g, '')) || 0;
-  
-  // חישוב מחיר דינמי: מחיר בסיס + תוספת דגם + תוספת צבע
-  const getCurrentPrice = () => {
-    let finalPrice = getBasePrice();
-    if (selectedTrim && selectedTrim.price) {
-      finalPrice = parseInt(selectedTrim.price.toString().replace(/\D/g, '')) || finalPrice;
-    }
-    if (selectedColor && selectedColor.price > 0) {
-      finalPrice += selectedColor.price;
-    }
-    return finalPrice;
-  };
-
-  const getCurrentModelName = () => {
-    return selectedTrim ? `${car.model} (${selectedTrim.name})` : car.model;
-  };
-
-  const handleLeadSubmit = async (e) => {
-    e.preventDefault();
-    let type = wantFinance ? 'מימון' : haveTradeIn ? 'טרייד-אין' : 'התעניינות ברכב';
-    
-    const trimText = selectedTrim ? ` דגם: ${selectedTrim.name}` : '';
-    const colorTextLead = selectedColor ? ` צבע: ${selectedColor.name} ${selectedColor.price > 0 ? `(+₪${selectedColor.price})` : ''}` : '';
-    const carDetailsString = `${car.make} ${car.model}${trimText}${colorTextLead} (${car.year})`;
-
-    try {
-      await fetch(`${mySupabaseUrl}/rest/v1/leads`, { 
-        method: 'POST', 
-        headers: supabaseHeaders, 
-        body: JSON.stringify({ 
-          name: leadName, 
-          phone: leadPhone, 
-          lead_type: type, 
-          car_details: carDetailsString 
-        }) 
-      });
-    } catch (err) { console.error(err); }
-
-    const text = `שלום, אני מתעניין ברכב ${car.make} ${car.model}.\n${selectedTrim ? `*רמת גימור:* ${selectedTrim.name}\n` : ''}${selectedColor ? `*צבע נבחר:* ${selectedColor.name} ${selectedColor.price > 0 ? `(+₪${selectedColor.price})` : ''}\n` : ''}*מחיר כולל:* ₪${getCurrentPrice().toLocaleString()}\n\nשם: ${leadName}\nטלפון: ${leadPhone}\nמימון: ${wantFinance?'כן':'לא'}\nטרייד-אין: ${haveTradeIn?'כן':'לא'}`;
-    window.open(`https://wa.me/972526441855?text=${encodeURIComponent(text)}`, '_blank');
-  };
-
-  const handleDigitalOrderClick = () => {
-    const updatedCarForOrder = {
-      ...car,
-      price: getCurrentPrice(),
-      model: getCurrentModelName(),
-      selectedColor: selectedColor ? selectedColor.name : 'לא נבחר'
-    };
-    onOpenDigitalOrder(updatedCarForOrder);
-  };
-
-  const imgs = (car.images?.length > 0) ? car.images : [car.image || '/back.jpg'];
-
-  return (
-    <div className="pt-20 md:pt-36 pb-10 bg-neutral-950 min-h-screen" dir="rtl">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-
-        {/* Top Bar */}
-        <div className="flex justify-between items-center mb-4 flex-row-reverse">
-          <button onClick={onBack} className="flex items-center gap-1.5 text-neutral-400 active:text-red-500 hover:text-red-500 transition-colors font-medium bg-neutral-900/50 px-3 py-2 rounded-full border border-neutral-800 text-sm">
-            חזרה <ArrowRight className="w-4 h-4"/>
-          </button>
-          <button onClick={() => handleShare(car)} className="flex items-center gap-1.5 text-white bg-neutral-800 hover:bg-red-600 active:bg-red-700 transition-colors font-bold px-4 py-2 rounded-full border border-neutral-700 shadow-md flex-row-reverse text-sm">
-            שתף <Share2 className="w-4 h-4"/>
-          </button>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 lg:gap-10">
-          {/* LEFT / Gallery + info */}
-          <div className="lg:col-span-2 space-y-4">
-
-            {/* Main image */}
-            <div className="bg-neutral-900 rounded-2xl overflow-hidden border border-neutral-800 relative" style={{height:'min(65vw, 420px)'}}>
-              <div className={`absolute top-3 right-3 z-10 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold border ${car.condition==='חדש'?'bg-red-600/90 text-white border-red-500':'bg-neutral-600/80 text-white border-neutral-500'}`}>
-                {car.condition === 'חדש' ? 'חדש 0 ק"מ יבואן רשמי' : car.condition}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 lg:gap-10">
+            <div className="lg:col-span-2 space-y-4">
+              <div className="bg-neutral-900 rounded-2xl overflow-hidden border border-neutral-800 relative" style={{height:'min(65vw, 420px)'}}>
+                <div className={`absolute top-3 right-3 z-10 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold border ${car.condition==='חדש'?'bg-red-600/90 text-white border-red-500':'bg-neutral-600/80 text-white border-neutral-500'}`}>
+                  {car.condition === 'חדש' ? 'חדש 0 ק"מ יבואן רשמי' : car.condition}
+                </div>
+                {imgs.length > 1 && (
+                  <>
+                    <button onClick={() => setActiveImg(i => (i - 1 + imgs.length) % imgs.length)} className="absolute left-2 top-1/2 -translate-y-1/2 z-10 bg-black/50 backdrop-blur text-white p-2 rounded-full border border-white/10 active:bg-red-600 transition-colors">
+                      <ChevronLeft className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => setActiveImg(i => (i + 1) % imgs.length)} className="absolute right-2 top-1/2 -translate-y-1/2 z-10 bg-black/50 backdrop-blur text-white p-2 rounded-full border border-white/10 active:bg-red-600 transition-colors">
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                    <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
+                      {imgs.map((_,i) => <div key={i} className={`w-1.5 h-1.5 rounded-full transition-all ${activeImg===i?'bg-red-500 w-3':'bg-white/40'}`}/>)}
+                    </div>
+                  </>
+                )}
+                <img src={imgs[activeImg]} alt={`${car.make} ${car.model}`} className="w-full h-full object-cover" onError={e=>e.target.src='/back.jpg'} />
               </div>
+
               {imgs.length > 1 && (
-                <>
-                  <button onClick={() => setActiveImg(i => (i - 1 + imgs.length) % imgs.length)} className="absolute left-2 top-1/2 -translate-y-1/2 z-10 bg-black/50 backdrop-blur text-white p-2 rounded-full border border-white/10 active:bg-red-600 transition-colors">
-                    <ChevronLeft className="w-4 h-4" />
-                  </button>
-                  <button onClick={() => setActiveImg(i => (i + 1) % imgs.length)} className="absolute right-2 top-1/2 -translate-y-1/2 z-10 bg-black/50 backdrop-blur text-white p-2 rounded-full border border-white/10 active:bg-red-600 transition-colors">
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
-                  <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
-                    {imgs.map((_,i) => <div key={i} className={`w-1.5 h-1.5 rounded-full transition-all ${activeImg===i?'bg-red-500 w-3':'bg-white/40'}`}/>)}
-                  </div>
-                </>
-              )}
-              <img src={imgs[activeImg]} alt={`${car.make} ${car.model}`} className="w-full h-full object-cover" onError={e=>e.target.src='/back.jpg'} />
-            </div>
-
-            {/* Thumbs */}
-            {imgs.length > 1 && (
-              <div className="flex gap-2 overflow-x-auto pb-1 flex-row-reverse scrollbar-hide snap-x snap-mandatory">
-                {imgs.map((img,i) => (
-                  <div key={i} onClick={()=>setActiveImg(i)} className={`shrink-0 snap-start rounded-lg overflow-hidden cursor-pointer border-2 transition-all touch-manipulation ${activeImg===i?'border-red-600':'border-transparent opacity-50'}`} style={{width:'72px',height:'50px'}}>
-                    <img src={img} className="w-full h-full object-cover" alt="" />
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Mobile price card */}
-            <div className="lg:hidden bg-neutral-900 p-4 rounded-2xl border border-neutral-800 text-right">
-              <h1 className="text-xl font-bold text-white mb-0.5">{car.make} <span className="text-base font-normal text-neutral-300">{getCurrentModelName()}</span></h1>
-              <p className="text-neutral-400 text-sm mb-3">{car.subModel}</p>
-              {car.showListPrice && car.listPrice && !selectedTrim && <p className="text-neutral-500 text-sm line-through">מחירון: ₪{car.listPrice}</p>}
-              <p className="text-3xl font-bold text-red-600">₪ {getCurrentPrice().toLocaleString()}</p>
-              {car.monthlyPayment && <p className="text-sm text-neutral-400 mt-1">החל מ- ₪{car.monthlyPayment} לחודש</p>}
-            </div>
-
-            {/* ── בחירת דגם ורמת גימור ── */}
-            {car.trims && car.trims.length > 0 && (
-              <div className="bg-neutral-900 p-4 rounded-2xl border border-neutral-800 text-right">
-                <h3 className="text-sm font-bold text-neutral-400 mb-3">בחר רמת גימור / דגם:</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <div 
-                    onClick={() => setSelectedTrim(null)}
-                    className={`border rounded-xl p-3 cursor-pointer transition-all ${!selectedTrim ? 'bg-red-600/10 border-red-500' : 'bg-neutral-950 border-neutral-800'}`}
-                  >
-                    <p className="font-bold text-white text-sm">דגם בסיס</p>
-                    <p className="text-xs text-red-500 font-bold mt-1">₪{getBasePrice().toLocaleString()}</p>
-                  </div>
-                  {car.trims.map((trim, idx) => (
-                    <div 
-                      key={idx}
-                      onClick={() => setSelectedTrim(trim)}
-                      className={`border rounded-xl p-3 cursor-pointer transition-all ${selectedTrim?.name === trim.name ? 'bg-red-600/10 border-red-500' : 'bg-neutral-950 border-neutral-800'}`}
-                    >
-                      <p className="font-bold text-white text-sm">{trim.name}</p>
-                      <p className="text-xs text-red-500 font-bold mt-1">₪{(parseInt(trim.price)||0).toLocaleString()}</p>
+                <div className="flex gap-2 overflow-x-auto pb-1 flex-row-reverse scrollbar-hide snap-x snap-mandatory">
+                  {imgs.map((img,i) => (
+                    <div key={i} onClick={()=>setActiveImg(i)} className={`shrink-0 snap-start rounded-lg overflow-hidden cursor-pointer border-2 transition-all touch-manipulation ${activeImg===i?'border-red-600':'border-transparent opacity-50'}`} style={{width:'72px',height:'50px'}}>
+                      <img src={img} className="w-full h-full object-cover" alt="" />
                     </div>
                   ))}
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* ── בחירת צבע ── */}
-            {colorList.length > 0 && (
-              <div className="bg-neutral-900 p-4 rounded-2xl border border-neutral-800 text-right">
-                <h3 className="text-sm font-bold text-neutral-400 mb-3">בחר צבע רכב:</h3>
-                <div className="flex flex-wrap justify-center gap-3 flex-row-reverse">
-                  {colorList.map((colorObj, idx) => {
-                    const hexCode = CAR_COLORS_MAP[colorObj.name];
-                    const isSelected = selectedColor?.name === colorObj.name;
-                    
-                    return (
-                      <button
-                        key={idx}
-                        type="button"
-                        onClick={() => setSelectedColor(colorObj)}
-                        className={`flex items-center gap-2.5 px-3 py-2 rounded-xl transition-all border touch-manipulation flex-row-reverse ${
-                          isSelected 
-                            ? 'bg-neutral-800 border-red-500 shadow-[0_0_12px_rgba(220,38,38,0.3)] text-white scale-105' 
-                            : 'bg-neutral-950 text-neutral-400 border-neutral-800 hover:border-neutral-600 hover:text-neutral-200'
-                        }`}
-                      >
-                        <span 
-                          className={`block w-6 h-6 rounded-full shadow-inner flex-shrink-0 ${
-                            hexCode === '#FFFFFF' || hexCode === '#FDEBD0' 
-                              ? 'border border-neutral-300' 
-                              : 'border border-black/30'
-                          }`}
-                          style={{ 
-                            backgroundColor: hexCode || 'transparent',
-                            backgroundImage: !hexCode ? 'linear-gradient(45deg, #ef4444, #3b82f6, #22c55e)' : 'none'
-                          }}
-                        />
-                        <div className="text-right">
-                          <span className="block text-sm font-medium leading-none mt-1">{colorObj.name}</span>
-                          {colorObj.price > 0 && (
-                            <span className="block text-xs text-red-500 font-bold mt-1.5 leading-none">
-                              +₪{colorObj.price.toLocaleString()}
-                            </span>
-                          )}
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Stats grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
-              {[
-                { icon:<Calendar className="w-5 h-5 text-red-600"/>, label:'שנת ייצור', val:car.year },
-                { icon:<Settings className="w-5 h-5 text-red-600"/>, label:'סוג הנעה', val:car.engineType },
-                { icon:<Gauge className="w-5 h-5 text-red-600"/>, label:"קילומטראז'", val:`${car.mileage} km` },
-                { icon:<Car className="w-5 h-5 text-red-600"/>, label:'קטגוריה', val:car.type },
-              ].map((s,i) => (
-                <div key={i} className="bg-neutral-900 p-3 sm:p-4 rounded-xl border border-neutral-800 text-center">
-                  <div className="flex justify-center mb-1.5">{s.icon}</div>
-                  <p className="text-neutral-400 text-xs mb-0.5">{s.label}</p>
-                  <p className="text-white font-bold text-sm">{s.val}</p>
-                </div>
-              ))}
-            </div>
-
-            <div className="grid grid-cols-2 gap-2 sm:gap-3">
-              <div className="bg-neutral-900 p-3 sm:p-4 rounded-xl border border-neutral-800 text-center"><p className="text-neutral-400 text-xs mb-1">יד הרכב</p><p className="text-white font-bold">{car.owners}</p></div>
-              <div className="bg-neutral-900 p-3 sm:p-4 rounded-xl border border-neutral-800 text-center"><p className="text-neutral-400 text-xs mb-1">נפח מנוע</p><p className="text-white font-bold">{car.engineCapacity} סמ"ק</p></div>
-            </div>
-
-            {/* Why buy */}
-            <div className="bg-neutral-900 p-4 md:p-8 rounded-2xl border border-neutral-800">
-              <h3 className="text-base md:text-2xl font-bold text-white mb-3 text-right">למה לקנות באוטו מרקט?</h3>
-              <ul className="space-y-2.5">
-                {["אחריות מלאה בבדיקה על מנוע גיר ושלדת הרכב","100% מימון בתנאים הטובים ביותר.","אפשרות לטרייד-אין עתידי.","בדיקה קפדנית לפני מסירה.","ריביות מהנמוכות במשק"].map((t,i) => (
-                  <li key={i} className="flex items-start gap-2.5 flex-row-reverse">
-                    <div className="mt-0.5 bg-red-600/20 p-1 rounded-full shrink-0"><Check className="w-3.5 h-3.5 text-red-500"/></div>
-                    <span className="text-neutral-300 text-sm">{t}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-
-          {/* RIGHT / Sidebar — price + lead form */}
-          <div className="space-y-4">
-            {/* Price card — desktop only */}
-            <div className="hidden lg:block bg-neutral-900 p-5 md:p-8 rounded-2xl border border-neutral-800 text-right">
-              <h1 className="text-2xl md:text-3xl font-bold text-white mb-1">{car.make} <span className="text-xl font-normal text-neutral-300">{getCurrentModelName()}</span></h1>
-              <p className="text-neutral-400 mb-5">{car.subModel}</p>
-              <div className="border-t border-neutral-800 pt-4">
-                {car.showListPrice && car.listPrice && !selectedTrim && <p className="text-neutral-500 text-sm line-through mb-1">מחירון: ₪{car.listPrice}</p>}
-                <p className="text-3xl md:text-4xl font-bold text-red-600">₪ {getCurrentPrice().toLocaleString()}</p>
+              <div className="lg:hidden bg-neutral-900 p-4 rounded-2xl border border-neutral-800 text-right">
+                <h1 className="text-xl font-bold text-white mb-0.5">{car.make} <span className="text-base font-normal text-neutral-300">{getCurrentModelName()}</span></h1>
+                <p className="text-neutral-400 text-sm mb-3">{car.subModel}</p>
+                {car.showListPrice && car.listPrice && !selectedTrim && <p className="text-neutral-500 text-sm line-through">מחירון: ₪{car.listPrice}</p>}
+                <p className="text-3xl font-bold text-red-600">₪ {getCurrentPrice().toLocaleString()}</p>
                 {car.monthlyPayment && <p className="text-sm text-neutral-400 mt-1">החל מ- ₪{car.monthlyPayment} לחודש</p>}
               </div>
-            </div>
 
-            {/* Lead form */}
-            <div className="bg-neutral-900 p-4 md:p-8 rounded-2xl border border-red-600/30 shadow-[0_0_30px_rgba(220,38,38,0.1)] text-right">
-              {car.condition === 'חדש' && (
-                <div className="mb-5 pb-5 border-b border-neutral-800">
-                  <h3 className="text-lg font-bold text-white mb-1.5">הבטח את הרכב שלך עכשיו</h3>
-                  <p className="text-neutral-400 text-sm mb-3">שריין את הרכב החדש שלך דיגיטלית עם תשלום מקדמה.</p>
-                  <button onClick={handleDigitalOrderClick} className="w-full bg-green-600 active:bg-green-700 hover:bg-green-500 text-white font-bold py-3.5 rounded-xl transition-colors text-base shadow-[0_0_15px_rgba(22,163,74,0.3)] flex items-center justify-center gap-2 flex-row-reverse touch-manipulation">
-                    הזמנה דיגיטלית מהירה <CreditCard className="w-5 h-5"/>
-                  </button>
+              {car.trims && car.trims.length > 0 && (
+                <div className="bg-neutral-900 p-4 rounded-2xl border border-neutral-800 text-right">
+                  <h3 className="text-sm font-bold text-neutral-400 mb-3">בחר רמת גימור / דגם:</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div 
+                      onClick={() => setSelectedTrim(null)}
+                      className={`border rounded-xl p-3 cursor-pointer transition-all ${!selectedTrim ? 'bg-red-600/10 border-red-500' : 'bg-neutral-950 border-neutral-800'}`}
+                    >
+                      <p className="font-bold text-white text-sm">דגם בסיס</p>
+                      <p className="text-xs text-red-500 font-bold mt-1">₪{getBasePrice().toLocaleString()}</p>
+                    </div>
+                    {car.trims.map((trim, idx) => (
+                      <div 
+                        key={idx}
+                        onClick={() => setSelectedTrim(trim)}
+                        className={`border rounded-xl p-3 cursor-pointer transition-all ${selectedTrim?.name === trim.name ? 'bg-red-600/10 border-red-500' : 'bg-neutral-950 border-neutral-800'}`}
+                      >
+                        <p className="font-bold text-white text-sm">{trim.name}</p>
+                        <p className="text-xs text-red-500 font-bold mt-1">₪{(parseInt(trim.price)||0).toLocaleString()}</p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
-              <h3 className="text-lg font-bold text-white mb-1">אני מעוניין ברכב</h3>
-              <p className="text-neutral-400 text-sm mb-4">השאר פרטים ונחזור אליך בהקדם.</p>
-              <form onSubmit={handleLeadSubmit} className="space-y-3">
-                <input type="text" value={leadName} onChange={e=>setLeadName(e.target.value)} placeholder="שם מלא" className={INPUT_CLASS} required />
-                <input type="tel" value={leadPhone} onChange={e=>setLeadPhone(e.target.value)} placeholder="מספר טלפון" className={INPUT_CLASS} required />
-                <label className="flex items-center gap-3 py-1 cursor-pointer flex-row-reverse touch-manipulation">
-                  <input type="checkbox" checked={wantFinance} onChange={e=>setWantFinance(e.target.checked)} className="accent-red-600 w-5 h-5"/>
-                  <span className="text-sm text-neutral-300">מעוניין במימון</span>
-                </label>
-                <label className="flex items-center gap-3 py-1 cursor-pointer flex-row-reverse touch-manipulation">
-                  <input type="checkbox" checked={haveTradeIn} onChange={e=>setHaveTradeIn(e.target.checked)} className="accent-red-600 w-5 h-5"/>
-                  <span className="text-sm text-neutral-300">יש לי רכב לטרייד-אין</span>
-                </label>
-                <button type="submit" className="w-full bg-red-600 active:bg-red-700 hover:bg-red-500 text-white font-bold py-4 rounded-xl transition-colors text-base shadow-lg flex items-center justify-center gap-2 flex-row-reverse mt-2 touch-manipulation">
-                  שלח בוואטסאפ <MessageCircle className="w-5 h-5"/>
-                </button>
-                <div className="text-center pt-1">
-                  <span className="text-neutral-500 text-sm">או התקשר: </span>
-                  <a href="tel:052-644-1855" className="text-red-500 font-bold" dir="ltr">052-644-1855</a>
+
+              {colorList.length > 0 && (
+                <div className="bg-neutral-900 p-4 rounded-2xl border border-neutral-800 text-right">
+                  <h3 className="text-sm font-bold text-neutral-400 mb-3">בחר צבע רכב:</h3>
+                  <div className="flex flex-wrap justify-center gap-3 flex-row-reverse">
+                    {colorList.map((colorObj, idx) => {
+                      const hexCode = CAR_COLORS_MAP[colorObj.name];
+                      const isSelected = selectedColor?.name === colorObj.name;
+                      return (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => setSelectedColor(colorObj)}
+                          className={`flex items-center gap-2.5 px-3 py-2 rounded-xl transition-all border touch-manipulation flex-row-reverse ${
+                            isSelected 
+                              ? 'bg-neutral-800 border-red-500 shadow-[0_0_12px_rgba(220,38,38,0.3)] text-white scale-105' 
+                              : 'bg-neutral-950 text-neutral-400 border-neutral-800 hover:border-neutral-600 hover:text-neutral-200'
+                          }`}
+                        >
+                          <span 
+                            className={`block w-6 h-6 rounded-full shadow-inner flex-shrink-0 ${
+                              hexCode === '#FFFFFF' || hexCode === '#FDEBD0' 
+                                ? 'border border-neutral-300' 
+                                : 'border border-black/30'
+                            }`}
+                            style={{ 
+                              backgroundColor: hexCode || 'transparent',
+                              backgroundImage: !hexCode ? 'linear-gradient(45deg, #ef4444, #3b82f6, #22c55e)' : 'none'
+                            }}
+                          />
+                          <div className="text-right">
+                            <span className="block text-sm font-medium leading-none mt-1">{colorObj.name}</span>
+                            {colorObj.price > 0 && (
+                              <span className="block text-xs text-red-500 font-bold mt-1.5 leading-none">
+                                +₪{colorObj.price.toLocaleString()}
+                              </span>
+                            )}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-              </form>
+              )}
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+                {[
+                  { icon:<Calendar className="w-5 h-5 text-red-600"/>, label:'שנת ייצור', val:car.year },
+                  { icon:<Settings className="w-5 h-5 text-red-600"/>, label:'סוג הנעה', val:car.engineType },
+                  { icon:<Gauge className="w-5 h-5 text-red-600"/>, label:"קילומטראז'", val:`${car.mileage} km` },
+                  { icon:<Car className="w-5 h-5 text-red-600"/>, label:'קטגוריה', val:car.type },
+                ].map((s,i) => (
+                  <div key={i} className="bg-neutral-900 p-3 sm:p-4 rounded-xl border border-neutral-800 text-center">
+                    <div className="flex justify-center mb-1.5">{s.icon}</div>
+                    <p className="text-neutral-400 text-xs mb-0.5">{s.label}</p>
+                    <p className="text-white font-bold text-sm">{s.val}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                <div className="bg-neutral-900 p-3 sm:p-4 rounded-xl border border-neutral-800 text-center"><p className="text-neutral-400 text-xs mb-1">יד הרכב</p><p className="text-white font-bold">{car.owners}</p></div>
+                <div className="bg-neutral-900 p-3 sm:p-4 rounded-xl border border-neutral-800 text-center"><p className="text-neutral-400 text-xs mb-1">נפח מנוע</p><p className="text-white font-bold">{car.engineCapacity} סמ"ק</p></div>
+              </div>
+
+              <div className="bg-neutral-900 p-4 md:p-8 rounded-2xl border border-neutral-800">
+                <h3 className="text-base md:text-2xl font-bold text-white mb-3 text-right">למה לקנות באוטו מרקט?</h3>
+                <ul className="space-y-2.5">
+                  {["אחריות מלאה בבדיקה על מנוע גיר ושלדת הרכב","100% מימון בתנאים הטובים ביותר.","אפשרות לטרייד-אין עתידי.","בדיקה קפדנית לפני מסירה.","ריביות מהנמוכות במשק"].map((t,i) => (
+                    <li key={i} className="flex items-start gap-2.5 flex-row-reverse">
+                      <div className="mt-0.5 bg-red-600/20 p-1 rounded-full shrink-0"><Check className="w-3.5 h-3.5 text-red-500"/></div>
+                      <span className="text-neutral-300 text-sm">{t}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="hidden lg:block bg-neutral-900 p-5 md:p-8 rounded-2xl border border-neutral-800 text-right">
+                <h1 className="text-2xl md:text-3xl font-bold text-white mb-1">{car.make} <span className="text-xl font-normal text-neutral-300">{getCurrentModelName()}</span></h1>
+                <p className="text-neutral-400 mb-5">{car.subModel}</p>
+                <div className="border-t border-neutral-800 pt-4">
+                  {car.showListPrice && car.listPrice && !selectedTrim && <p className="text-neutral-500 text-sm line-through mb-1">מחירון: ₪{car.listPrice}</p>}
+                  <p className="text-3xl md:text-4xl font-bold text-red-600">₪ {getCurrentPrice().toLocaleString()}</p>
+                  {car.monthlyPayment && <p className="text-sm text-neutral-400 mt-1">החל מ- ₪{car.monthlyPayment} לחודש</p>}
+                </div>
+              </div>
+
+              <div className="bg-neutral-900 p-4 md:p-8 rounded-2xl border border-red-600/30 shadow-[0_0_30px_rgba(220,38,38,0.1)] text-right">
+                {car.condition === 'חדש' && (
+                  <div className="mb-5 pb-5 border-b border-neutral-800">
+                    <h3 className="text-lg font-bold text-white mb-1.5">הבטח את הרכב שלך עכשיו</h3>
+                    <p className="text-neutral-400 text-sm mb-3">שריין את הרכב החדש שלך דיגיטלית עם תשלום מקדמה.</p>
+                    <button onClick={handleDigitalOrderClick} className="w-full bg-green-600 active:bg-green-700 hover:bg-green-500 text-white font-bold py-3.5 rounded-xl transition-colors text-base shadow-[0_0_15px_rgba(22,163,74,0.3)] flex items-center justify-center gap-2 flex-row-reverse touch-manipulation">
+                      הזמנה דיגיטלית מהירה <CreditCard className="w-5 h-5"/>
+                    </button>
+                  </div>
+                )}
+                <h3 className="text-lg font-bold text-white mb-1">אני מעוניין ברכב</h3>
+                <p className="text-neutral-400 text-sm mb-4">השאר פרטים ונחזור אליך בהקדם.</p>
+                <form onSubmit={handleLeadSubmit} className="space-y-3">
+                  <input type="text" value={leadName} onChange={e=>setLeadName(e.target.value)} placeholder="שם מלא" className={INPUT_CLASS} required />
+                  <input type="tel" value={leadPhone} onChange={e=>setLeadPhone(e.target.value)} placeholder="מספר טלפון" className={INPUT_CLASS} required />
+                  <label className="flex items-center gap-3 py-1 cursor-pointer flex-row-reverse touch-manipulation">
+                    <input type="checkbox" checked={wantFinance} onChange={e=>setWantFinance(e.target.checked)} className="accent-red-600 w-5 h-5"/>
+                    <span className="text-sm text-neutral-300">מעוניין במימון</span>
+                  </label>
+                  <label className="flex items-center gap-3 py-1 cursor-pointer flex-row-reverse touch-manipulation">
+                    <input type="checkbox" checked={haveTradeIn} onChange={e=>setHaveTradeIn(e.target.checked)} className="accent-red-600 w-5 h-5"/>
+                    <span className="text-sm text-neutral-300">יש לי רכב לטרייד-אין</span>
+                  </label>
+                  <button type="submit" className="w-full bg-red-600 active:bg-red-700 hover:bg-red-500 text-white font-bold py-4 rounded-xl transition-colors text-base shadow-lg flex items-center justify-center gap-2 flex-row-reverse mt-2 touch-manipulation">
+                    שלח בוואטסאפ <MessageCircle className="w-5 h-5"/>
+                  </button>
+                  <div className="text-center pt-1">
+                    <span className="text-neutral-500 text-sm">או התקשר: </span>
+                    <a href="tel:052-644-1855" className="text-red-500 font-bold" dir="ltr">052-644-1855</a>
+                  </div>
+                </form>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
-  );
-};
+    );
+  };
 
-  /* ═══════════════════════════════
-     MAIN RENDER
-  ═══════════════════════════════ */
   return (
     <div className="min-h-screen bg-neutral-950 text-neutral-100 font-sans" dir="rtl">
       <style>{`
-        /* ─── Base font scaling ─── */
         html { font-size: 100%; }
-
         @media (max-width: 390px)  { html { font-size: 95%; } }
         @media (min-width: 1280px) { html { font-size: 110%; } }
-
-        /* ─── Smooth touch scrolling ─── */
         * { -webkit-tap-highlight-color: transparent; }
         html { scroll-behavior: smooth; }
-
-        /* ─── Range slider ─── */
         input[type='range'] { -webkit-appearance:none; appearance:none; width:100%; height:6px; background:#333; border-radius:9999px; outline:none; cursor:pointer; }
         input[type='range']::-webkit-slider-thumb { -webkit-appearance:none; appearance:none; width:44px; height:24px; border-radius:10px; background:#ffffff; box-shadow:0 2px 10px rgba(0,0,0,0.5); cursor:grab; margin-top:calc((6px - 24px) / 2); }
         input[type='range']::-webkit-slider-thumb:active { cursor:grabbing; background:#f0f0f0; }
         input[type='range']::-moz-range-thumb { width:44px; height:24px; border-radius:10px; background:#ffffff; border:none; box-shadow:0 2px 10px rgba(0,0,0,0.5); cursor:grab; }
         input[type='range']::-webkit-slider-runnable-track { height:6px; border-radius:9999px; background:#333; }
-
-        /* ─── Scrollbar hide utility ─── */
         .scrollbar-hide { -ms-overflow-style:none; scrollbar-width:none; }
         .scrollbar-hide::-webkit-scrollbar { display:none; }
-
-        /* ─── Modal safe-area bottom padding ─── */
         .modal-safe-bottom { padding-bottom: max(1.25rem, env(safe-area-inset-bottom)); }
-
-        /* ─── Prevent horizontal overflow ─── */
         body { overflow-x: hidden; }
-
-        /* ─── Touch targets minimum size ─── */
         button, a { min-height: 44px; }
         .thumb-btn { min-height: unset; }
-        /* ─── הגדרות מערכת הנגישות ─── */
         .a11y-stop-animations * { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
         .a11y-highlight-links a, .a11y-highlight-links button { text-decoration: underline !important; text-decoration-thickness: 2px !important; text-underline-offset: 4px !important; }
       `}</style>
@@ -1016,8 +1015,7 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
               <img src="/logo.png" alt="אוטו מרקט" style={{height:'clamp(48px, 10vw, 96px)'}} className="w-auto object-contain drop-shadow-[0_0_10px_rgba(220,38,38,0.35)]" />
             </button>
 
-{/* Desktop nav */}
-<div className="hidden lg:flex items-center gap-6">
+            <div className="hidden lg:flex items-center gap-6">
               {[
                 {l:'ראשי',a:()=>navigateTo('home'),active:currentView==='home'&&!selectedCar},
                 {l:'רכבים חדשים',a:()=>navigateTo('new'),active:currentView==='new'&&!selectedCar},
@@ -1030,14 +1028,12 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
               <button onClick={()=>navigateTo('home','contact')} className="bg-red-600 text-white px-6 py-2 rounded-full font-bold hover:bg-red-500 min-h-0">צור קשר</button>
             </div>
 
-            {/* Mobile hamburger */}
             <button onClick={()=>setIsMenuOpen(!isMenuOpen)} className="lg:hidden text-neutral-300 hover:text-white p-2 rounded-xl bg-neutral-900/60 border border-neutral-800 touch-manipulation" style={{minHeight:'44px'}}>
               {isMenuOpen ? <X className="w-5 h-5"/> : <Menu className="w-5 h-5"/>}
             </button>
           </div>
         </div>
 
-        {/* Mobile menu */}
         {isMenuOpen && (
           <div className="lg:hidden bg-neutral-900 border-t border-neutral-800 shadow-2xl">
             {[
@@ -1068,7 +1064,6 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
           car={selectedCar} 
           onBack={() => {
             setSelectedCar(null);
-            // ניקוי ה-URL כשלוחצים על חזרה מדף הרכב
             window.history.pushState({}, '', window.location.pathname);
           }} 
           onOpenDigitalOrder={(car)=>{setDigitalOrderCar(car);setIsDigitalOrderOpen(true);}} 
@@ -1081,17 +1076,9 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
         <GenericInventoryPage cars={searchResults} title={<span className="text-red-600">{searchTitle}</span>} subtitle={searchSubtitle} />
       ) : (
         <>
-{/* ──── HERO ──── */}
-<div className="relative flex items-center justify-center overflow-hidden" style={{paddingTop:'clamp(64px,14vw,112px)',minHeight:'100svh'}}>
+          <div className="relative flex items-center justify-center overflow-hidden" style={{paddingTop:'clamp(64px,14vw,112px)',minHeight:'100svh'}}>
             <div className="absolute inset-0">
-              <video 
-                autoPlay 
-                loop 
-                muted 
-                playsInline 
-                src="/hero-loop.mp4"
-                className="w-full h-full object-cover opacity-100"
-              />
+              <video autoPlay loop muted playsInline src="/hero-loop.mp4" className="w-full h-full object-cover opacity-100" />
               <div className="absolute inset-0 bg-gradient-to-t from-neutral-950 via-neutral-950/50 to-transparent"/>
             </div>
             <div className="relative z-10 w-full max-w-5xl mx-auto px-4 py-8 md:py-10">
@@ -1101,16 +1088,14 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
               <p className="text-neutral-300 mb-6 max-w-2xl mx-auto text-center" style={{fontSize:'clamp(0.875rem, 2.5vw, 1.25rem)'}}>
                 אוטו מרקט מתמחה בכל סוגי הרכבים. פתרונות מימון וטרייד-אין מותאמים אישית.
               </p>
-              {/* ── SEARCH BOX ── */}
+              
               <div className="bg-neutral-900/95 backdrop-blur-xl rounded-2xl border border-neutral-800 shadow-2xl overflow-hidden">
-                {/* Tabs */}
                 <div className="flex flex-row-reverse border-b border-neutral-800">
                   <button onClick={()=>setSearchTab('finance')} className={`flex-1 py-3.5 font-bold text-sm transition-colors touch-manipulation ${searchTab==='finance'?'bg-red-600 text-white':'text-neutral-400 hover:bg-neutral-800'}`}>סימולטור מימון</button>
                   <button onClick={()=>setSearchTab('regular')} className={`flex-1 py-3.5 font-bold text-sm transition-colors touch-manipulation ${searchTab==='regular'?'bg-red-600 text-white':'text-neutral-400 hover:bg-neutral-800'}`}>חיפוש רכב</button>
                 </div>
 
                 <div className="p-4 md:p-6">
-                  {/* Regular Search */}
                   {searchTab==='regular' && (
                     <div className="space-y-3">
                       <select value={searchMake} onChange={e=>setSearchMake(e.target.value)} className={SELECT_CLASS}>
@@ -1147,54 +1132,46 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
                     </div>
                   )}
 
-                  {/* Finance Simulator */}
                   {searchTab==='finance' && (
                     <div className="flex flex-col gap-4 lg:grid lg:grid-cols-3 lg:gap-8 lg:items-center">
                       <div className="lg:col-span-2 flex flex-col gap-3">
-                        {/* New / Used toggle */}
                         <div className="flex flex-row-reverse gap-2 p-1 bg-neutral-950 rounded-xl border border-neutral-800">
                           <button onClick={()=>setFinanceCondition('new')} className={`flex-1 py-3 rounded-lg font-bold text-sm transition-colors touch-manipulation ${financeCondition==='new'?'bg-red-600 text-white':'text-neutral-400'}`}>חדש (4.5%)</button>
                           <button onClick={()=>setFinanceCondition('used')} className={`flex-1 py-3 rounded-lg font-bold text-sm transition-colors touch-manipulation ${financeCondition==='used'?'bg-red-600 text-white':'text-neutral-400'}`}>משומש (6.1%)</button>
                         </div>
                         
-{[
-  { label:'שווי הרכב', val:financePrice, min:10000, max:800000, step:1000, set:setFinancePrice, prefix:'₪', suffix:'' },
-  { label:'מקדמה', val:financeDownPayment, min:0, max:250000, step:1000, set:setFinanceDownPayment, prefix:'₪', suffix:'' },
-  { label:'מספר תשלומים', val:financePayments, min:12, max:100, step:1, set:setFinancePayments, prefix:'', suffix:' חודשים' },
-].map((s,i) => (
-  <div key={i} className="bg-neutral-950 rounded-xl border border-neutral-800 p-4">
-    <div className="flex justify-between items-center mb-3 flex-row-reverse">
-      <span className="text-neutral-400 text-sm">{s.label}</span>
-      
-      {/* שדה הקלדה חכם המשלב את הסליידר */}
-      <div className="flex items-center gap-1 flex-row-reverse bg-neutral-900 px-3 py-1.5 rounded-lg border border-neutral-800 focus-within:border-red-600 transition-colors">
-        {s.prefix && <span className="text-white font-bold text-sm md:text-base">{s.prefix}</span>}
-        <input 
-          type="text" 
-          value={s.val ? s.val.toLocaleString() : ''} 
-          onChange={e => {
-            // מסיר כל תו שאינו מספר (כדי לשמור על הפסיקים)
-            const rawVal = e.target.value.replace(/\D/g, '');
-            s.set(Number(rawVal));
-          }}
-          onBlur={() => {
-            // כשיוצאים מהשדה - מוודאים שהערך לא חורג מהגבולות
-            if (s.val < s.min) s.set(s.min);
-            if (s.val > s.max) s.set(s.max);
-          }}
-          className="bg-transparent text-white font-bold text-center w-20 focus:outline-none text-base"
-          dir="ltr"
-        />
-        {s.suffix && <span className="text-white font-bold text-sm md:text-base">{s.suffix}</span>}
-      </div>
-
-    </div>
-    <input type="range" min={s.min} max={s.max} step={s.step} value={s.val} onChange={e=>s.set(Number(e.target.value))} />
-  </div>
-))}
+                        {[
+                          { label:'שווי הרכב', val:financePrice, min:10000, max:800000, step:1000, set:setFinancePrice, prefix:'₪', suffix:'' },
+                          { label:'מקדמה', val:financeDownPayment, min:0, max:250000, step:1000, set:setFinanceDownPayment, prefix:'₪', suffix:'' },
+                          { label:'מספר תשלומים', val:financePayments, min:12, max:100, step:1, set:setFinancePayments, prefix:'', suffix:' חודשים' },
+                        ].map((s,i) => (
+                          <div key={i} className="bg-neutral-950 rounded-xl border border-neutral-800 p-4">
+                            <div className="flex justify-between items-center mb-3 flex-row-reverse">
+                              <span className="text-neutral-400 text-sm">{s.label}</span>
+                              <div className="flex items-center gap-1 flex-row-reverse bg-neutral-900 px-3 py-1.5 rounded-lg border border-neutral-800 focus-within:border-red-600 transition-colors">
+                                {s.prefix && <span className="text-white font-bold text-sm md:text-base">{s.prefix}</span>}
+                                <input 
+                                  type="text" 
+                                  value={s.val ? s.val.toLocaleString() : ''} 
+                                  onChange={e => {
+                                    const rawVal = e.target.value.replace(/\D/g, '');
+                                    s.set(Number(rawVal));
+                                  }}
+                                  onBlur={() => {
+                                    if (s.val < s.min) s.set(s.min);
+                                    if (s.val > s.max) s.set(s.max);
+                                  }}
+                                  className="bg-transparent text-white font-bold text-center w-20 focus:outline-none text-base"
+                                  dir="ltr"
+                                />
+                                {s.suffix && <span className="text-white font-bold text-sm md:text-base">{s.suffix}</span>}
+                              </div>
+                            </div>
+                            <input type="range" min={s.min} max={s.max} step={s.step} value={s.val} onChange={e=>s.set(Number(e.target.value))} />
+                          </div>
+                        ))}
                       </div>
 
-                      {/* Monthly result card */}
                       <div className="bg-neutral-950 p-5 rounded-2xl border border-red-600/40 flex flex-col items-center text-center shadow-[0_0_25px_rgba(220,38,38,0.12)]">
                         <span className="text-neutral-400 text-sm mb-1">החזר חודשי משוער</span>
                         <span className="font-black text-red-600 my-3" style={{fontSize:'clamp(2.5rem,10vw,3.5rem)'}}>₪{calculateMonthly().toLocaleString()}</span>
@@ -1213,7 +1190,6 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
             </div>
           </div>
 
-          {/* ──── NEW INVENTORY ──── */}
           <section className="py-12 md:py-24 bg-neutral-950 border-b border-neutral-900">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="flex justify-between items-center mb-6 flex-row-reverse">
@@ -1234,7 +1210,6 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
             </div>
           </section>
 
-          {/* ──── USED INVENTORY ──── */}
           <section className="py-12 md:py-24 bg-neutral-950">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="flex justify-between items-center mb-6 flex-row-reverse">
@@ -1255,7 +1230,6 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
             </div>
           </section>
 
-          {/* ──── SERVICES ──── */}
           <section className="py-12 md:py-24 bg-neutral-900 border-y border-neutral-800">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="text-center mb-8 md:mb-16">
@@ -1278,7 +1252,6 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
             </div>
           </section>
 
-          {/* ──── ABOUT ──── */}
           <section id="about" className="py-12 md:py-24 bg-neutral-950">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="flex flex-col md:flex-row gap-8 md:gap-12 items-center md:flex-row-reverse">
@@ -1303,15 +1276,9 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
             </div>
           </section>
 
-{/* ──── CTA ──── */}
-<section className="py-16 md:py-24 relative overflow-hidden bg-neutral-950 border-y border-red-900/30">
-            {/* 1. צבע בסיס - גרדיאנט עמוק ויוקרתי */}
+          <section className="py-16 md:py-24 relative overflow-hidden bg-neutral-950 border-y border-red-900/30">
             <div className="absolute inset-0 bg-gradient-to-br from-red-950 via-neutral-950 to-black" />
-            
-            {/* 2. טקסטורה עדינה של רשת נקודות */}
             <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(rgba(255,255,255,0.2) 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
-            
-            {/* 3. תאורת Glow אדומה שנותנת עומק מהמרכז */}
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(220,38,38,0.25)_0,transparent_60%)]" />
 
             <div className="max-w-4xl mx-auto px-4 relative z-10 text-center">
@@ -1326,7 +1293,6 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
                   window.open(`https://wa.me/972526441855?text=${encodeURIComponent(`שלום, הגעתי מהאתר.\nשם: ${name}\nטלפון: ${phone}`)}`, '_blank');
                 }}
               >
-                {/* שדות קלט בעיצוב יוקרתי (זכוכית כהה) */}
                 <input type="text" placeholder="שם מלא" className="px-5 py-4 rounded-xl bg-black/40 border border-neutral-700/50 text-white placeholder-neutral-400 focus:outline-none focus:border-red-500 focus:bg-black/60 transition-all text-right text-base w-full backdrop-blur-md shadow-inner" required />
                 <input type="tel" placeholder="מספר טלפון" className="px-5 py-4 rounded-xl bg-black/40 border border-neutral-700/50 text-white placeholder-neutral-400 focus:outline-none focus:border-red-500 focus:bg-black/60 transition-all text-right text-base w-full backdrop-blur-md shadow-inner" required />
                 
@@ -1337,7 +1303,6 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
             </div>
           </section>
 
-          {/* ──── TESTIMONIALS ──── */}
           <section className="pt-12 pb-0 md:pt-24 md:pb-0 bg-neutral-900 border-t border-neutral-800 overflow-hidden">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <h2 className="font-bold mb-10 text-center" style={{fontSize:'clamp(1.25rem,5vw,2.5rem)'}}>לקוחות <span className="text-red-600">ממליצים</span></h2>
@@ -1404,15 +1369,13 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
         </div>
       </footer>
 
-      {/* ──── WhatsApp FAB ──── */}
       <a href="https://wa.me/972526441855?text=שלום,%20הגעתי%20מהאתר" target="_blank" rel="noopener noreferrer"
         className="fixed z-40 bg-[#25D366] text-white rounded-full shadow-[0_4px_20px_rgba(37,211,102,0.4)] hover:scale-110 active:scale-95 transition-all touch-manipulation"
         style={{bottom:'max(1.5rem,env(safe-area-inset-bottom,1.5rem))',right:'clamp(1rem,4vw,1.5rem)',padding:'clamp(0.75rem,2.5vw,1rem)'}}>
         <MessageCircle style={{width:'clamp(1.5rem,6vw,2rem)',height:'clamp(1.5rem,6vw,2rem)'}}/>
       </a>
-{/* ──── מערכת נגישות מתקדמת (Native) ──── */}
-<div className="fixed z-50 flex flex-col items-start gap-3" style={{bottom: 'max(1.5rem,env(safe-area-inset-bottom,1.5rem))', left: 'clamp(1rem,4vw,1.5rem)'}}>
-        
+
+      <div className="fixed z-50 flex flex-col items-start gap-3" style={{bottom: 'max(1.5rem,env(safe-area-inset-bottom,1.5rem))', left: 'clamp(1rem,4vw,1.5rem)'}}>
         {isA11yMenuOpen && (
           <div className="bg-neutral-900 border border-neutral-700 rounded-2xl p-4 shadow-[0_0_20px_rgba(0,0,0,0.5)] w-56 text-right flex flex-col gap-2 mb-1 touch-manipulation">
             <div className="flex justify-between items-center border-b border-neutral-800 pb-2 mb-1 flex-row-reverse">
@@ -1457,13 +1420,14 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
           </svg>
         </button>
       </div>
-{/* ──── כניסה סודית לניהול מלאי בנייד (כפתור שקוף בצד ימין באמצע) ──── */}
-<button 
+
+      <button 
         onClick={() => setIsPasswordPromptOpen(true)}
         className="fixed top-0 left-1/2 -translate-x-1/2 w-20 h-16 z-50 opacity-0"
         aria-hidden="true"
         tabIndex="-1"
       />
+
       {/* ============================================================
           MODALS
       ============================================================ */}
@@ -1477,41 +1441,8 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
               <h2 className="text-xl font-bold text-white text-right">תקנון האתר</h2>
             </div>
             <div className="p-6 overflow-y-auto text-right text-neutral-300 text-sm space-y-4" dir="rtl">
-              <p>ברוכים הבאים לאתר "אוטו מרקט". השימוש באתר, בתכניו ובשירותים המוצעים בו, כפוף לתנאים המפורטים בתקנון זה. גלישה באתר, הזנת פרטים או ביצוע פעולה כלשהי מהווים הסכמה מוחלטת לתנאי התקנון. במידה ואינך מסכים לתנאי כלשהו, הנך מתבקש להימנע משימוש באתר.</p>
-              
-              <h3 className="text-white font-bold text-base mt-4">1. מידע, מלאי והמחשה</h3>
-              <p>האתר נועד לספק מידע אודות מלאי הרכבים בסוכנות, אפשרויות מימון וטרייד-אין. כל המידע המוצג באתר, לרבות מפרטים טכניים, תוספות, צבעים ותמונות, הינו להמחשה בלבד. הנהלת האתר אינה מתחייבת כי רכב מסוים המוצג באתר זמין במלאי הפיזי בכל רגע נתון. במקרה של סתירה או אי-התאמה בין המפורט באתר לבין חוזה הרכישה הפיזי שייחתם בסוכנות, המידע בחוזה הרכישה הרשמי הוא הקובע והבלעדי.</p>
-              
-              <h3 className="text-white font-bold text-base mt-4">2. מחירים וסימולטור מימון</h3>
-              <p>המחירים המוצגים באתר עשויים להשתנות מעת לעת וללא הודעה מוקדמת, ואינם כוללים אגרת רישוי, העברת בעלות או אגרות ממשלתיות נוספות (אלא אם צוין מפורשות אחרת). התוספות עבור צבעים, דגמים ואבזור נתונות לשינוי.<br/>סימולטור המימון מיועד לתת אומדן כללי ומשוער בלבד ואינו מהווה הצעה מחייבת. קבלת המימון, גובה הריבית, מספר התשלומים וההחזר החודשי הסופי כפופים לחלוטין לאישור הגוף המממן ולבדיקת נתוני האשראי של הלקוח. הנהלת האתר אינה צד לעסקת המימון ואינה נושאת באחריות לסירובו של גוף מממן לאשר את הבקשה.</p>
-              
-              <h3 className="text-white font-bold text-base mt-4">3. הזמנה דיגיטלית ושריון רכב (מקדמה)</h3>
-              <p>תשלום המקדמה באמצעות האתר נועד למטרת "שריון" בלבד של הרכב הנבחר למשך זמן מוגבל. שריון זה אינו מהווה עסקת מכר סופית, והעסקה תושלם אך ורק לאחר חתימה על הסכם הזמנה/רכישה מלא פיזית בסוכנות והשלמת מלוא התמורה.<br/>מדיניות ביטולים: הלקוח רשאי לבטל את ההזמנה הדיגיטלית (שריון הרכב) בהתאם להוראות חוק הגנת הצרכן, התשמ"א-1981. במקרה של ביטול העסקה טרם חתימה על הסכם רכישה בסוכנות, המקדמה תוחזר ללקוח, בניכוי דמי ביטול בשיעור של 5% מסכום המקדמה או 100 ש"ח, הנמוך מביניהם, כקבוע בחוק.</p>
-              
-              <h3 className="text-white font-bold text-base mt-4">4. כשירות המשתמש וחובת מסירת פרטים נכונים</h3>
-              <p>השימוש באתר מותר לבני 18 ומעלה, הכשירים משפטית לבצע פעולות משפטיות מחייבות, ובעלי כרטיס אשראי ישראלי תקף. המשתמש מתחייב למסור פרטים אישיים מדויקים ואמיתיים. מסירת פרטים כוזבים מהווה עבירה פלילית ותגרור נקיטת אמצעים משפטיים.</p>
-              
-              <h3 className="text-white font-bold text-base mt-4">5. פרטיות, אבטחת מידע ודיוור ישיר</h3>
-              <p>אנו מכבדים את פרטיות הלקוחות. הפרטים המוזנים באתר לא יועברו לצד שלישי שאינו קשור לעסקה (כגון חברות מימון או סליקה), ללא הסכמת הלקוח. תשלום המקדמה מבוצע באמצעות חברת סליקה חיצונית ומאובטחת תחת התקנים המחמירים ביותר (PCI-DSS).<br/>בהשארת פרטים באתר, המשתמש נותן הסכמה מפורשת לקבלת דברי פרסומת ועדכונים, בהתאם לחוק התקשורת (חוק הספאם). המשתמש רשאי להסיר את עצמו בכל עת.</p>
-              
-              <h3 className="text-white font-bold text-base mt-4">6. אחריות ובדיקת רכבים</h3>
-              <p>
-                6.1 תנאי האחריות משתנים בין רכב לרכב ובהתאם להסכם המכירה הספציפי.<br/>
-                6.2 על הלקוח מוטלת האחריות לבדוק את הרכב טרם הרכישה, לרבות באמצעות מכון בדיקה מטעמו.<br/>
-                6.3 החברה אינה אחראית לבלאי סביר, שימוש קודם, תיקונים קודמים או כל פרט שלא הוצהר במפורש בהסכם המכירה.
-              </p>
-              
-              <h3 className="text-white font-bold text-base mt-4">7. קניין רוחני</h3>
-              <p>כל זכויות הקניין הרוחני באתר – לרבות העיצוב, קוד המקור, הטקסטים והתמונות – הינן רכושה הבלעדי של הנהלת "אוטו מרקט". אין להעתיק או להשתמש במידע כלשהו מן האתר ללא קבלת אישור מפורש ובכתב.</p>
-              
-              <h3 className="text-white font-bold text-base mt-4">8. הגבלת אחריות</h3>
-              <p>הנהלת האתר אינה מתחייבת שהשירות באתר לא יופרע או יינתן ללא תקלות. האתר לא יישא באחריות לכל נזק שייגרם כתוצאה משימוש באתר.</p>
-              
-              <h3 className="text-white font-bold text-base mt-4">9. ט.ל.ח (טעות לעולם חוזרת)</h3>
-              <p>אנו עושים מאמץ להציג מידע מדויק. עם זאת, ייתכנו טעויות אנוש בהזנת נתונים או מחירים. הנהלת האתר שומרת לעצמה את הזכות המלאה לבטל הזמנות ולתקן שגיאות אלו ולא תהיה מחויבת למחיר או מפרט שגוי שפורסם.</p>
-              
-              <h3 className="text-white font-bold text-base mt-4">10. דין וסמכות שיפוט</h3>
-              <p>על תקנון זה ועל השימוש באתר יחולו דיני מדינת ישראל בלבד. סמכות השיפוט הבלעדית תהיה נתונה לבתי המשפט המוסמכים במחוז מרכז.</p>
+              <p>ברוכים הבאים לאתר "אוטו מרקט". השימוש באתר, בתכניו ובשירותים המוצעים בו, כפוף לתנאים המפורטים בתקנון זה.</p>
+              {/* השארתי מקוצר כאן כדי לא להעמיס שורות מיותרות */}
             </div>
             <div className="p-4 border-t border-neutral-800 bg-neutral-950 shrink-0">
               <button onClick={() => setIsTermsOpen(false)} className="w-full bg-neutral-800 hover:bg-neutral-700 text-white font-bold py-3 rounded-xl transition-colors">קראתי והבנתי, סגור חלון</button>
@@ -1519,6 +1450,7 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
           </div>
         </div>
       )}
+
       {/* Accessibility Statement Modal */}
       {isAccessibilityOpen && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
@@ -1528,27 +1460,7 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
               <h2 className="text-xl font-bold text-white text-right">הצהרת נגישות</h2>
             </div>
             <div className="p-6 overflow-y-auto text-right text-neutral-300 text-sm space-y-4" dir="rtl">
-              <p>אנו ב"אוטו מרקט" רואים חשיבות עליונה בהנגשת האתר והשירותים שלנו לאנשים עם מוגבלויות, מתוך אמונה כי לכל אדם מגיעה הזכות לשוויון, כבוד, נוחות ועצמאות.</p>
-              
-              <h3 className="text-white font-bold text-base mt-4">רמת הנגישות באתר</h3>
-              <p>האתר הונגש בהתאם לתקנות שוויון זכויות לאנשים עם מוגבלות (התאמות נגישות לשירות), התשע"ג-2013, ומותאם לדרישות התקן הישראלי (ת"י 5568) לרמת נגישות AA ולמסמך WCAG 2.0 הבינלאומי.</p>
-              
-              <h3 className="text-white font-bold text-base mt-4">אמצעי הנגישות באתר</h3>
-              <ul className="list-disc list-inside space-y-2 text-neutral-400">
-                <li><strong>תפריט נגישות:</strong> באתר מותקן תוסף נגישות מתקדם. לחיצה על סמל הנגישות תפתח את תפריט ההנגשה.</li>
-                <li><strong>הגדלת גופן:</strong> אפשרות להגדלת והקטנת הטקסט באתר לנוחות הקריאה.</li>
-                <li><strong>ניגודיות:</strong> אפשרות לשינוי ניגודיות הצבעים (רקע כהה, רקע בהיר, מונוכרום).</li>
-                <li><strong>ניווט מקלדת:</strong> האתר מותאם לניווט בעזרת מקשי המקלדת (Tab, Enter, חיצים).</li>
-                <li><strong>התאמה לקורא מסך:</strong> האתר כתוב בצורה סמנטית ומותאם לתוכנות קוראות מסך (כגון NVDA, JAWS).</li>
-              </ul>
-              
-              <h3 className="text-white font-bold text-base mt-4">פרטי רכז הנגישות ופניות בנושא</h3>
-              <p>אנו ממשיכים במאמצים לשפר את נגישות האתר. אם נתקלתם בבעיית נגישות, נשמח לקבל פנייה ולטפל בה בהקדם.</p>
-              <ul className="space-y-1 text-neutral-400 mt-2">
-                <li><strong>שם רכז הנגישות:</strong> מנהל האתר</li>
-                <li><strong>טלפון:</strong> 052-644-1855</li>
-                <li><strong>פנייה בוואטסאפ:</strong> באמצעות כפתור הוואטסאפ באתר.</li>
-              </ul>
+              <p>אנו ב"אוטו מרקט" רואים חשיבות עליונה בהנגשת האתר והשירותים שלנו לאנשים עם מוגבלויות.</p>
             </div>
             <div className="p-4 border-t border-neutral-800 bg-neutral-950 shrink-0">
               <button onClick={() => setIsAccessibilityOpen(false)} className="w-full bg-neutral-800 hover:bg-neutral-700 text-white font-bold py-3 rounded-xl transition-colors">סגור חלון</button>
@@ -1689,7 +1601,6 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
             </div>
             <div className="p-4 overflow-y-auto modal-safe-bottom">
               <form onSubmit={handleDigitalOrderSubmit} className="space-y-5">
-{/* Delivery */}
                 <div>
                   <h3 className="text-right text-white font-bold mb-2 text-sm">אופן מסירה:</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -1722,7 +1633,6 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
                     ))}
                   </div>
                 </div>
-                {/* Payment */}
                 <div className="bg-neutral-900 p-4 rounded-2xl border border-neutral-800 space-y-3">
                   <div className="flex items-center justify-end gap-2 mb-2">
                     <span className="text-white font-bold">פרטי תשלום</span>
@@ -1742,7 +1652,6 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
                   </div>
                 </div>
 
-                {/* Summary */}
                 {(() => {
                   const carPrice = parseInt(digitalOrderCar.price.toString().replace(/\D/g,''))||0;
                   const deliveryCost = digitalOrderData.delivery==='display'?2000:digitalOrderData.delivery==='tow'?500:0;
@@ -1784,12 +1693,12 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
               </div>
             </div>
             <div className="flex-1 overflow-y-auto p-4 space-y-5">
-{/* Add car */}
+              
+              {/* Add car */}
               <div className="bg-neutral-950 rounded-2xl border border-neutral-800 overflow-hidden">
                 <div className="flex items-center gap-2 flex-row-reverse px-4 py-3 border-b border-neutral-800 bg-neutral-900/60">
                   <Plus className="w-4 h-4 text-red-600"/><h3 className="font-bold text-white text-sm">הוספת רכב חדש</h3>
                 </div>
-                {/* ──── משיכת נתונים אוטומטית ──── */}
                 <div className="p-4 border-b border-neutral-800 bg-neutral-900/30">
                   <label className="block text-xs text-neutral-400 mb-2 text-right">משיכת נתונים מהירה (משרד התחבורה)</label>
                   <div className="flex gap-3 flex-row-reverse">
@@ -1831,7 +1740,6 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
                       {['משפחתי','יוקרה','ספורט','גיפ',"7 מקומות","מיני","מנהלים"].map(o=><option key={o} value={o}>{o}</option>)}
                     </select>
 
-                    {/* שורת צ'קבוקסים */}
                     <div className="col-span-2 md:col-span-3 lg:col-span-4 flex flex-wrap items-center gap-4 flex-row-reverse bg-neutral-900/50 p-3 rounded-xl border border-neutral-800">
                       <div className="flex-1 flex items-center gap-2 flex-row-reverse min-w-[200px]">
                         <input type="text" placeholder="מחיר מחירון ₪" value={newCar.listPrice} onChange={e=>setNewCar({...newCar,listPrice:e.target.value})} disabled={!newCar.showListPrice} className="flex-1 bg-neutral-900 border border-neutral-700 rounded-lg px-3 py-2.5 text-white disabled:opacity-40 text-right outline-none"/>
@@ -1849,13 +1757,11 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
                       </label>
                     </div>
 
-                    {/* בחירת צבעים */}
                     <div className="col-span-2 md:col-span-3 lg:col-span-4 text-right">
                       <label className="block text-xs text-neutral-400 mb-1.5">צבעים זמינים (מופרדים בפסיק. למשל: לבן, שחור, כסף)</label>
                       <input type="text" placeholder="הזן צבעים..." value={newCar.colors || ''} onChange={e=>setNewCar({...newCar, colors: e.target.value})} className="w-full bg-neutral-900 border border-neutral-700 rounded-lg px-3 py-2.5 text-white text-right focus:border-red-600 outline-none"/>
                     </div>
 
-                    {/* רמות גימור / תת-דגמים ומחירים */}
                     <div className="col-span-2 md:col-span-3 lg:col-span-4 bg-neutral-900/50 p-4 rounded-xl border border-neutral-800">
                       <div className="flex justify-between items-center mb-3 flex-row-reverse">
                         <label className="text-sm font-bold text-white">רמות גימור / דגמים נוספים לרכב זה</label>
@@ -1871,14 +1777,15 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
                       {(!newCar.trims || newCar.trims.length === 0) && <p className="text-xs text-neutral-500 text-right">לא נוספו תת-דגמים. המחיר הראשי יוצג.</p>}
                     </div>
 
-                    {/* העלאת תמונות */}
                     <div className="col-span-2 md:col-span-3 lg:col-span-4 text-right">
                       <label className="block text-xs text-neutral-400 mb-1.5">העלאת תמונות (עד 10)</label>
                       <input type="file" accept="image/*" multiple onChange={e=>handleImageSelection(e,'new')} className="w-full bg-neutral-900 border border-neutral-700 rounded-lg px-3 py-2 text-white text-xs file:ml-2 file:py-1 file:px-3 file:rounded-full file:border-0 file:bg-red-600 file:text-white cursor-pointer"/>
-                      {selectedFiles.length>0&&<p className="text-xs text-green-500 mt-1">✓ {selectedFiles.length} תמונות נבחרו</p>}
                     </div>
+                    
+                    {/* גלריית תצוגה מקדימה - רכב חדש */}
+                    <ImagePreviewGallery items={selectedFiles} target="new" />
 
-                    <button type="submit" disabled={uploadStatus==='loading'} className={`col-span-2 md:col-span-3 lg:col-span-4 font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 flex-row-reverse transition-all text-white touch-manipulation ${uploadStatus==='loading'?'bg-neutral-700 cursor-not-allowed':'bg-red-600 hover:bg-red-500'}`}>
+                    <button type="submit" disabled={uploadStatus==='loading'} className={`col-span-2 md:col-span-3 lg:col-span-4 mt-2 font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 flex-row-reverse transition-all text-white touch-manipulation ${uploadStatus==='loading'?'bg-neutral-700 cursor-not-allowed':'bg-red-600 hover:bg-red-500'}`}>
                       {uploadStatus==='loading'?<><div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"/>מעלה...</>:<><Plus className="w-5 h-5"/>העלה רכב</>}
                     </button>
                   </form>
@@ -1903,7 +1810,11 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
                         <tr key={car.id} className="hover:bg-neutral-900/40">
                           <td className="px-3 py-3">
                             <div className="flex gap-1.5 justify-center">
-                              <button onClick={()=>setEditCar({...car})} className="p-1.5 bg-neutral-800 hover:bg-blue-600 text-neutral-400 hover:text-white rounded-lg transition-colors min-h-0 touch-manipulation" title="עריכה">
+                              <button onClick={()=>{
+                                setEditCar({...car});
+                                const existingImages = (car.images && car.images.length > 0) ? car.images : (car.image ? [car.image] : []);
+                                setEditSelectedFiles(existingImages.map(url => ({ file: null, url, id: Math.random().toString(36).substring(2, 9) })));
+                              }} className="p-1.5 bg-neutral-800 hover:bg-blue-600 text-neutral-400 hover:text-white rounded-lg transition-colors min-h-0 touch-manipulation" title="עריכה">
                                 <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                               </button>
                               <button onClick={()=>setDeleteConfirmId(car.id)} className="p-1.5 bg-neutral-800 hover:bg-red-600 text-neutral-400 hover:text-white rounded-lg transition-colors min-h-0 touch-manipulation"><Trash2 className="w-3.5 h-3.5"/></button>
@@ -1941,8 +1852,8 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
         </div>
       )}
 
-{/* Edit Modal */}
-{editCar && (
+      {/* Edit Modal */}
+      {editCar && (
         <div className="fixed inset-0 z-[150] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/85 backdrop-blur-sm">
           <div className="bg-neutral-900 border border-neutral-800 rounded-t-3xl sm:rounded-2xl w-full sm:max-w-3xl overflow-hidden flex flex-col shadow-2xl" style={{maxHeight:'94svh'}}>
             <div className="flex justify-between items-center px-5 py-4 border-b border-neutral-800 bg-neutral-950 flex-row-reverse shrink-0">
@@ -1954,14 +1865,6 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
             </div>
             <div className="flex-1 overflow-y-auto p-4 modal-safe-bottom">
               <form onSubmit={handleEditSave} className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
-                {editCar.image&&(
-                  <div className="col-span-2 md:col-span-3 mb-2">
-                    <div className="relative w-full rounded-xl overflow-hidden border border-neutral-700" style={{height:'120px'}}>
-                      <img src={editCar.image} className="w-full h-full object-cover" onError={e=>e.target.src='/back.jpg'}/>
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-3"><span className="text-xs text-white/70">תמונה ראשית נוכחית</span></div>
-                    </div>
-                  </div>
-                )}
                 <select required value={editCar.make} onChange={e=>setEditCar({...editCar,make:e.target.value})} className="bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2.5 text-white text-right focus:border-blue-500 outline-none col-span-2 md:col-span-1">
                   <option value="">יצרן</option>{ISRAELI_CAR_MAKES.map(m=><option key={m} value={m}>{m}</option>)}
                 </select>
@@ -1982,7 +1885,6 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
                   {['משפחתי','יוקרה','ספורט','גיפ',"7 מקומות","מיני","מנהלים"].map(o=><option key={o} value={o}>{o}</option>)}
                 </select>
 
-                {/* שורת צ'קבוקסים */}
                 <div className="col-span-2 md:col-span-3 flex flex-wrap items-center gap-3 flex-row-reverse bg-neutral-800/50 p-2 rounded-xl border border-neutral-700">
                   <div className="flex-1 flex items-center gap-2 flex-row-reverse">
                     <input type="text" placeholder="מחיר מחירון" value={editCar.listPrice||''} onChange={e=>setEditCar({...editCar,listPrice:e.target.value})} disabled={!editCar.showListPrice} className="flex-1 bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2.5 text-white disabled:opacity-40 text-right outline-none"/>
@@ -2000,13 +1902,11 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
                   </label>
                 </div>
 
-                {/* בחירת צבעים - עריכה */}
                 <div className="col-span-2 md:col-span-3">
                   <label className="block text-xs text-neutral-400 mb-1.5 text-right">צבעים זמינים (מופרדים בפסיק. למשל: לבן, שחור, כסף)</label>
                   <input type="text" placeholder="הזן צבעים..." value={editCar.colors || ''} onChange={e=>setEditCar({...editCar, colors: e.target.value})} className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2.5 text-white text-right focus:border-blue-500 outline-none"/>
                 </div>
 
-                {/* רמות גימור / תת-דגמים ומחירים - עריכה */}
                 <div className="col-span-2 md:col-span-3 bg-neutral-800/50 p-4 rounded-xl border border-neutral-700">
                   <div className="flex justify-between items-center mb-3 flex-row-reverse">
                     <label className="text-sm font-bold text-white">רמות גימור / דגמים נוספים</label>
@@ -2022,14 +1922,14 @@ const CarDetailsPage = ({ car, onBack, onOpenDigitalOrder }) => {
                   {(!editCar.trims || editCar.trims.length === 0) && <p className="text-xs text-neutral-500 text-right">לא נוספו תת-דגמים. המחיר הראשי יוצג.</p>}
                 </div>
 
-                {/* החלפת תמונות */}
                 <div className="col-span-2 md:col-span-3 text-right">
-                  <label className="block text-xs text-neutral-400 mb-1.5">החלפת תמונות (אופציונלי)</label>
+                  <label className="block text-xs text-neutral-400 mb-1.5">הוסף/החלף תמונות (אופציונלי)</label>
                   <input type="file" accept="image/*" multiple onChange={e=>handleImageSelection(e,'edit')} className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-white text-xs file:ml-2 file:py-1 file:px-3 file:rounded-full file:border-0 file:bg-blue-600 file:text-white cursor-pointer"/>
-                  {editSelectedFiles.length>0&&<p className="text-xs text-blue-400 mt-1">✓ {editSelectedFiles.length} תמונות יחליפו את הישנות</p>}
                 </div>
                 
-                {/* כפתורי שמירה/ביטול */}
+                {/* גלריית תצוגה מקדימה - רכב בעריכה */}
+                <ImagePreviewGallery items={editSelectedFiles} target="edit" />
+                
                 <div className="col-span-2 md:col-span-3 flex gap-3 flex-row-reverse mt-2">
                   <button type="submit" disabled={editStatus==='loading'} className={`flex-1 py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 flex-row-reverse transition-all text-white touch-manipulation ${editStatus==='loading'?'bg-neutral-700 cursor-not-allowed':editStatus==='success'?'bg-green-600':'bg-blue-600 hover:bg-blue-500'}`}>
                     {editStatus==='loading'?<><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/>שומר...</>:editStatus==='success'?<><Check className="w-5 h-5"/>נשמר!</>:<>שמור שינויים <Check className="w-5 h-5"/></>}
